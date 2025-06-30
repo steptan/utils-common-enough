@@ -52,6 +52,8 @@ project-lambda = "project_utils.cli.lambda_cmd:main"
 project-test = "project_utils.cli.test:main"
 project-cfn = "project_utils.cli.cloudformation:main"
 project-db = "project_utils.cli.database:main"
+media-register-deploy = "cli.deploy_media_register:main"
+git-submodule-setup = "scripts.git_submodules:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
