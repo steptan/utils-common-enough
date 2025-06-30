@@ -56,19 +56,50 @@ def setup():
 @click.option('--environment', '-e', required=True, help='Environment (dev/staging/prod)')
 @click.option('--region', '-r', default='us-west-1', help='AWS region')
 @click.option('--skip', '-s', multiple=True, help='Categories to skip')
+@click.option('--config-only', is_flag=True, help='Only validate configuration files')
 @click.option('--output', '-o', type=click.Choice(['console', 'json', 'html']), default='console')
-def validate(project, environment, region, skip, output):
+def validate(project, environment, region, skip, config_only, output):
     """Run pre-deployment validation checks."""
     try:
+        all_valid = True
+        combined_report = {
+            'project': project,
+            'environment': environment,
+            'validations': {}
+        }
+        
+        # Configuration validation
+        from ..project_utils.config.validator import ConfigurationValidator
+        config_validator = ConfigurationValidator(project)
+        config_valid, config_result = config_validator.validate_environment(environment)
+        combined_report['validations']['configuration'] = config_result
+        
+        if not config_valid:
+            all_valid = False
+            click.echo("❌ Configuration validation failed")
+            for error in config_result['errors']:
+                click.echo(f"  - {error}")
+        else:
+            click.echo("✅ Configuration validation passed")
+        
+        # If config-only flag is set, stop here
+        if config_only:
+            sys.exit(0 if config_valid else 1)
+        
+        # Deployment validation
         validator = PreDeploymentValidator(project, environment, region)
         checks = validator.validate_all(skip_categories=list(skip))
         report = validator.generate_report(checks)
+        combined_report['validations']['deployment'] = report
+        
+        if not report['ready_to_deploy']:
+            all_valid = False
         
         if output == 'console':
             validator.print_report(report)
         elif output == 'json':
             import json
-            click.echo(json.dumps(report, indent=2))
+            click.echo(json.dumps(combined_report, indent=2))
         elif output == 'html':
             # Generate HTML report
             html = generate_html_report(report)
@@ -78,7 +109,7 @@ def validate(project, environment, region, skip, output):
             click.echo(f"HTML report saved to {output_file}")
         
         # Exit with error if not ready to deploy
-        if not report['ready_to_deploy']:
+        if not all_valid:
             sys.exit(1)
             
     except Exception as e:

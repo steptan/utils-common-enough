@@ -231,5 +231,76 @@ def validate(project, environment):
         sys.exit(1)
 
 
+@main.command()
+@click.option('--project', '-p', required=True, help='Project name')
+@click.option('--pattern', default='test_*.py', help='Test file pattern to match')
+@click.option('--verbose', '-v', is_flag=True, help='Verbose output')
+@click.option('--quiet', '-q', is_flag=True, help='Quiet output (minimal)')
+@click.option('--test-dir', help='Test directory path')
+def infrastructure(project, pattern, verbose, quiet, test_dir):
+    """Run infrastructure unit tests."""
+    import unittest
+    from pathlib import Path
+    
+    try:
+        click.echo(f"🧪 Running infrastructure tests for {project}")
+        click.echo(f"Pattern: {pattern}")
+        
+        # Determine test directory
+        if test_dir:
+            start_dir = Path(test_dir)
+        else:
+            # Try to find test directory
+            possible_dirs = [
+                Path.cwd() / 'tests' / 'unit',
+                Path.cwd() / 'tests',
+                Path.cwd() / project / 'tests' / 'unit',
+                Path.cwd() / project / 'tests',
+            ]
+            
+            start_dir = None
+            for dir_path in possible_dirs:
+                if dir_path.exists():
+                    start_dir = dir_path
+                    break
+            
+            if not start_dir:
+                click.echo("❌ Could not find test directory", err=True)
+                click.echo("Try specifying --test-dir")
+                sys.exit(1)
+        
+        click.echo(f"Test directory: {start_dir}")
+        click.echo("-" * 50)
+        
+        # Set verbosity
+        if quiet:
+            verbosity = 0
+        elif verbose:
+            verbosity = 2
+        else:
+            verbosity = 1
+        
+        # Discover tests
+        loader = unittest.TestLoader()
+        suite = loader.discover(str(start_dir), pattern=pattern)
+        
+        # Run tests
+        runner = unittest.TextTestRunner(verbosity=verbosity)
+        result = runner.run(suite)
+        
+        # Print summary
+        click.echo("-" * 50)
+        if result.wasSuccessful():
+            click.echo(f"✅ All tests passed! ({result.testsRun} tests)")
+            sys.exit(0)
+        else:
+            click.echo(f"❌ Tests failed! ({len(result.failures)} failures, {len(result.errors)} errors)")
+            sys.exit(1)
+            
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     main()
