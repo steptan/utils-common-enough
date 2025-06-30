@@ -1,0 +1,46 @@
+# Configuration for media-register project
+name: media-register
+display_name: Media Register
+aws_region: us-west-1
+
+# Environment settings
+environments:
+  - dev
+  - staging
+  - prod
+default_environment: dev
+
+# Lambda configuration
+lambda_runtime: nodejs20.x
+lambda_timeout: 30
+lambda_memory: 512
+lambda_architecture: arm64
+
+# Build requirements
+node_version: "20.x"
+python_version: "3.11"
+
+# Frontend configuration
+frontend_build_command: npm run build
+frontend_dist_dir: out
+
+# Security
+enable_waf: true
+require_api_key: false
+allowed_origins:
+  - "*"
+
+# Monitoring
+enable_monitoring: true
+log_retention_days: 30
+
+# Custom configuration
+custom_config:
+  enable_usage_tracking: true
+  media_types:
+    - image
+    - video
+    - audio
+    - document
+  max_file_size_mb: 100
+  enable_version_control: true

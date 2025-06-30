@@ -1,0 +1,291 @@
+# IAM Policy Templates for CI/CD
+# These templates are used by the PolicyGenerator to create project-specific policies
+
+base_policy:
+  version: "2012-10-17"
+  statements:
+    - sid: "CloudFormationAccess"
+      effect: "Allow"
+      actions:
+        - "cloudformation:CreateStack"
+        - "cloudformation:UpdateStack"
+        - "cloudformation:DeleteStack"
+        - "cloudformation:DescribeStacks"
+        - "cloudformation:DescribeStackEvents"
+        - "cloudformation:GetTemplate"
+        - "cloudformation:ValidateTemplate"
+        - "cloudformation:CreateChangeSet"
+        - "cloudformation:DeleteChangeSet"
+        - "cloudformation:DescribeChangeSet"
+        - "cloudformation:ExecuteChangeSet"
+        - "cloudformation:ListStacks"
+        - "cloudformation:ListStackResources"
+      resources:
+        - "arn:aws:cloudformation:${region}:${account}:stack/${project}-*/*"
+        - "arn:aws:cloudformation:${region}:${account}:stack/CDKToolkit/*"
+
+    - sid: "S3BucketAccess"
+      effect: "Allow"
+      actions:
+        - "s3:CreateBucket"
+        - "s3:DeleteBucket"
+        - "s3:ListBucket"
+        - "s3:GetBucketLocation"
+        - "s3:GetBucketVersioning"
+        - "s3:PutBucketVersioning"
+        - "s3:GetBucketPublicAccessBlock"
+        - "s3:PutBucketPublicAccessBlock"
+        - "s3:GetBucketEncryption"
+        - "s3:PutBucketEncryption"
+      resources:
+        - "arn:aws:s3:::${project}-*"
+        - "arn:aws:s3:::cdk-*-${region}-${account}"
+
+    - sid: "S3ObjectAccess"
+      effect: "Allow"
+      actions:
+        - "s3:PutObject"
+        - "s3:GetObject"
+        - "s3:DeleteObject"
+        - "s3:GetObjectVersion"
+      resources:
+        - "arn:aws:s3:::${project}-*/*"
+        - "arn:aws:s3:::cdk-*-${region}-${account}/*"
+
+lambda_policy:
+  statements:
+    - sid: "LambdaFunctionAccess"
+      effect: "Allow"
+      actions:
+        - "lambda:CreateFunction"
+        - "lambda:UpdateFunctionCode"
+        - "lambda:UpdateFunctionConfiguration"
+        - "lambda:DeleteFunction"
+        - "lambda:GetFunction"
+        - "lambda:GetFunctionConfiguration"
+        - "lambda:ListFunctions"
+        - "lambda:AddPermission"
+        - "lambda:RemovePermission"
+        - "lambda:InvokeFunction"
+        - "lambda:TagResource"
+        - "lambda:UntagResource"
+        - "lambda:ListTags"
+        - "lambda:PublishVersion"
+        - "lambda:CreateAlias"
+        - "lambda:UpdateAlias"
+        - "lambda:DeleteAlias"
+      resources:
+        - "arn:aws:lambda:${region}:${account}:function:${project}-*"
+
+iam_policy:
+  statements:
+    - sid: "IAMRoleAccess"
+      effect: "Allow"
+      actions:
+        - "iam:CreateRole"
+        - "iam:DeleteRole"
+        - "iam:AttachRolePolicy"
+        - "iam:DetachRolePolicy"
+        - "iam:PutRolePolicy"
+        - "iam:DeleteRolePolicy"
+        - "iam:GetRole"
+        - "iam:GetRolePolicy"
+        - "iam:PassRole"
+        - "iam:TagRole"
+        - "iam:UntagRole"
+        - "iam:UpdateAssumeRolePolicy"
+      resources:
+        - "arn:aws:iam::${account}:role/${project}-*"
+
+    - sid: "IAMPolicyAccess"
+      effect: "Allow"
+      actions:
+        - "iam:CreatePolicy"
+        - "iam:DeletePolicy"
+        - "iam:CreatePolicyVersion"
+        - "iam:DeletePolicyVersion"
+        - "iam:GetPolicy"
+        - "iam:GetPolicyVersion"
+        - "iam:ListPolicyVersions"
+      resources:
+        - "arn:aws:iam::${account}:policy/${project}-*"
+
+dynamodb_policy:
+  statements:
+    - sid: "DynamoDBTableAccess"
+      effect: "Allow"
+      actions:
+        - "dynamodb:CreateTable"
+        - "dynamodb:DeleteTable"
+        - "dynamodb:DescribeTable"
+        - "dynamodb:UpdateTable"
+        - "dynamodb:TagResource"
+        - "dynamodb:UntagResource"
+        - "dynamodb:ListTagsOfResource"
+        - "dynamodb:UpdateTimeToLive"
+        - "dynamodb:DescribeTimeToLive"
+        - "dynamodb:UpdateContinuousBackups"
+        - "dynamodb:DescribeContinuousBackups"
+      resources:
+        - "arn:aws:dynamodb:${region}:${account}:table/${project}-*"
+
+apigateway_policy:
+  statements:
+    - sid: "APIGatewayAccess"
+      effect: "Allow"
+      actions:
+        - "apigateway:*"
+      resources:
+        - "arn:aws:apigateway:${region}::/restapis"
+        - "arn:aws:apigateway:${region}::/restapis/*"
+
+cloudfront_policy:
+  statements:
+    - sid: "CloudFrontAccess"
+      effect: "Allow"
+      actions:
+        - "cloudfront:CreateDistribution"
+        - "cloudfront:UpdateDistribution"
+        - "cloudfront:DeleteDistribution"
+        - "cloudfront:GetDistribution"
+        - "cloudfront:GetDistributionConfig"
+        - "cloudfront:ListDistributions"
+        - "cloudfront:TagResource"
+        - "cloudfront:UntagResource"
+        - "cloudfront:CreateInvalidation"
+        - "cloudfront:CreateOriginAccessControl"
+        - "cloudfront:UpdateOriginAccessControl"
+        - "cloudfront:DeleteOriginAccessControl"
+      resources: "*"
+
+cognito_policy:
+  statements:
+    - sid: "CognitoAccess"
+      effect: "Allow"
+      actions:
+        - "cognito-idp:CreateUserPool"
+        - "cognito-idp:DeleteUserPool"
+        - "cognito-idp:UpdateUserPool"
+        - "cognito-idp:DescribeUserPool"
+        - "cognito-idp:CreateUserPoolClient"
+        - "cognito-idp:DeleteUserPoolClient"
+        - "cognito-idp:UpdateUserPoolClient"
+        - "cognito-idp:DescribeUserPoolClient"
+      resources:
+        - "arn:aws:cognito-idp:${region}:${account}:userpool/*"
+
+vpc_policy:
+  statements:
+    - sid: "VPCAccess"
+      effect: "Allow"
+      actions:
+        - "ec2:CreateVpc"
+        - "ec2:DeleteVpc"
+        - "ec2:ModifyVpcAttribute"
+        - "ec2:DescribeVpcs"
+        - "ec2:CreateSubnet"
+        - "ec2:DeleteSubnet"
+        - "ec2:ModifySubnetAttribute"
+        - "ec2:DescribeSubnets"
+        - "ec2:CreateInternetGateway"
+        - "ec2:DeleteInternetGateway"
+        - "ec2:AttachInternetGateway"
+        - "ec2:DetachInternetGateway"
+        - "ec2:DescribeInternetGateways"
+        - "ec2:CreateNatGateway"
+        - "ec2:DeleteNatGateway"
+        - "ec2:DescribeNatGateways"
+        - "ec2:AllocateAddress"
+        - "ec2:ReleaseAddress"
+        - "ec2:DescribeAddresses"
+        - "ec2:CreateRoute"
+        - "ec2:DeleteRoute"
+        - "ec2:CreateRouteTable"
+        - "ec2:DeleteRouteTable"
+        - "ec2:AssociateRouteTable"
+        - "ec2:DisassociateRouteTable"
+        - "ec2:DescribeRouteTables"
+        - "ec2:CreateSecurityGroup"
+        - "ec2:DeleteSecurityGroup"
+        - "ec2:AuthorizeSecurityGroupIngress"
+        - "ec2:AuthorizeSecurityGroupEgress"
+        - "ec2:RevokeSecurityGroupIngress"
+        - "ec2:RevokeSecurityGroupEgress"
+        - "ec2:DescribeSecurityGroups"
+        - "ec2:CreateTags"
+        - "ec2:DeleteTags"
+        - "ec2:DescribeTags"
+      resources: "*"
+
+waf_policy:
+  statements:
+    - sid: "WAFAccess"
+      effect: "Allow"
+      actions:
+        - "wafv2:CreateWebACL"
+        - "wafv2:DeleteWebACL"
+        - "wafv2:UpdateWebACL"
+        - "wafv2:GetWebACL"
+        - "wafv2:ListWebACLs"
+        - "wafv2:AssociateWebACL"
+        - "wafv2:DisassociateWebACL"
+      resources:
+        - "arn:aws:wafv2:${region}:${account}:*/webacl/${project}-*"
+
+logs_policy:
+  statements:
+    - sid: "CloudWatchLogsAccess"
+      effect: "Allow"
+      actions:
+        - "logs:CreateLogGroup"
+        - "logs:DeleteLogGroup"
+        - "logs:PutRetentionPolicy"
+        - "logs:TagLogGroup"
+        - "logs:UntagLogGroup"
+        - "logs:DescribeLogGroups"
+      resources: "*"
+
+monitoring_policy:
+  statements:
+    - sid: "CloudWatchMetricsAccess"
+      effect: "Allow"
+      actions:
+        - "cloudwatch:PutMetricAlarm"
+        - "cloudwatch:DeleteAlarms"
+        - "cloudwatch:DescribeAlarms"
+      resources: "*"
+
+ssm_policy:
+  statements:
+    - sid: "SSMParameterAccess"
+      effect: "Allow"
+      actions:
+        - "ssm:GetParameter"
+        - "ssm:GetParameters"
+        - "ssm:PutParameter"
+        - "ssm:DeleteParameter"
+      resources:
+        - "arn:aws:ssm:${region}:${account}:parameter/${project}/*"
+
+cdk_policy:
+  statements:
+    - sid: "CDKBootstrapAccess"
+      effect: "Allow"
+      actions:
+        - "sts:AssumeRole"
+      resources:
+        - "arn:aws:iam::${account}:role/cdk-*"
+
+# GitHub OIDC trust policy template
+github_oidc_trust_policy:
+  version: "2012-10-17"
+  statements:
+    - effect: "Allow"
+      principal:
+        federated: "arn:aws:iam::${account}:oidc-provider/token.actions.githubusercontent.com"
+      action: "sts:AssumeRoleWithWebIdentity"
+      condition:
+        StringEquals:
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        StringLike:
+          "token.actions.githubusercontent.com:sub": "repo:${github_org}/${github_repo}:*"

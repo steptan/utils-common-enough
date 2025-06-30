@@ -1,0 +1,64 @@
+# Configuration for people-cards project
+name: people-cards
+display_name: People Cards
+aws_region: us-west-1
+
+# Environment settings
+environments:
+  - dev
+  - staging
+  - prod
+default_environment: dev
+
+# Lambda configuration
+lambda_runtime: nodejs20.x
+lambda_timeout: 30
+lambda_memory: 512
+lambda_architecture: arm64
+lambda_handler: dist/handler.handler
+
+# Build requirements
+node_version: "20.x"
+python_version: "3.11"
+
+# Frontend configuration
+frontend_build_command: npm run build && npm run export
+frontend_dist_dir: out
+
+# Security
+enable_waf: false
+require_api_key: false
+allowed_origins:
+  - "*"
+
+# Testing
+test_command: npm test
+test_coverage_threshold: 80
+
+# Bucket naming patterns (override defaults)
+bucket_patterns:
+  lambda: "people-cards-lambda-{environment}-{account_id}"
+  static: "people-cards-static-{environment}-{account_id}"
+  cloudfront_logs: "people-cards-cf-logs-{environment}-{account_id}"
+
+# DynamoDB table patterns
+table_patterns:
+  politicians: "people-cards-politicians-{environment}"
+  actions: "people-cards-actions-{environment}"
+  vote_comments: "people-cards-vote-comments-{environment}"
+
+# Custom configuration
+custom_config:
+  enable_social_features: true
+  card_templates:
+    - professional
+    - creative
+    - minimal
+  max_cards_per_user: 10
+  enable_analytics: true
+  # Hexagonal grid specific
+  enable_hexagon_navigation: true
+  max_actions_per_politician: 6
+  # Network optimization
+  use_single_nat_gateway: true
+  enable_vpc_endpoints: true
