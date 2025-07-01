@@ -134,8 +134,19 @@ class NetworkConstruct:
         self.nat_gateways = []
         self.elastic_ips = []
         
-        # Create one NAT gateway per AZ for high availability
-        for idx, public_subnet in enumerate(self.public_subnets):
+        # Check configuration for NAT requirements
+        vpc_config = self.config.get("vpc", {})
+        cost_config = self.config.get("cost_optimization", {})
+        
+        if not vpc_config.get("require_nat", True):
+            return  # No NAT required
+        
+        # Determine number of NAT gateways
+        single_nat = cost_config.get("single_nat_gateway", False)
+        num_nats = 1 if single_nat else len(self.public_subnets)
+        
+        # Create NAT gateways
+        for idx in range(num_nats):
             # Allocate Elastic IP
             eip = self.template.add_resource(
                 ec2.EIP(
@@ -154,7 +165,7 @@ class NetworkConstruct:
                 ec2.NatGateway(
                     f"NATGateway{idx+1}",
                     AllocationId=GetAtt(eip, "AllocationId"),
-                    SubnetId=Ref(public_subnet),
+                    SubnetId=Ref(self.public_subnets[idx]),
                     Tags=Tags(
                         Name=Sub(f"${{AWS::StackName}}-nat-{idx+1}"),
                         Environment=self.environment
@@ -198,15 +209,17 @@ class NetworkConstruct:
                 )
             )
         
-        # Private route tables (one per AZ for NAT gateway routing)
+        # Private route tables
         self.private_route_tables = []
-        for idx, (nat_gateway, private_subnet) in enumerate(zip(self.nat_gateways, self.private_subnets)):
+        
+        # If single NAT gateway, create one route table for all private subnets
+        if len(self.nat_gateways) == 1:
             rt = self.template.add_resource(
                 ec2.RouteTable(
-                    f"PrivateRouteTable{idx+1}",
+                    "PrivateRouteTable",
                     VpcId=Ref(self.vpc),
                     Tags=Tags(
-                        Name=Sub(f"${{AWS::StackName}}-private-rt-{idx+1}"),
+                        Name=Sub(f"${{AWS::StackName}}-private-rt"),
                         Type="private",
                         Environment=self.environment
                     )
@@ -217,21 +230,56 @@ class NetworkConstruct:
             # Route to NAT gateway
             self.template.add_resource(
                 ec2.Route(
-                    f"PrivateRoute{idx+1}",
+                    "PrivateRoute",
                     RouteTableId=Ref(rt),
                     DestinationCidrBlock="0.0.0.0/0",
-                    NatGatewayId=Ref(nat_gateway)
+                    NatGatewayId=Ref(self.nat_gateways[0])
                 )
             )
             
-            # Associate private subnet with route table
-            self.template.add_resource(
-                ec2.SubnetRouteTableAssociation(
-                    f"PrivateSubnetRouteTableAssociation{idx+1}",
-                    SubnetId=Ref(private_subnet),
-                    RouteTableId=Ref(rt)
+            # Associate all private subnets with this route table
+            for idx, private_subnet in enumerate(self.private_subnets):
+                self.template.add_resource(
+                    ec2.SubnetRouteTableAssociation(
+                        f"PrivateSubnetRouteTableAssociation{idx+1}",
+                        SubnetId=Ref(private_subnet),
+                        RouteTableId=Ref(rt)
+                    )
                 )
-            )
+        else:
+            # Multiple NAT gateways - one route table per AZ
+            for idx, (nat_gateway, private_subnet) in enumerate(zip(self.nat_gateways, self.private_subnets)):
+                rt = self.template.add_resource(
+                    ec2.RouteTable(
+                        f"PrivateRouteTable{idx+1}",
+                        VpcId=Ref(self.vpc),
+                        Tags=Tags(
+                            Name=Sub(f"${{AWS::StackName}}-private-rt-{idx+1}"),
+                            Type="private",
+                            Environment=self.environment
+                        )
+                    )
+                )
+                self.private_route_tables.append(rt)
+                
+                # Route to NAT gateway
+                self.template.add_resource(
+                    ec2.Route(
+                        f"PrivateRoute{idx+1}",
+                        RouteTableId=Ref(rt),
+                        DestinationCidrBlock="0.0.0.0/0",
+                        NatGatewayId=Ref(nat_gateway)
+                    )
+                )
+                
+                # Associate private subnet with route table
+                self.template.add_resource(
+                    ec2.SubnetRouteTableAssociation(
+                        f"PrivateSubnetRouteTableAssociation{idx+1}",
+                        SubnetId=Ref(private_subnet),
+                        RouteTableId=Ref(rt)
+                    )
+                )
     
     def _create_security_groups(self):
         """Create security groups for various resources."""

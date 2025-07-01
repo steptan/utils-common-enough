@@ -49,7 +49,8 @@ class CloudFrontLambdaAppPattern:
                 "cidr": "10.0.0.0/16",
                 "enable_dns": True,
                 "enable_dns_hostnames": True,
-                "max_azs": 2
+                "max_azs": 2,
+                "require_nat": self.environment != "dev"
             },
             "subnets": {
                 "public": [
@@ -61,8 +62,8 @@ class CloudFrontLambdaAppPattern:
                     {"cidr": "10.0.11.0/24", "name": "private-2"}
                 ]
             },
-            "nat_gateways": {
-                "count": 1 if self.environment != "dev" else 0
+            "cost_optimization": {
+                "single_nat_gateway": True  # Use single NAT Gateway for cost savings
             },
             "vpc_endpoints": {
                 "s3": True,
