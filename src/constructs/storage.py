@@ -210,12 +210,6 @@ class StorageConstruct:
             bucket = s3.Bucket(
                 f"S3{bucket_name.title().replace('-', '')}Bucket",
                 BucketName=bucket_name_ref,
-                PublicAccessBlockConfiguration=s3.PublicAccessBlockConfiguration(
-                    BlockPublicAcls=True,
-                    BlockPublicPolicy=True,
-                    IgnorePublicAcls=True,
-                    RestrictPublicBuckets=True
-                ),
                 Tags=Tags(
                     Name=bucket_name_ref,
                     Environment=self.environment,
@@ -230,7 +224,7 @@ class StorageConstruct:
                 )
             
             # Lifecycle rules
-            if "lifecycle_rules" in bucket_config:
+            if "lifecycle_rules" in bucket_config and bucket_config["lifecycle_rules"]:
                 lifecycle_rules = []
                 for rule_config in bucket_config["lifecycle_rules"]:
                     rule = s3.LifecycleRule(
