@@ -329,14 +329,23 @@ class BaseDeployer(ABC):
                 self.log("Getting stack events to diagnose failure...", "INFO")
                 response = self.cloudformation.describe_stack_events(StackName=stack_name)
                 
-                # Find the first failure event
+                # Find all failure events, not just the first
+                failed_events = []
                 for event in response["StackEvents"]:
-                    if "FAILED" in event.get("ResourceStatus", ""):
-                        self.add_error(
-                            f"Resource {event['LogicalResourceId']} ({event['ResourceType']}) failed: "
-                            f"{event.get('ResourceStatusReason', 'No reason provided')}"
-                        )
-                        break
+                    status = event.get("ResourceStatus", "")
+                    if "FAILED" in status and "Resource creation cancelled" not in event.get("ResourceStatusReason", ""):
+                        failed_events.append(event)
+                
+                # Sort by timestamp to get the first real failure
+                failed_events.sort(key=lambda x: x["Timestamp"])
+                
+                # Report the first real failure
+                if failed_events:
+                    event = failed_events[0]
+                    self.add_error(
+                        f"Root cause: Resource {event['LogicalResourceId']} ({event['ResourceType']}) failed: "
+                        f"{event.get('ResourceStatusReason', 'No reason provided')}"
+                    )
             except Exception as event_error:
                 self.log(f"Could not retrieve stack events: {event_error}", "WARNING")
             

@@ -210,6 +210,12 @@ class StorageConstruct:
             bucket = s3.Bucket(
                 f"S3{bucket_name.title().replace('-', '')}Bucket",
                 BucketName=bucket_name_ref,
+                PublicAccessBlockConfiguration=s3.PublicAccessBlockConfiguration(
+                    BlockPublicAcls=True,
+                    BlockPublicPolicy=True,
+                    IgnorePublicAcls=True,
+                    RestrictPublicBuckets=True
+                ),
                 Tags=Tags(
                     Name=bucket_name_ref,
                     Environment=self.environment,
