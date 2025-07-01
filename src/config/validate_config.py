@@ -11,7 +11,7 @@ import argparse
 from pathlib import Path
 from typing import List, Dict, Any
 
-from config_manager import ConfigManager
+from .config_manager import ConfigManager
 
 
 def validate_environment_config(environment: str, config_dir: str = "config") -> List[str]:
