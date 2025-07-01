@@ -48,11 +48,18 @@ class CloudFrontLambdaAppPattern:
             "vpc": {
                 "cidr": "10.0.0.0/16",
                 "enable_dns": True,
-                "enable_dns_hostnames": True
+                "enable_dns_hostnames": True,
+                "max_azs": 2
             },
             "subnets": {
-                "public": ["10.0.1.0/24", "10.0.2.0/24"],
-                "private": ["10.0.10.0/24", "10.0.11.0/24"]
+                "public": [
+                    {"cidr": "10.0.1.0/24", "name": "public-1"},
+                    {"cidr": "10.0.2.0/24", "name": "public-2"}
+                ],
+                "private": [
+                    {"cidr": "10.0.10.0/24", "name": "private-1"},
+                    {"cidr": "10.0.11.0/24", "name": "private-2"}
+                ]
             },
             "nat_gateways": {
                 "count": 1 if self.environment != "dev" else 0
