@@ -323,6 +323,23 @@ class BaseDeployer(ABC):
             return True
         except Exception as e:
             self.add_error(f"Stack {operation} failed: {e}")
+            
+            # Get stack events to understand the failure
+            try:
+                self.log("Getting stack events to diagnose failure...", "INFO")
+                response = self.cloudformation.describe_stack_events(StackName=stack_name)
+                
+                # Find the first failure event
+                for event in response["StackEvents"]:
+                    if "FAILED" in event.get("ResourceStatus", ""):
+                        self.add_error(
+                            f"Resource {event['LogicalResourceId']} ({event['ResourceType']}) failed: "
+                            f"{event.get('ResourceStatusReason', 'No reason provided')}"
+                        )
+                        break
+            except Exception as event_error:
+                self.log(f"Could not retrieve stack events: {event_error}", "WARNING")
+            
             return False
     
     def validate_prerequisites(self) -> bool:

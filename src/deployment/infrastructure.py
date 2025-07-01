@@ -2,6 +2,7 @@
 Infrastructure deployment using CloudFormation.
 """
 
+import os
 import json
 import yaml
 from pathlib import Path
@@ -241,6 +242,14 @@ class InfrastructureDeployer(BaseDeployer):
             self.log("No template file found, generating template dynamically...", "INFO")
             try:
                 template_body = self.generate_template()
+                
+                # Save generated template for debugging
+                if self.dry_run or os.environ.get("SAVE_GENERATED_TEMPLATE"):
+                    template_file = f"generated-template-{self.environment}.yaml"
+                    with open(template_file, 'w') as f:
+                        f.write(template_body)
+                    self.log(f"Saved generated template to {template_file}", "INFO")
+                
             except Exception as e:
                 return DeploymentResult(
                     status=DeploymentStatus.FAILED,
