@@ -11,7 +11,7 @@ import getpass
 import configparser
 from datetime import datetime
 
-from ...config import ProjectConfig, get_project_config
+from config import ProjectConfig, get_project_config
 
 
 class SetupWizard:

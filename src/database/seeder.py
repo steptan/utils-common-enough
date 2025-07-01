@@ -13,7 +13,7 @@ from typing import Dict, List, Any, Optional, Union
 import boto3
 from botocore.exceptions import ClientError
 
-from ..config import ProjectConfig, get_project_config
+from config import ProjectConfig, get_project_config
 
 
 @dataclass

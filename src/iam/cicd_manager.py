@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import boto3
 from botocore.exceptions import ClientError
 
-from ..config import ProjectConfig, get_project_config
+from config import ProjectConfig, get_project_config
 from .policies import PolicyGenerator
 
 

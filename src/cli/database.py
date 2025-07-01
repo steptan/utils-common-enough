@@ -7,8 +7,8 @@ import click
 import sys
 from pathlib import Path
 
-from ..database import DataSeeder, SeedData, PeopleCardsSeeder
-from ..config import get_project_config
+from database import DataSeeder, SeedData, PeopleCardsSeeder
+from config import get_project_config
 
 
 @click.group()

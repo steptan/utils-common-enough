@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import urljoin
 
-from ..config import ProjectConfig, get_project_config
-from ..cloudformation import StackManager
+from config import ProjectConfig, get_project_config
+from cloudformation import StackManager
 
 
 class TestStatus(Enum):

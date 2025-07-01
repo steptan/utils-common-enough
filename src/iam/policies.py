@@ -4,7 +4,7 @@ IAM policy templates and generators.
 
 import json
 from typing import Dict, Any, List, Optional
-from ..config import ProjectConfig
+from config import ProjectConfig
 
 
 class PolicyGenerator:
@@ -466,7 +466,7 @@ class PolicyGenerator:
 
 def get_cicd_policy(project_name: str, account_id: str, region: str = "us-east-1") -> str:
     """Get CI/CD policy as JSON string."""
-    from ..config import get_project_config
+    from config import get_project_config
     
     config = get_project_config(project_name)
     generator = PolicyGenerator(config)

@@ -10,7 +10,7 @@ from datetime import datetime
 import boto3
 from botocore.exceptions import ClientError
 
-from ..config import ProjectConfig, get_project_config
+from config import ProjectConfig, get_project_config
 
 
 class StackManager:

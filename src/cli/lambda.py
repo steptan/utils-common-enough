@@ -7,8 +7,8 @@ import click
 import sys
 from pathlib import Path
 
-from ..lambda_utils import NodeJSBuilder, TypeScriptCompiler, LambdaPackager
-from ..config import get_project_config
+from lambda_utils import NodeJSBuilder, TypeScriptCompiler, LambdaPackager
+from config import get_project_config
 
 
 @click.group()

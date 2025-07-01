@@ -14,7 +14,7 @@ import boto3
 import time
 
 from .infrastructure import InfrastructureDeployer
-from ..cloudformation.stack_manager import StackManager
+from cloudformation.stack_manager import StackManager
 
 
 class FraudOrNotDeployer(InfrastructureDeployer):

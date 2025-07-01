@@ -8,8 +8,8 @@ import sys
 import json
 from pathlib import Path
 
-from ..testing import SmokeTestRunner, TestResult
-from ..config import get_project_config
+from testing import SmokeTestRunner, TestResult
+from config import get_project_config
 
 
 @click.group()
@@ -78,7 +78,7 @@ def health(project, environment):
         click.echo(f"🏥 Health check for {project} ({environment})")
         
         # Import here to avoid circular dependency
-        from ..cloudformation import StackManager
+        from cloudformation import StackManager
         
         # Load configuration
         config = get_project_config(project)
@@ -206,7 +206,7 @@ def validate(project, environment):
         
         # Check IAM permissions
         click.echo("\n🔐 IAM Permissions:")
-        from ..iam import CICDPermissionManager
+        from iam import CICDPermissionManager
         try:
             iam_manager = CICDPermissionManager(project, config=config)
             if iam_manager.validate_permissions():

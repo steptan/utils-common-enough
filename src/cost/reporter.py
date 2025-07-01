@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 
-from ..config import ProjectConfig
+from config import ProjectConfig
 from .analyzer import CostAnalyzer
 from .monitor import CostMonitor
 

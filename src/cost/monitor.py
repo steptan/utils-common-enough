@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Any
 import boto3
 from botocore.exceptions import ClientError
 
-from ..config import ProjectConfig
+from config import ProjectConfig
 from .analyzer import CostAnalyzer
 
 

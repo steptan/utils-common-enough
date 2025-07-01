@@ -8,8 +8,8 @@ import sys
 import json
 from pathlib import Path
 
-from ..cloudformation import StackManager, StackDiagnostics
-from ..config import get_project_config
+from cloudformation import StackManager, StackDiagnostics
+from config import get_project_config
 
 
 @click.group()

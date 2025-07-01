@@ -7,11 +7,11 @@ from pathlib import Path
 import json
 import subprocess
 
-from ..lambda_utils.builder import LambdaBuilder
-from ..lambda_utils.nodejs_builder import NodeJSBuilder
-from ..lambda_utils.typescript_compiler import TypeScriptCompiler
-from ..lambda_utils.packager import LambdaPackager
-from ..config import get_project_config
+from lambda_utils.builder import LambdaBuilder
+from lambda_utils.nodejs_builder import NodeJSBuilder
+from lambda_utils.typescript_compiler import TypeScriptCompiler
+from lambda_utils.packager import LambdaPackager
+from config import get_project_config
 
 
 @click.group()

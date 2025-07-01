@@ -7,8 +7,8 @@ import click
 import sys
 from pathlib import Path
 
-from ..iam import CICDPermissionManager
-from ..config import get_project_config, ConfigManager
+from iam import CICDPermissionManager
+from config import get_project_config, ConfigManager
 
 
 @click.group()

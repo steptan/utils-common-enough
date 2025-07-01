@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from ..config import ProjectConfig
+from config import ProjectConfig
 
 
 class LambdaBuilder:

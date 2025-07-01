@@ -12,7 +12,7 @@ This L3 pattern creates a complete serverless API infrastructure with:
 import json
 from troposphere import Template, Output, Ref, GetAtt, Sub, Export
 from typing import Dict, List, Any, Optional
-from ..constructs import (
+from constructs import (
     NetworkConstruct,
     CostOptimizedNetworkConstruct,
     ComputeConstruct,

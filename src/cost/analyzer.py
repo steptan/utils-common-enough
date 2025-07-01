@@ -8,7 +8,7 @@ from collections import defaultdict
 import boto3
 from botocore.exceptions import ClientError
 
-from ..config import ProjectConfig
+from config import ProjectConfig
 
 
 class CostAnalyzer:
