@@ -60,41 +60,26 @@ class ComputeConstruct:
             }]
         }
         
-        self.lambda_role = self.template.add_resource(
-            iam.Role(
-                "LambdaExecutionRole",
-                AssumeRolePolicyDocument=assume_role_policy,
-                ManagedPolicyArns=[
-                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-                ],
-                Tags=Tags(
-                    Name=Sub(f"${{AWS::StackName}}-lambda-role"),
-                    Environment=self.environment
-                )
-            )
-        )
+        # Build inline policies list
+        policies = []
         
         # Add VPC execution policy if in VPC
         if self.vpc_config:
-            self.template.add_resource(
-                iam.Policy(
-                    "LambdaVPCPolicy",
-                    PolicyName="VPCAccess",
-                    PolicyDocument={
-                        "Version": "2012-10-17",
-                        "Statement": [{
-                            "Effect": "Allow",
-                            "Action": [
-                                "ec2:CreateNetworkInterface",
-                                "ec2:DescribeNetworkInterfaces",
-                                "ec2:DeleteNetworkInterface"
-                            ],
-                            "Resource": "*"
-                        }]
-                    },
-                    Roles=[Ref(self.lambda_role)]
-                )
-            )
+            policies.append(iam.Policy(
+                PolicyName="VPCAccess",
+                PolicyDocument={
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Action": [
+                            "ec2:CreateNetworkInterface",
+                            "ec2:DescribeNetworkInterfaces",
+                            "ec2:DeleteNetworkInterface"
+                        ],
+                        "Resource": "*"
+                    }]
+                }
+            ))
         
         # Add DynamoDB access if tables provided
         if self.dynamodb_tables:
@@ -105,30 +90,45 @@ class ComputeConstruct:
                     Sub(f"arn:aws:dynamodb:${{AWS::Region}}:${{AWS::AccountId}}:table/{table_name}/index/*")
                 ])
             
-            self.template.add_resource(
-                iam.Policy(
-                    "LambdaDynamoDBPolicy",
-                    PolicyName="DynamoDBAccess",
-                    PolicyDocument={
-                        "Version": "2012-10-17",
-                        "Statement": [{
-                            "Effect": "Allow",
-                            "Action": [
-                                "dynamodb:GetItem",
-                                "dynamodb:PutItem",
-                                "dynamodb:UpdateItem",
-                                "dynamodb:DeleteItem",
-                                "dynamodb:Query",
-                                "dynamodb:Scan",
-                                "dynamodb:BatchGetItem",
-                                "dynamodb:BatchWriteItem"
-                            ],
-                            "Resource": dynamodb_arns
-                        }]
-                    },
-                    Roles=[Ref(self.lambda_role)]
-                )
+            policies.append(iam.Policy(
+                PolicyName="DynamoDBAccess",
+                PolicyDocument={
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Action": [
+                            "dynamodb:GetItem",
+                            "dynamodb:PutItem",
+                            "dynamodb:UpdateItem",
+                            "dynamodb:DeleteItem",
+                            "dynamodb:Query",
+                            "dynamodb:Scan",
+                            "dynamodb:BatchGetItem",
+                            "dynamodb:BatchWriteItem"
+                        ],
+                        "Resource": dynamodb_arns
+                    }]
+                }
+            ))
+        
+        # Create role with all policies
+        role_props = {
+            "AssumeRolePolicyDocument": assume_role_policy,
+            "ManagedPolicyArns": [
+                "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+            ],
+            "Tags": Tags(
+                Name=Sub(f"${{AWS::StackName}}-lambda-role"),
+                Environment=self.environment
             )
+        }
+        
+        if policies:
+            role_props["Policies"] = policies
+        
+        self.lambda_role = self.template.add_resource(
+            iam.Role("LambdaExecutionRole", **role_props)
+        )
         
         self.resources["lambda_role"] = self.lambda_role
     
