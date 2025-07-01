@@ -18,7 +18,7 @@ class DistributionConstruct:
     """
     
     def __init__(self, template: Template, config: Dict[str, Any], environment: str,
-                 api_domain_name=None, api_stage=None):
+                 api_domain_name=None, api_stage=None, s3_bucket=None):
         """
         Initialize distribution construct
         
@@ -28,6 +28,7 @@ class DistributionConstruct:
             environment: Deployment environment (dev/staging/prod)
             api_domain_name: API Gateway domain name for API origin
             api_stage: API Gateway stage name
+            s3_bucket: Existing S3 bucket resource (optional)
         """
         self.template = template
         self.config = config
@@ -35,9 +36,11 @@ class DistributionConstruct:
         self.api_domain_name = api_domain_name
         self.api_stage = api_stage or environment
         self.resources = {}
+        self.s3_bucket = s3_bucket
         
         # Create distribution resources
-        self._create_s3_bucket()
+        if not self.s3_bucket:
+            self._create_s3_bucket()
         self._create_origin_access_identity()
         self._create_cloudfront_distribution()
         self._create_outputs()
@@ -109,10 +112,13 @@ class DistributionConstruct:
                             "Sid": "AllowCloudFrontAccess",
                             "Effect": "Allow",
                             "Principal": {
-                                "AWS": Sub(f"arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity {Ref(self.oai)}")
+                                "AWS": Join("", [
+                                    "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ",
+                                    Ref(self.oai)
+                                ])
                             },
                             "Action": "s3:GetObject",
-                            "Resource": Sub(f"{GetAtt(self.s3_bucket, 'Arn')}/*")
+                            "Resource": Join("", [GetAtt(self.s3_bucket, "Arn"), "/*"])
                         }
                     ]
                 }

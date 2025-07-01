@@ -165,12 +165,16 @@ class CloudFrontLambdaAppPattern:
                 ".amazonaws.com"
             ])
         
+        # Pass the frontend bucket from storage to distribution
+        frontend_bucket = storage.resources.get("bucket_frontend")
+        
         distribution = DistributionConstruct(
             self.template,
             distribution_config,
             self.environment,
             api_domain_name=api_domain_name,
-            api_stage=api_stage
+            api_stage=api_stage,
+            s3_bucket=frontend_bucket
         )
     
     

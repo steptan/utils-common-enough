@@ -204,7 +204,7 @@ class StorageConstruct:
             if "name_pattern" in bucket_config:
                 bucket_name_ref = Sub(bucket_config["name_pattern"])
             else:
-                bucket_name_ref = Sub(f"${{AWS::StackName}}-{bucket_name}-${{AWS::AccountId}}")
+                bucket_name_ref = Sub(f"${{AWS::StackName}}-{bucket_name}-{self.environment}")
             
             # Create bucket
             bucket = s3.Bucket(
