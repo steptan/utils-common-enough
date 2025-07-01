@@ -159,15 +159,28 @@ class ComputeConstruct:
                 SecurityGroupIds=self.vpc_config.get("security_group_ids", [])
             )
         
+        # Determine Lambda code configuration
+        s3_bucket = lambda_config.get("s3_bucket", "")
+        s3_key = lambda_config.get("s3_key", "")
+        
+        # Use S3 if both bucket and key are provided and non-empty
+        if s3_bucket and s3_key:
+            code_config = awslambda.Code(
+                S3Bucket=s3_bucket,
+                S3Key=s3_key
+            )
+        else:
+            # Use placeholder code for template generation
+            code_config = awslambda.Code(
+                ZipFile="// Placeholder Lambda function\nexports.handler = async (event) => {\n    return {\n        statusCode: 200,\n        body: JSON.stringify({ message: 'Hello from Lambda!' })\n    };\n};"
+            )
+        
         # Build function properties
         function_props = {
             "FunctionName": Sub(f"${{AWS::StackName}}-api-{self.environment}"),
             "Runtime": lambda_config.get("runtime", "nodejs20.x"),
-            "Code": awslambda.Code(
-                S3Bucket=lambda_config.get("s3_bucket", Sub(f"${{AWS::StackName}}-lambda-${{AWS::AccountId}}")),
-                S3Key=lambda_config.get("s3_key", f"lambda-{self.environment}.zip")
-            ),
-            "Handler": lambda_config.get("handler", "dist/handler.handler"),
+            "Code": code_config,
+            "Handler": lambda_config.get("handler", "index.handler"),
             "Role": GetAtt(self.lambda_role, "Arn"),
             "MemorySize": lambda_config.get("memory_size", 512),
             "Timeout": lambda_config.get("timeout", 30),
