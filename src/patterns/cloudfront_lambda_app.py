@@ -1,15 +1,16 @@
 """CloudFront + Lambda application pattern."""
 
 from typing import Dict, Any, Optional
-from troposphere import Template, Ref, GetAtt, Output, Export, Sub
+from troposphere import Template, Ref, GetAtt, Output, Export, Sub, Join
 from troposphere import cloudformation
 import json
+import os
 
 from config import ProjectConfig
-from constructs.network import VPCConstruct
-from constructs.compute import LambdaConstruct
-from constructs.storage import DynamoDBConstruct
-from constructs.distribution import CloudFrontConstruct
+from constructs.network import NetworkConstruct
+from constructs.compute import ComputeConstruct
+from constructs.storage import StorageConstruct
+from constructs.distribution import DistributionConstruct
 
 
 class CloudFrontLambdaAppPattern:
@@ -42,135 +43,122 @@ class CloudFrontLambdaAppPattern:
     
     def _build(self):
         """Build the complete infrastructure."""
-        # Add parameters
-        self._add_parameters()
-        
-        # Create VPC
-        vpc = VPCConstruct(
-            name_prefix=f"{self.config.name}-{self.environment}",
-            cidr_block="10.0.0.0/16",
-            availability_zones=2,
-            nat_gateways=1 if self.environment == "prod" else 0,
-            enable_flow_logs=self.environment == "prod"
-        )
-        vpc_resources = vpc.create()
-        for resource in vpc_resources:
-            self.template.add_resource(resource)
-        
-        # Create DynamoDB table
-        dynamodb = DynamoDBConstruct(
-            name_prefix=f"{self.config.name}-{self.environment}",
-            hash_key="id",
-            billing_mode=self.config.dynamodb_billing_mode,
-            point_in_time_recovery=self.config.dynamodb_point_in_time_recovery,
-            vpc_id=vpc_resources[0].ref() if vpc_resources else None
-        )
-        dynamodb_resources = dynamodb.create()
-        for resource in dynamodb_resources:
-            self.template.add_resource(resource)
-        
-        # Create Lambda function
-        lambda_env = {
-            "ENVIRONMENT": self.environment,
-            "TABLE_NAME": Ref(dynamodb_resources[0])  # Reference to DynamoDB table
+        # Prepare configurations
+        network_config = {
+            "vpc": {
+                "cidr": "10.0.0.0/16",
+                "enable_dns": True,
+                "enable_dns_hostnames": True
+            },
+            "subnets": {
+                "public": ["10.0.1.0/24", "10.0.2.0/24"],
+                "private": ["10.0.10.0/24", "10.0.11.0/24"]
+            },
+            "nat_gateways": {
+                "count": 1 if self.environment != "dev" else 0
+            },
+            "vpc_endpoints": {
+                "s3": True,
+                "dynamodb": True
+            }
         }
         
-        # Get Lambda S3 configuration from environment
-        import os
-        lambda_s3_bucket = os.environ.get("LAMBDA_S3_BUCKET", "")
-        lambda_s3_key = os.environ.get("LAMBDA_S3_KEY", "")
+        storage_config = {
+            "tables": {
+                "main": {
+                    "hash_key": "id",
+                    "range_key": None,
+                    "billing_mode": self.config.dynamodb_billing_mode,
+                    "point_in_time_recovery": self.config.dynamodb_point_in_time_recovery
+                }
+            },
+            "buckets": {
+                "frontend": {
+                    "versioning": True,
+                    "lifecycle_rules": []
+                },
+                "lambda": {
+                    "versioning": True,
+                    "lifecycle_rules": []
+                }
+            }
+        }
         
-        lambda_construct = LambdaConstruct(
-            name_prefix=f"{self.config.name}-{self.environment}",
-            runtime=self.config.lambda_runtime,
-            handler="index.handler",
-            memory_size=self.config.lambda_memory,
-            timeout=self.config.lambda_timeout,
-            environment_variables=lambda_env,
-            vpc_id=vpc_resources[0].ref() if vpc_resources else None,
-            subnet_ids=[subnet.ref() for subnet in vpc_resources[1:3]] if len(vpc_resources) > 2 else None,
-            s3_bucket=lambda_s3_bucket if lambda_s3_bucket else None,
-            s3_key=lambda_s3_key if lambda_s3_key else None,
-            code_zip_path="lambda-deployment.zip" if not lambda_s3_bucket else None
+        compute_config = {
+            "lambda": {
+                "runtime": self.config.lambda_runtime,
+                "memory_size": self.config.lambda_memory,
+                "timeout": self.config.lambda_timeout,
+                "handler": "index.handler",
+                "environment_variables": {
+                    "ENVIRONMENT": self.environment,
+                    "TABLE_NAME": f"{self.config.name}-{self.environment}-main"
+                },
+                "s3_bucket": os.environ.get("LAMBDA_S3_BUCKET", ""),
+                "s3_key": os.environ.get("LAMBDA_S3_KEY", "")
+            },
+            "api_gateway": {
+                "stage_name": self.config.api_stage_name,
+                "throttle_rate_limit": self.config.api_throttle_rate_limit,
+                "throttle_burst_limit": self.config.api_throttle_burst_limit
+            }
+        }
+        
+        distribution_config = {
+            "cloudfront": {
+                "price_class": self.config.cloudfront_price_class,
+                "default_ttl": self.config.cloudfront_default_ttl,
+                "max_ttl": self.config.cloudfront_max_ttl,
+                "min_ttl": self.config.cloudfront_min_ttl,
+                "enable_waf": self.config.enable_waf
+            }
+        }
+        
+        # Create constructs
+        network = NetworkConstruct(self.template, network_config, self.environment)
+        storage = StorageConstruct(self.template, storage_config, self.environment)
+        
+        # Get VPC outputs for compute
+        vpc_config = {
+            "vpc_id": Ref(network.vpc),
+            "subnet_ids": [Ref(subnet) for subnet in network.resources.get("private_subnets", [])]
+        }
+        
+        # Get DynamoDB outputs for compute
+        dynamodb_tables = {
+            "main": Ref(storage.resources.get("main_table"))
+        }
+        
+        compute = ComputeConstruct(
+            self.template, 
+            compute_config, 
+            self.environment,
+            vpc_config=vpc_config,
+            dynamodb_tables=dynamodb_tables
         )
-        lambda_resources = lambda_construct.create()
-        for resource in lambda_resources:
-            self.template.add_resource(resource)
         
-        # Create CloudFront distribution
-        cloudfront = CloudFrontConstruct(
-            name_prefix=f"{self.config.name}-{self.environment}",
-            s3_bucket_name=self.config.get_frontend_bucket(self.environment),
-            api_gateway_domain_name=None,  # We'll use Lambda Function URL
-            price_class=self.config.cloudfront_price_class,
-            default_ttl=self.config.cloudfront_default_ttl,
-            max_ttl=self.config.cloudfront_max_ttl,
-            allowed_origins=self.config.allowed_origins,
-            enable_waf=self.config.enable_waf
+        # Get API Gateway outputs
+        api_gateway = compute.resources.get("api_gateway")
+        api_domain_name = None
+        api_stage = self.config.api_stage_name
+        
+        if api_gateway:
+            # Construct the API Gateway domain name
+            api_domain_name = Join("", [
+                Ref(api_gateway),
+                ".execute-api.",
+                Ref("AWS::Region"),
+                ".amazonaws.com"
+            ])
+        
+        distribution = DistributionConstruct(
+            self.template,
+            distribution_config,
+            self.environment,
+            api_domain_name=api_domain_name,
+            api_stage=api_stage
         )
-        cloudfront_resources = cloudfront.create()
-        for resource in cloudfront_resources:
-            self.template.add_resource(resource)
-        
-        # Add outputs
-        self._add_outputs(vpc_resources, lambda_resources, dynamodb_resources, cloudfront_resources)
     
-    def _add_parameters(self):
-        """Add CloudFormation parameters."""
-        # Add any parameters your stack needs
-        pass
-    
-    def _add_outputs(self, vpc_resources, lambda_resources, dynamodb_resources, cloudfront_resources):
-        """Add CloudFormation outputs."""
-        # VPC outputs
-        if vpc_resources:
-            self.template.add_output(Output(
-                "VPCId",
-                Description="VPC ID",
-                Value=Ref(vpc_resources[0]),
-                Export=Export(Sub(f"${{{cloudformation.AWS_STACK_NAME}}}-VPCId"))
-            ))
-        
-        # Lambda outputs
-        if lambda_resources:
-            self.template.add_output(Output(
-                "LambdaFunctionName",
-                Description="Lambda function name",
-                Value=Ref(lambda_resources[0]),
-                Export=Export(Sub(f"${{{cloudformation.AWS_STACK_NAME}}}-LambdaFunctionName"))
-            ))
-            
-            self.template.add_output(Output(
-                "LambdaFunctionArn",
-                Description="Lambda function ARN",
-                Value=GetAtt(lambda_resources[0], "Arn"),
-                Export=Export(Sub(f"${{{cloudformation.AWS_STACK_NAME}}}-LambdaFunctionArn"))
-            ))
-        
-        # DynamoDB outputs
-        if dynamodb_resources:
-            self.template.add_output(Output(
-                "DynamoDBTableName",
-                Description="DynamoDB table name",
-                Value=Ref(dynamodb_resources[0]),
-                Export=Export(Sub(f"${{{cloudformation.AWS_STACK_NAME}}}-DynamoDBTableName"))
-            ))
-        
-        # CloudFront outputs
-        if cloudfront_resources:
-            self.template.add_output(Output(
-                "CloudFrontDistributionId",
-                Description="CloudFront distribution ID",
-                Value=Ref(cloudfront_resources[0]),
-                Export=Export(Sub(f"${{{cloudformation.AWS_STACK_NAME}}}-CloudFrontDistributionId"))
-            ))
-            
-            self.template.add_output(Output(
-                "CloudFrontDomainName",
-                Description="CloudFront distribution domain name",
-                Value=GetAtt(cloudfront_resources[0], "DomainName"),
-                Export=Export(Sub(f"${{{cloudformation.AWS_STACK_NAME}}}-CloudFrontDomainName"))
-            ))
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert template to dictionary."""
