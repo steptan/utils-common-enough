@@ -271,7 +271,12 @@ class InfrastructureDeployer(BaseDeployer):
             )
         
         # Prepare parameters and tags
-        parameters = self.prepare_parameters()
+        # Only use parameters if we loaded a template from file (not generated)
+        if template_path:
+            parameters = self.prepare_parameters()
+        else:
+            # Generated templates don't have parameters
+            parameters = []
         tags = self.prepare_tags()
         
         # Deploy stack
