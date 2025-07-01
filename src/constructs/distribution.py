@@ -140,7 +140,7 @@ class DistributionConstruct:
             Id="S3Origin",
             DomainName=GetAtt(self.s3_bucket, "RegionalDomainName"),
             S3OriginConfig=cloudfront.S3OriginConfig(
-                OriginAccessIdentity=Sub(f"origin-access-identity/cloudfront/{Ref(self.oai)}")
+                OriginAccessIdentity=Join("", ["origin-access-identity/cloudfront/", Ref(self.oai)])
             )
         )
         origins.append(s3_origin)
