@@ -43,8 +43,8 @@ class ComputeConstruct:
         
         # Create compute resources
         self._create_lambda_role()
-        self._create_lambda_function()
         self._create_lambda_log_group()
+        self._create_lambda_function()
         self._create_api_gateway()
         self._create_outputs()
     
@@ -208,6 +208,9 @@ class ComputeConstruct:
             awslambda.Function("APIFunction", **function_props)
         )
         
+        # Add dependency on log group
+        self.lambda_function.DependsOn = "LambdaLogGroup"
+        
         self.resources["lambda_function"] = self.lambda_function
     
     def _create_lambda_log_group(self):
@@ -218,7 +221,11 @@ class ComputeConstruct:
             logs.LogGroup(
                 "LambdaLogGroup",
                 LogGroupName=Sub(f"/aws/lambda/${{AWS::StackName}}-api-{self.environment}"),
-                RetentionInDays=retention_days
+                RetentionInDays=retention_days,
+                Tags=Tags(
+                    Name=Sub(f"/aws/lambda/${{AWS::StackName}}-api-{self.environment}"),
+                    Environment=self.environment
+                )
             )
         )
     
