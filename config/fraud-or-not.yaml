@@ -1,7 +1,7 @@
 # Configuration for fraud-or-not project
 name: fraud-or-not
 display_name: Fraud or Not
-aws_region: us-east-1
+aws_region: us-west-1
 
 # Environment settings
 environments:
