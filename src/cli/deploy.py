@@ -7,8 +7,8 @@ import click
 import sys
 from pathlib import Path
 
-from ..deployment import InfrastructureDeployer, CDKInfrastructureDeployer, FrontendDeployer
-from ..config import get_project_config
+from deployment import InfrastructureDeployer, CDKInfrastructureDeployer, FrontendDeployer
+from config import get_project_config
 
 
 @click.group()
