@@ -87,11 +87,6 @@ class CloudFrontLambdaAppPattern:
                         "name": "frontend",
                         "versioning": True,
                         "lifecycle_rules": []
-                    },
-                    {
-                        "name": "lambda",
-                        "versioning": True,
-                        "lifecycle_rules": []
                     }
                 ]
             }
