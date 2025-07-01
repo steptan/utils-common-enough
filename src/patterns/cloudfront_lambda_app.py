@@ -71,23 +71,29 @@ class CloudFrontLambdaAppPattern:
         }
         
         storage_config = {
-            "tables": {
-                "main": {
-                    "hash_key": "id",
-                    "range_key": None,
-                    "billing_mode": self.config.dynamodb_billing_mode,
-                    "point_in_time_recovery": self.config.dynamodb_point_in_time_recovery
-                }
+            "dynamodb": {
+                "tables": [
+                    {
+                        "name": "main",
+                        "partition_key": {"name": "id", "type": "S"},
+                        "billing_mode": self.config.dynamodb_billing_mode,
+                        "point_in_time_recovery": self.config.dynamodb_point_in_time_recovery
+                    }
+                ]
             },
-            "buckets": {
-                "frontend": {
-                    "versioning": True,
-                    "lifecycle_rules": []
-                },
-                "lambda": {
-                    "versioning": True,
-                    "lifecycle_rules": []
-                }
+            "s3": {
+                "buckets": [
+                    {
+                        "name": "frontend",
+                        "versioning": True,
+                        "lifecycle_rules": []
+                    },
+                    {
+                        "name": "lambda",
+                        "versioning": True,
+                        "lifecycle_rules": []
+                    }
+                ]
             }
         }
         
@@ -132,9 +138,10 @@ class CloudFrontLambdaAppPattern:
         }
         
         # Get DynamoDB outputs for compute
-        dynamodb_tables = {
-            "main": Ref(storage.resources.get("main_table"))
-        }
+        main_table = storage.resources.get("table_main")
+        dynamodb_tables = {}
+        if main_table:
+            dynamodb_tables["main"] = Ref(main_table)
         
         compute = ComputeConstruct(
             self.template, 
