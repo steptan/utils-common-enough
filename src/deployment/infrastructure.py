@@ -208,30 +208,46 @@ class InfrastructureDeployer(BaseDeployer):
             self.add_error(f"Failed to deploy stack: {e}")
             return False
     
+    def generate_template(self) -> str:
+        """Generate CloudFormation template dynamically."""
+        from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
+        
+        # Create pattern instance
+        pattern = CloudFrontLambdaAppPattern(self.config, self.environment)
+        
+        # Generate template as YAML string
+        return pattern.to_yaml()
+    
     def deploy(self) -> DeploymentResult:
         """Execute infrastructure deployment."""
         self.log(f"Deploying {self.project_name} infrastructure to {self.environment}", "INFO")
         
-        # Find template
+        # Try to find existing template first
         template_path = self.find_template()
-        if not template_path:
-            return DeploymentResult(
-                status=DeploymentStatus.FAILED,
-                message="CloudFormation template not found",
-                duration=0,
-                errors=["No template file found in expected locations"]
-            )
         
-        # Load template
-        try:
-            template_body = self.load_template(template_path)
-        except Exception as e:
-            return DeploymentResult(
-                status=DeploymentStatus.FAILED,
-                message=f"Failed to load template: {e}",
-                duration=0,
-                errors=[str(e)]
-            )
+        if template_path:
+            # Load template from file
+            try:
+                template_body = self.load_template(template_path)
+            except Exception as e:
+                return DeploymentResult(
+                    status=DeploymentStatus.FAILED,
+                    message=f"Failed to load template: {e}",
+                    duration=0,
+                    errors=[str(e)]
+                )
+        else:
+            # Generate template dynamically
+            self.log("No template file found, generating template dynamically...", "INFO")
+            try:
+                template_body = self.generate_template()
+            except Exception as e:
+                return DeploymentResult(
+                    status=DeploymentStatus.FAILED,
+                    message=f"Failed to generate template: {e}",
+                    duration=0,
+                    errors=[str(e)]
+                )
         
         # Get stack name
         stack_name = self.get_stack_name()
