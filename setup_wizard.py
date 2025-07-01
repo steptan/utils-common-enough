@@ -80,7 +80,7 @@ def verify_commands():
     if not all_found:
         print("\n⚠️  Some commands are not in PATH")
         print("   You may need to add the pip scripts directory to your PATH")
-        print("   Or use 'python -m project_utils.cli.<command>' instead")
+        print("   Or use 'python -m cli.<command>' instead")
 
 
 def check_aws_cli():

@@ -431,7 +431,7 @@ api_endpoints = stack_manager.get_api_endpoints("fraud-or-not-prod")
 
 ```python
 # Pre-deployment validation
-from project_utils.deployment.validation import PreDeploymentValidator
+from deployment.validation import PreDeploymentValidator
 
 validator = PreDeploymentValidator("fraud-or-not", "prod")
 checks = validator.validate_all()
@@ -439,7 +439,7 @@ report = validator.generate_report(checks)
 validator.print_report(report)
 
 # Security auditing
-from project_utils.security.audit import SecurityAuditor
+from security.audit import SecurityAuditor
 
 auditor = SecurityAuditor("fraud-or-not", "prod")
 issues = auditor.audit_all()
@@ -511,7 +511,7 @@ utils/
 │   │   ├── full_stack_app.py      # Full stack application pattern
 │   │   ├── serverless_api.py      # Serverless API pattern
 │   │   └── static_website.py      # Static website pattern
-│   ├── project_utils/             # New enhanced utilities
+│   ├── config/                    # Configuration management
 │   │   ├── cli/
 │   │   │   └── setup.py           # Interactive setup wizard
 │   │   ├── deployment/
@@ -544,9 +544,9 @@ utils/
 
 ### Key Organizational Changes
 
-1. **Flattened Structure**: The main modules are directly under `src/` instead of nested under `project_utils/` for easier imports.
+1. **Flattened Structure**: The main modules are directly under `src/` for easier imports.
 
-2. **Enhanced Utilities**: New functionality is organized under `src/project_utils/` including:
+2. **Enhanced Utilities**: New functionality is organized under `src/` including:
    - Interactive setup wizard
    - Pre-deployment validation
    - Security auditing

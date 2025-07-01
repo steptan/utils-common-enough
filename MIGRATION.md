@@ -177,7 +177,7 @@ The utils respect these environment variables:
 If commands aren't in PATH:
 ```bash
 # Use Python module syntax
-python -m project_utils.cli.iam setup-cicd --project your-project
+python -m cli.iam setup-cicd --project your-project
 ```
 
 ### Configuration not found

@@ -65,7 +65,7 @@ You can override configuration values using environment variables:
 ## Usage in Scripts
 
 ```python
-from project_utils.config import get_project_config
+from config import get_project_config
 
 # Load configuration for a specific project
 config = get_project_config("fraud-or-not")

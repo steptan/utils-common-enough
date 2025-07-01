@@ -108,7 +108,7 @@ The utils respect these environment variables:
 ### Command not found
 ```bash
 # Use Python module syntax
-python -m project_utils.cli.deploy deploy --project people-cards -e staging
+python -m cli.deploy deploy --project people-cards -e staging
 ```
 
 ### Stack in failed state
