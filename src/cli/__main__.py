@@ -69,7 +69,7 @@ def validate(project, environment, region, skip, config_only, output):
         }
         
         # Configuration validation
-        from config.validator import ConfigurationValidator
+        from config_validation.validator import ConfigurationValidator
         config_validator = ConfigurationValidator(project)
         config_valid, config_result = config_validator.validate_environment(environment)
         combined_report['validations']['configuration'] = config_result
