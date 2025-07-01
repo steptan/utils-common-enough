@@ -221,11 +221,7 @@ class ComputeConstruct:
             logs.LogGroup(
                 "LambdaLogGroup",
                 LogGroupName=Sub(f"/aws/lambda/${{AWS::StackName}}-api-{self.environment}"),
-                RetentionInDays=retention_days,
-                Tags=Tags(
-                    Name=Sub(f"/aws/lambda/${{AWS::StackName}}-api-{self.environment}"),
-                    Environment=self.environment
-                )
+                RetentionInDays=retention_days
             )
         )
     
