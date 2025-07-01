@@ -161,7 +161,7 @@ class ConfigManager:
         "people-cards": {
             "name": "people-cards",
             "display_name": "People Cards",
-            "aws_region": "us-east-1",
+            "aws_region": "us-west-1",
             "lambda_runtime": "nodejs20.x",
             "frontend_build_command": "npm run build",
             "frontend_dist_dir": ".next/static",
