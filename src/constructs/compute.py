@@ -159,31 +159,40 @@ class ComputeConstruct:
                 SecurityGroupIds=self.vpc_config.get("security_group_ids", [])
             )
         
+        # Build function properties
+        function_props = {
+            "FunctionName": Sub(f"${{AWS::StackName}}-api-{self.environment}"),
+            "Runtime": lambda_config.get("runtime", "nodejs20.x"),
+            "Code": awslambda.Code(
+                S3Bucket=lambda_config.get("s3_bucket", Sub(f"${{AWS::StackName}}-lambda-${{AWS::AccountId}}")),
+                S3Key=lambda_config.get("s3_key", f"lambda-{self.environment}.zip")
+            ),
+            "Handler": lambda_config.get("handler", "dist/handler.handler"),
+            "Role": GetAtt(self.lambda_role, "Arn"),
+            "MemorySize": lambda_config.get("memory_size", 512),
+            "Timeout": lambda_config.get("timeout", 30),
+            "Environment": awslambda.Environment(
+                Variables=env_vars
+            ),
+            "Architectures": [lambda_config.get("architecture", "arm64")],
+            "Tags": Tags(
+                Name=Sub(f"${{AWS::StackName}}-api-function"),
+                Environment=self.environment
+            )
+        }
+        
+        # Add VPC config if provided
+        if vpc_config_props:
+            function_props["VpcConfig"] = vpc_config_props
+        
+        # Add reserved concurrent executions if specified
+        reserved_concurrent = lambda_config.get("reserved_concurrent_executions")
+        if reserved_concurrent is not None:
+            function_props["ReservedConcurrentExecutions"] = reserved_concurrent
+        
         # Create function
         self.lambda_function = self.template.add_resource(
-            awslambda.Function(
-                "APIFunction",
-                FunctionName=Sub(f"${{AWS::StackName}}-api-{self.environment}"),
-                Runtime=lambda_config.get("runtime", "nodejs20.x"),
-                Code=awslambda.Code(
-                    S3Bucket=lambda_config.get("s3_bucket", Sub(f"${{AWS::StackName}}-lambda-${{AWS::AccountId}}")),
-                    S3Key=lambda_config.get("s3_key", f"lambda-{self.environment}.zip")
-                ),
-                Handler=lambda_config.get("handler", "dist/handler.handler"),
-                Role=GetAtt(self.lambda_role, "Arn"),
-                MemorySize=lambda_config.get("memory_size", 512),
-                Timeout=lambda_config.get("timeout", 30),
-                Environment=awslambda.Environment(
-                    Variables=env_vars
-                ),
-                VpcConfig=vpc_config_props if vpc_config_props else Ref("AWS::NoValue"),
-                ReservedConcurrentExecutions=lambda_config.get("reserved_concurrent_executions"),
-                Architectures=[lambda_config.get("architecture", "arm64")],
-                Tags=Tags(
-                    Name=Sub(f"${{AWS::StackName}}-api-function"),
-                    Environment=self.environment
-                )
-            )
+            awslambda.Function("APIFunction", **function_props)
         )
         
         self.resources["lambda_function"] = self.lambda_function
