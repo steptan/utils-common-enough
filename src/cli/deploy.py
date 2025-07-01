@@ -79,6 +79,47 @@ def deploy(project, environment, template, parameter, tag, profile, dry_run):
 @main.command()
 @click.option('--project', '-p', required=True, help='Project name')
 @click.option('--environment', '-e', required=True, help='Environment (dev/staging/prod)')
+@click.option('--output', '-o', help='Output file path (defaults to stdout)')
+@click.option('--format', '-f', type=click.Choice(['yaml', 'json']), default='yaml', help='Output format')
+def generate_template(project, environment, output, format):
+    """Generate CloudFormation template for the project."""
+    try:
+        # Get project config
+        config = get_project_config(project)
+        
+        # Import the appropriate pattern based on project
+        from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
+        
+        # Create pattern instance
+        pattern = CloudFrontLambdaAppPattern(config, environment)
+        
+        # Generate template
+        template = pattern.to_dict()
+        
+        # Format output
+        if format == 'yaml':
+            import yaml
+            output_text = yaml.dump(template, default_flow_style=False, sort_keys=False)
+        else:
+            import json
+            output_text = json.dumps(template, indent=2)
+        
+        # Write output
+        if output:
+            with open(output, 'w') as f:
+                f.write(output_text)
+            click.echo(f"✅ Template generated: {output}")
+        else:
+            click.echo(output_text)
+        
+    except Exception as e:
+        click.echo(f"Error generating template: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.option('--project', '-p', required=True, help='Project name')
+@click.option('--environment', '-e', required=True, help='Environment (dev/staging/prod)')
 @click.option('--app-path', help='Path to CDK app')
 @click.option('--context', '-c', multiple=True, help='CDK context values (key=value)')
 @click.option('--profile', help='AWS profile to use')
