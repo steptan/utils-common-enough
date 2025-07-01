@@ -50,7 +50,7 @@ class CloudFrontLambdaAppPattern:
                 "enable_dns": True,
                 "enable_dns_hostnames": True,
                 "max_azs": 2,
-                "require_nat": self.environment != "dev"
+                "require_nat": False  # No NAT needed - Lambda only accesses DynamoDB via VPC endpoints
             },
             "subnets": {
                 "public": [
@@ -128,10 +128,9 @@ class CloudFrontLambdaAppPattern:
         storage = StorageConstruct(self.template, storage_config, self.environment)
         
         # Get VPC outputs for compute
-        vpc_config = {
-            "vpc_id": Ref(network.vpc),
-            "subnet_ids": [Ref(subnet) for subnet in network.resources.get("private_subnets", [])]
-        }
+        # Note: Lambda doesn't need VPC access since it only uses AWS services
+        # This avoids NAT Gateway costs and reduces cold starts
+        vpc_config = None
         
         # Get DynamoDB outputs for compute
         main_table = storage.resources.get("table_main")
