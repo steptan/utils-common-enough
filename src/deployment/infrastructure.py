@@ -84,19 +84,37 @@ class InfrastructureDeployer(BaseDeployer):
                 return json.dumps(template_data, indent=2)
     
     def prepare_lambda_buckets(self) -> bool:
-        """Create S3 buckets for Lambda deployment if needed."""
+        """Create S3 buckets for Lambda deployment using rotation strategy."""
+        from deployment.bucket_rotation import BucketRotationManager
+        
         account_id = self.get_account_id()
-        lambda_bucket = self.config.get_lambda_bucket(self.environment)
+        
+        # Use bucket rotation for Lambda bucket
+        rotation_manager = BucketRotationManager(
+            project_name=self.config.name,
+            environment=self.environment,
+            region=self.region,
+            account_id=account_id
+        )
+        
+        try:
+            # Create new Lambda bucket using rotation
+            lambda_bucket = rotation_manager.rotate_and_create()
+            self.log(f"Created Lambda bucket: {lambda_bucket}", "SUCCESS")
+            
+            # Store the bucket name for later use
+            self._lambda_bucket_name = lambda_bucket
+            
+        except Exception as e:
+            self.add_error(f"Failed to create Lambda bucket: {e}")
+            return False
+        
+        # Create deployment bucket (non-rotating)
         deployment_bucket = self.config.format_name(
             self.config.deployment_bucket_pattern,
             environment=self.environment
         )
         
-        # Create Lambda bucket
-        if not self.create_s3_bucket_if_needed(lambda_bucket):
-            return False
-        
-        # Create deployment bucket
         if not self.create_s3_bucket_if_needed(deployment_bucket):
             return False
         
@@ -246,6 +264,11 @@ class InfrastructureDeployer(BaseDeployer):
             # Generate template dynamically
             self.log("No template file found, generating template dynamically...", "INFO")
             try:
+                # If we have a rotating Lambda bucket, set it as environment variable
+                if hasattr(self, '_lambda_bucket_name'):
+                    os.environ['LAMBDA_S3_BUCKET'] = self._lambda_bucket_name
+                    self.log(f"Using rotating Lambda bucket: {self._lambda_bucket_name}", "INFO")
+                
                 template_body = self.generate_template()
                 
                 # Save generated template for debugging
