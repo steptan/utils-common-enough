@@ -308,7 +308,7 @@ class DistributionConstruct:
                 "description": "S3 bucket regional domain name"
             },
             "DistributionURL": {
-                "value": Sub(f"https://{GetAtt(self.distribution, 'DomainName')}"),
+                "value": Join("", ["https://", GetAtt(self.distribution, "DomainName")]),
                 "description": "CloudFront distribution URL"
             }
         }
@@ -337,4 +337,4 @@ class DistributionConstruct:
     
     def get_distribution_url(self):
         """Get CloudFront distribution URL"""
-        return Sub(f"https://{GetAtt(self.distribution, 'DomainName')}")
+        return Join("", ["https://", GetAtt(self.distribution, "DomainName")])
