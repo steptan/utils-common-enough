@@ -132,6 +132,16 @@ class BucketRotationManager:
         logger.info(f"Creating bucket: {bucket_name}")
         
         try:
+            # Check if bucket already exists
+            try:
+                self.s3_client.head_bucket(Bucket=bucket_name)
+                logger.info(f"Bucket {bucket_name} already exists, using it")
+                return bucket_name
+            except ClientError as e:
+                if e.response['Error']['Code'] != '404':
+                    raise
+                # Bucket doesn't exist, proceed to create it
+            
             if self.region == 'us-east-1':
                 self.s3_client.create_bucket(Bucket=bucket_name)
             else:
@@ -162,6 +172,12 @@ class BucketRotationManager:
             logger.info(f"Successfully created bucket: {bucket_name}")
             return bucket_name
             
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
+                logger.info(f"Bucket {bucket_name} already owned by us, using it")
+                return bucket_name
+            logger.error(f"Error creating bucket {bucket_name}: {e}")
+            raise
         except Exception as e:
             logger.error(f"Error creating bucket {bucket_name}: {e}")
             raise
@@ -255,8 +271,18 @@ class BucketRotationManager:
         Returns:
             Name of the newly created bucket
         """
-        # Create new bucket
+        # Get latest bucket first
+        latest = self.get_latest_bucket()
+        
+        # Create new bucket only if we need a new one
+        # (This handles the case where the latest bucket was already created)
         new_bucket = self.create_next_bucket()
+        
+        # If the new bucket is the same as latest, it means it already existed
+        # In that case, we should still return it but skip cleanup
+        if new_bucket == latest:
+            logger.info(f"Using existing bucket: {new_bucket}")
+            return new_bucket
         
         # Cleanup old buckets
         deleted = self.cleanup_old_buckets()
