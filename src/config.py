@@ -46,6 +46,7 @@ class ProjectConfig:
     lambda_timeout: int = 30
     lambda_memory: int = 512
     lambda_architecture: str = "arm64"
+    lambda_handler: str = "index.handler"
     
     # Build requirements
     node_version: str = "20.x"
