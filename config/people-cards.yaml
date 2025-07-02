@@ -21,7 +21,7 @@ node_version: "20.x"
 python_version: "3.11"
 
 # Frontend configuration
-frontend_build_command: npm run build && npm run export
+frontend_build_command: npm run build
 frontend_dist_dir: out
 
 # Security
