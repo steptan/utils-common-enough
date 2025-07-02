@@ -98,7 +98,7 @@ class CloudFrontLambdaAppPattern:
                 "runtime": self.config.lambda_runtime,
                 "memory_size": self.config.lambda_memory,
                 "timeout": self.config.lambda_timeout,
-                "handler": "index.handler",
+                "handler": getattr(self.config, 'lambda_handler', 'index.handler'),
                 "environment_variables": {
                     "ENVIRONMENT": self.environment,
                     "TABLE_NAME": f"{self.config.name}-{self.environment}-main"
