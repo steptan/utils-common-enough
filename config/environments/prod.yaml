@@ -1,0 +1,5 @@
+environment: prod
+settings:
+  auto_scaling: true
+  debug: false
+  monitoring: true

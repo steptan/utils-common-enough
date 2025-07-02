@@ -72,7 +72,13 @@ class PolicyGenerator:
                 "s3:GetBucketWebsite",
                 "s3:DeleteBucketWebsite",
                 "s3:PutBucketTagging",
-                "s3:GetBucketTagging"
+                "s3:GetBucketTagging",
+                "s3:PutLifecycleConfiguration",  # Added from people-cards
+                "s3:GetLifecycleConfiguration",  # Added from people-cards
+                "s3:PutBucketOwnershipControls",  # Added from people-cards
+                "s3:GetBucketOwnershipControls",  # Added from people-cards
+                "s3:ListBucketVersions",  # Added from people-cards
+                "s3:DeleteObjectVersion"  # Added from people-cards
             ],
             "Resource": [
                 f"arn:aws:s3:::{self.config.name}-*",
@@ -163,13 +169,19 @@ class PolicyGenerator:
                 "dynamodb:DescribeTimeToLive",
                 "dynamodb:UpdateContinuousBackups",
                 "dynamodb:DescribeContinuousBackups",
+                "dynamodb:CreateBackup",  # Added from people-cards
+                "dynamodb:DeleteBackup",  # Added from people-cards
+                "dynamodb:ListBackups",  # Added from people-cards
+                "dynamodb:DescribeBackup",  # Added from people-cards
+                "dynamodb:RestoreTableFromBackup",  # Added from people-cards
                 "dynamodb:CreateGlobalSecondaryIndex",
                 "dynamodb:DeleteGlobalSecondaryIndex",
                 "dynamodb:DescribeGlobalSecondaryIndex",
                 "dynamodb:UpdateGlobalSecondaryIndex"
             ],
             "Resource": [
-                f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*"
+                f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*",
+                f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/backup/*"  # Added for backup support
             ]
         })
         
@@ -338,6 +350,7 @@ class PolicyGenerator:
                 "logs:TagLogGroup",
                 "logs:UntagLogGroup",
                 "logs:DescribeLogGroups",
+                "logs:TagResource",  # Added from people-cards
                 "cloudwatch:PutMetricAlarm",
                 "cloudwatch:DeleteAlarms",
                 "cloudwatch:DescribeAlarms"

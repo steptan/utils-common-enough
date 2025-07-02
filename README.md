@@ -21,14 +21,21 @@ This package consolidates common scripts and utilities used across all three pro
 # Clone the utils repository
 cd /path/to/utils
 
+# Create and activate a virtual environment (required on macOS/Linux)
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
 # Install for development (recommended)
 pip install -e .
 
-# Install with dev dependencies
+# Install with dev dependencies (includes testing tools)
 pip install -e ".[dev]"
 
 # Install for production use
 pip install .
+
+# To deactivate the virtual environment when done
+deactivate
 ```
 
 ## Configuration
@@ -111,6 +118,8 @@ project-lambda upload --project people-cards --environment staging
 
 ### Testing
 
+#### Basic Testing Commands
+
 ```bash
 # Run smoke tests against deployed application
 project-test smoke --project fraud-or-not --environment prod
@@ -128,6 +137,43 @@ project-test smoke --project fraud-or-not -e prod \
 
 # Output test results as JSON
 project-test smoke --project media-register -e staging --json
+```
+
+#### Comprehensive Testing Examples
+
+```bash
+# Run unit tests locally
+pytest
+
+# Run tests with coverage report
+pytest --cov=src --cov-report=html --cov-report=term
+
+# Run specific test file
+pytest tests/test_iam.py -v
+
+# Run tests matching a pattern
+pytest -k "test_deployment" -v
+
+# Run tests in parallel (requires pytest-xdist)
+pytest -n auto
+
+# Infrastructure validation tests
+project-test validate --project fraud-or-not -e dev --comprehensive
+
+# API endpoint testing with retries
+project-test smoke --project media-register -e staging \
+  --retries 3 --timeout 30
+
+# Test with debug output
+project-test smoke --project people-cards -e dev --debug
+
+# Test specific endpoints only
+project-test smoke --project fraud-or-not -e prod \
+  --endpoints "/api/health,/api/status"
+
+# Generate test report
+project-test smoke --project media-register -e staging \
+  --output html --report-file test-results.html
 ```
 
 ### New Enhanced Commands
@@ -283,6 +329,62 @@ Features:
 - Cost trends and forecasting
 - Anomaly detection
 - Budget tracking
+
+#### Comprehensive Cost Monitoring Examples
+
+```bash
+# Basic cost analysis for last 30 days
+project-utils analyze-cost --project fraud-or-not
+
+# Detailed breakdown by service and resource
+project-utils analyze-cost --project media-register --days 30 \
+  --breakdown service,resource --output json
+
+# Compare costs between environments
+project-utils analyze-cost --project people-cards \
+  --compare dev,staging,prod --days 7
+
+# Cost trend analysis with forecasting
+project-utils analyze-cost --project fraud-or-not \
+  --days 90 --forecast 30
+
+# Set up cost anomaly alerts
+project-utils monitor-cost --project media-register \
+  --threshold-percent 20 --email alerts@example.com
+
+# Generate cost optimization recommendations
+project-utils optimize-cost --project people-cards -e prod \
+  --include-reserved-instances --include-savings-plans
+
+# Cost allocation by tags
+project-utils analyze-cost --project fraud-or-not \
+  --group-by "Environment,Team,Feature" --days 30
+
+# Export cost data for further analysis
+project-utils analyze-cost --project media-register \
+  --days 365 --export csv --output costs-2024.csv
+
+# Real-time cost monitoring dashboard
+project-utils monitor-cost --project fraud-or-not \
+  --dashboard --refresh-interval 300
+
+# Budget tracking and alerts
+project-utils track-budget --project people-cards \
+  --monthly-budget 5000 --alert-threshold 80
+
+# Cost comparison before and after optimization
+project-utils analyze-cost --project fraud-or-not \
+  --before "2024-01-01" --after "2024-02-01" \
+  --compare-periods
+
+# Identify most expensive resources
+project-utils analyze-cost --project media-register \
+  --top-resources 10 --sort-by cost-desc
+
+# Generate executive cost report
+project-utils report-cost --project fraud-or-not \
+  --format pdf --include-graphs --email cfo@example.com
+```
 
 ### Lambda Commands (Enhanced)
 

@@ -1,0 +1,5 @@
+environment: staging
+settings:
+  auto_scaling: false
+  debug: false
+  monitoring: true

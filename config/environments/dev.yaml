@@ -1,0 +1,5 @@
+environment: dev
+settings:
+  auto_scaling: false
+  debug: true
+  monitoring: false
