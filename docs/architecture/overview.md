@@ -55,7 +55,7 @@ config/
 
 ```
 project-deploy    # Deployment commands
-project-iam      # IAM management
+python src/scripts/unified_user_permissions.py  # IAM/permissions management
 project-lambda   # Lambda operations
 project-test     # Testing utilities
 project-cfn      # CloudFormation tools
@@ -74,8 +74,11 @@ project-cost     # Cost monitoring
 
 #### IAM Management
 ```python
+scripts/
+├── unified_user_permissions.py  # Unified permission management
+└── update_iam_permissions.py    # IAM permission updates
+
 iam/
-├── cicd_manager.py    # CI/CD permission management
 └── policies.py        # Policy generation from templates
 ```
 

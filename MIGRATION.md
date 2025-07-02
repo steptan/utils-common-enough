@@ -8,9 +8,9 @@ This guide helps you migrate from the old bash scripts to the new Python-based u
 
 | Old Script | New Command |
 |------------|-------------|
-| `fraud-or-not/scripts/setup-iam.sh` | `project-iam setup-cicd --project fraud-or-not` |
-| `media-register/scripts/setup-iam.sh` | `project-iam setup-cicd --project media-register` |
-| `people-cards/.github/scripts/setup-iam.sh` | `project-iam setup-cicd --project people-cards` |
+| `fraud-or-not/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd` |
+| `media-register/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user media-register-cicd` |
+| `people-cards/.github/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user people-cards-cicd` |
 
 ### Deployment Scripts
 
@@ -77,7 +77,7 @@ New approach:
 Instead of different scripts in each project, use consistent commands:
 ```bash
 # Works for all projects
-project-iam setup-cicd --project <name>
+python src/scripts/unified_user_permissions.py update --user <name>-cicd
 project-deploy deploy --project <name> -e <env>
 ```
 
@@ -102,7 +102,7 @@ cat config/your-project.yaml
 
 First, validate existing permissions:
 ```bash
-project-iam validate --project your-project
+python src/scripts/unified_user_permissions.py show --user your-project-cicd
 ```
 
 ### 4. Update CI/CD
@@ -120,7 +120,7 @@ New:
 - name: Setup IAM
   run: |
     pip install /path/to/utils
-    project-iam setup-cicd --project ${{ github.event.repository.name }}
+    python src/scripts/unified_user_permissions.py update --user ${{ github.event.repository.name }}-cicd
 ```
 
 ### 5. Update Deployment Scripts
@@ -144,9 +144,7 @@ New:
 Instead of using long-lived access keys, set up OIDC:
 
 ```bash
-project-iam setup-cicd --project your-project \
-  --github-org your-org \
-  --github-repo your-repo
+python src/scripts/unified_user_permissions.py update --user your-project-cicd
 ```
 
 Then update your workflow:
@@ -177,7 +175,7 @@ The utils respect these environment variables:
 If commands aren't in PATH:
 ```bash
 # Use Python module syntax
-python -m cli.iam setup-cicd --project your-project
+python src/scripts/unified_user_permissions.py update --user your-project-cicd
 ```
 
 ### Configuration not found

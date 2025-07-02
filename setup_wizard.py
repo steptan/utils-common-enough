@@ -56,7 +56,6 @@ def verify_commands():
     commands = [
         "project-utils",
         "project-deploy",
-        "project-iam",
         "project-lambda",
         "project-test",
         "project-cfn",

@@ -9,10 +9,10 @@ This guide shows how to migrate from the old people-cards scripts to the new uni
 | `scripts/deploy_staging_direct.py` | `project-deploy deploy -p people-cards -e staging` | Uses configuration-based approach |
 | `scripts/deploy_full.py` | `project-deploy full -p people-cards -e <env>` | Includes both infrastructure and frontend |
 | `scripts/deploy_frontend.py` | `project-deploy frontend -p people-cards -e <env>` | Frontend only deployment |
-| `scripts/setup-cicd-credentials.sh` | `project-iam setup-credentials -p people-cards` | Can save directly to GitHub |
-| `scripts/update-cicd-permissions.sh` | `project-iam setup-cicd -p people-cards` | Updates permissions policy |
-| `scripts/show-cicd-permissions.sh` | `project-iam show-permissions -p people-cards` | Shows all user permissions |
-| `scripts/show-cicd-policy.sh` | `project-iam show-policy -p people-cards` | Shows policy document |
+| `scripts/setup-cicd-credentials.sh` | `python src/scripts/unified_user_permissions.py update --user people-cards-cicd` | Updates permissions and can save credentials |
+| `scripts/update-cicd-permissions.sh` | `python src/scripts/unified_user_permissions.py update --user people-cards-cicd` | Updates permissions policy |
+| `scripts/show-cicd-permissions.sh` | `python src/scripts/unified_user_permissions.py show --user people-cards-cicd` | Shows all user permissions |
+| `scripts/show-cicd-policy.sh` | `python src/scripts/unified_user_permissions.py show --user people-cards-cicd` | Shows policy document |
 | `scripts/diagnose-stack-failure.sh` | `project-cfn diagnose --stack-name <name>` | Diagnoses CloudFormation failures |
 | `scripts/fix-rollback-stack.sh` | `project-cfn fix-rollback --stack-name <name>` | Handles rollback states |
 | `scripts/force-delete-stack.sh` | `project-cfn delete --stack-name <name> --force` | Force deletes with cleanup |
@@ -80,7 +80,7 @@ Replace in `.github/workflows/ci-cd.yml`:
 ### 4. Update Permissions
 Ensure CI/CD user has all necessary permissions:
 ```bash
-project-iam setup-cicd --project people-cards
+python src/scripts/unified_user_permissions.py update --user people-cards-cicd
 ```
 
 ### 5. Database Operations
@@ -123,10 +123,10 @@ project-cfn fix-rollback --stack-name people-cards-staging
 ### Permission errors
 ```bash
 # Check current permissions
-project-iam show-permissions --project people-cards
+python src/scripts/unified_user_permissions.py show --user people-cards-cicd
 
 # Update if needed
-project-iam setup-cicd --project people-cards
+python src/scripts/unified_user_permissions.py update --user people-cards-cicd
 ```
 
 ## Advantages of New System

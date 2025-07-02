@@ -74,34 +74,29 @@ project-deploy frontend --project people-cards -e staging --skip-build
 
 ### IAM Management
 
+Use the unified permissions script for managing IAM permissions:
+
 ```bash
-# Setup CI/CD permissions for a project (traditional IAM user)
-project-iam setup-cicd --project fraud-or-not
+# Update permissions for a specific user
+python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
 
-# Setup CI/CD with GitHub Actions OIDC (recommended)
-project-iam setup-cicd --project fraud-or-not --github-org myorg --github-repo myrepo
+# Update permissions for multiple projects
+python src/scripts/unified_user_permissions.py update --user project-cicd --projects fraud-or-not --projects media-register
 
-# Rotate access keys
-project-iam rotate-keys --project media-register
+# Show current permissions for a user
+python src/scripts/unified_user_permissions.py show --user fraud-or-not-cicd
 
-# Validate permissions
-project-iam validate --project people-cards
+# List all users with project permissions
+python src/scripts/unified_user_permissions.py list-users
 
-# Show all permissions for CI/CD user
-project-iam show-permissions --project people-cards
+# Update all users at once
+python src/scripts/unified_user_permissions.py update-all
 
-# Show policy document
-project-iam show-policy --project people-cards
-
-# Setup credentials (with optional GitHub integration)
-project-iam setup-credentials --project people-cards --save-to-github --github-repo owner/repo
-
-# List all configured projects
-project-iam list-projects
-
-# Clean up IAM resources
-project-iam cleanup --project fraud-or-not
+# Generate policy JSON without applying
+python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --output policy.json
 ```
+
+See `src/scripts/README_unified_permissions.md` for detailed documentation.
 
 ### Lambda Building
 

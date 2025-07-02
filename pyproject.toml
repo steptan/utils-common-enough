@@ -47,7 +47,6 @@ dev = [
 [project.scripts]
 project-utils = "cli.__main__:cli"
 project-deploy = "cli.deploy:main"
-project-iam = "cli.iam:main"
 project-lambda = "cli.lambda_cmd:main"
 project-test = "cli.test:main"
 project-cfn = "cli.cloudformation:main"

@@ -206,16 +206,29 @@ def validate(project, environment):
         
         # Check IAM permissions
         click.echo("\n🔐 IAM Permissions:")
-        from iam import CICDPermissionManager
         try:
-            iam_manager = CICDPermissionManager(project, config=config)
-            if iam_manager.validate_permissions():
-                click.echo("  ✅ CI/CD permissions configured")
-            else:
-                click.echo("  ⚠️  CI/CD permissions may need update")
-                click.echo(f"     Run: project-iam validate --project {project}")
-        except:
-            click.echo("  ⚠️  Could not validate IAM permissions")
+            # Check if CI/CD user exists
+            iam = boto3.client('iam', region_name=config.aws_region)
+            user_name = config.format_name(config.cicd_user_pattern)
+            try:
+                iam.get_user(UserName=user_name)
+                click.echo(f"  ✅ CI/CD user '{user_name}' exists")
+                
+                # Check if user has policies attached
+                policies = iam.list_user_policies(UserName=user_name)
+                attached = iam.list_attached_user_policies(UserName=user_name)
+                total_policies = len(policies.get('PolicyNames', [])) + len(attached.get('AttachedPolicies', []))
+                
+                if total_policies > 0:
+                    click.echo(f"  ✅ User has {total_policies} policies attached")
+                else:
+                    click.echo("  ⚠️  No policies attached to CI/CD user")
+                    click.echo(f"     Run: python src/scripts/unified_user_permissions.py update --user {user_name}")
+            except iam.exceptions.NoSuchEntityException:
+                click.echo(f"  ⚠️  CI/CD user '{user_name}' not found")
+                click.echo(f"     Run: python src/scripts/unified_user_permissions.py update --user {user_name}")
+        except Exception as e:
+            click.echo(f"  ⚠️  Could not validate IAM permissions: {e}")
         
         # Summary
         click.echo("\n" + "=" * 50)
