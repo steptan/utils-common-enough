@@ -294,19 +294,22 @@ class ComputeConstruct:
         # API deployment
         stage_name = api_config.get("stage_name", "api")
         
-        self.deployment = self.template.add_resource(
-            apigateway.Deployment(
-                "APIDeployment",
-                RestApiId=Ref(self.api),
-                StageName=stage_name,
-                Description=f"Deployment for {self.environment}",
-                DependsOn=["ProxyMethod", "RootMethod"]
-            )
-        )
+        # Check if we need to create a separate stage
+        create_separate_stage = api_config.get("throttle_rate_limit") or api_config.get("throttle_burst_limit")
         
-        # Stage settings
-        if api_config.get("throttle_rate_limit") or api_config.get("throttle_burst_limit"):
-            self.template.add_resource(
+        if create_separate_stage:
+            # Create deployment without StageName (we'll create stage separately)
+            self.deployment = self.template.add_resource(
+                apigateway.Deployment(
+                    "APIDeployment",
+                    RestApiId=Ref(self.api),
+                    Description=f"Deployment for {self.environment}",
+                    DependsOn=["ProxyMethod", "RootMethod"]
+                )
+            )
+            
+            # Create stage separately with throttling settings
+            self.stage = self.template.add_resource(
                 apigateway.Stage(
                     "APIStage",
                     RestApiId=Ref(self.api),
@@ -324,6 +327,17 @@ class ComputeConstruct:
                         Name=Sub(f"${{AWS::StackName}}-api-stage"),
                         Environment=self.environment
                     )
+                )
+            )
+        else:
+            # Create deployment with inline stage (simpler approach)
+            self.deployment = self.template.add_resource(
+                apigateway.Deployment(
+                    "APIDeployment",
+                    RestApiId=Ref(self.api),
+                    StageName=stage_name,
+                    Description=f"Deployment for {self.environment}",
+                    DependsOn=["ProxyMethod", "RootMethod"]
                 )
             )
         
