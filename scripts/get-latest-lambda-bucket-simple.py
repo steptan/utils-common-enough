@@ -54,7 +54,22 @@ def list_project_buckets(s3_client, project_name: str, environment: str) -> List
         matching_buckets.sort(key=lambda x: x['total'])
         
     except Exception as e:
-        print(f"Error listing buckets: {e}", file=sys.stderr)
+        print(f"Warning: Could not list buckets: {e}", file=sys.stderr)
+        # If we can't list buckets, try to probe for existing ones
+        for i in range(10):  # Check first 10 possible buckets
+            bucket_name = format_bucket_name(project_name, environment, 0, i)
+            try:
+                s3_client.head_bucket(Bucket=bucket_name)
+                print(f"Found existing bucket: {bucket_name}", file=sys.stderr)
+                matching_buckets.append({
+                    'name': bucket_name,
+                    'thousands': 0,
+                    'number': i,
+                    'total': i
+                })
+            except:
+                # Bucket doesn't exist or not accessible
+                pass
         
     return matching_buckets
 
