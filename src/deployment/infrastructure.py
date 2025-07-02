@@ -211,10 +211,15 @@ class InfrastructureDeployer(BaseDeployer):
     
     def generate_template(self) -> str:
         """Generate CloudFormation template dynamically."""
-        from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
-        
-        # Create pattern instance
-        pattern = CloudFrontLambdaAppPattern(self.config, self.environment)
+        # Import the appropriate pattern based on project
+        if self.project_name == "media-register":
+            # Use cost-optimized serverless pattern without VPC
+            from patterns.serverless_app import ServerlessAppPattern
+            pattern = ServerlessAppPattern(self.config, self.environment)
+        else:
+            # Default to VPC-based pattern for other projects
+            from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
+            pattern = CloudFrontLambdaAppPattern(self.config, self.environment)
         
         # Generate template as YAML string
         return pattern.to_yaml()

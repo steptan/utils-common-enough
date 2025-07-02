@@ -2,6 +2,7 @@
 name: media-register
 display_name: Media Register
 aws_region: us-west-1
+aws_account_id: "332087884612"  # From IAM setup
 
 # Environment settings
 environments:
@@ -44,3 +45,5 @@ custom_config:
     - document
   max_file_size_mb: 100
   enable_version_control: true
+
+

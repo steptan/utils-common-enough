@@ -147,11 +147,9 @@ class ServerlessAppPattern:
             self.template,
             distribution_config,
             self.environment,
-            s3_buckets=s3_buckets,
-            api_gateway={
-                "domain_name": api_domain_name,
-                "stage": api_stage
-            }
+            s3_bucket=s3_buckets.get("frontend_bucket"),
+            api_domain_name=api_domain_name,
+            api_stage=api_stage
         )
         
         # Add stack outputs
@@ -182,63 +180,8 @@ class ServerlessAppPattern:
             Export=Export(Sub(f"${{AWS::StackName}}-main-table"))
         ))
         
-        # Lambda outputs
-        self.template.add_output(Output(
-            "LambdaFunctionName",
-            Description="Lambda function name",
-            Value=Ref(compute.resources.get("lambda_function")),
-            Export=Export(Sub(f"${{AWS::StackName}}-lambda-function"))
-        ))
         
-        self.template.add_output(Output(
-            "LambdaFunctionArn",
-            Description="Lambda function ARN",
-            Value=GetAtt(compute.resources.get("lambda_function"), "Arn"),
-            Export=Export(Sub(f"${{AWS::StackName}}-lambda-function-arn"))
-        ))
         
-        # API Gateway outputs
-        if compute.resources.get("api_gateway"):
-            self.template.add_output(Output(
-                "ApiGatewayId",
-                Description="API Gateway ID",
-                Value=Ref(compute.resources.get("api_gateway")),
-                Export=Export(Sub(f"${{AWS::StackName}}-api-gateway"))
-            ))
-            
-            self.template.add_output(Output(
-                "ApiGatewayUrl",
-                Description="API Gateway URL",
-                Value=Sub(
-                    f"https://${{RestApi}}.execute-api.${{AWS::Region}}.amazonaws.com/{self.config.api_stage_name}",
-                    RestApi=Ref(compute.resources.get("api_gateway"))
-                ),
-                Export=Export(Sub(f"${{AWS::StackName}}-api-gateway-url"))
-            ))
-        
-        # CloudFront outputs
-        self.template.add_output(Output(
-            "CloudFrontDistributionId",
-            Description="CloudFront distribution ID",
-            Value=Ref(distribution.resources.get("distribution")),
-            Export=Export(Sub(f"${{AWS::StackName}}-cloudfront-id"))
-        ))
-        
-        self.template.add_output(Output(
-            "CloudFrontDomainName",
-            Description="CloudFront distribution domain name",
-            Value=GetAtt(distribution.resources.get("distribution"), "DomainName"),
-            Export=Export(Sub(f"${{AWS::StackName}}-cloudfront-domain"))
-        ))
-        
-        self.template.add_output(Output(
-            "ApplicationUrl",
-            Description="Application URL",
-            Value=Sub(
-                "https://${Domain}",
-                Domain=GetAtt(distribution.resources.get("distribution"), "DomainName")
-            )
-        ))
     
     def generate_template(self) -> str:
         """Generate the CloudFormation template."""

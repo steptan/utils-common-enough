@@ -88,10 +88,14 @@ def generate_template(project, environment, output, format):
         config = get_project_config(project)
         
         # Import the appropriate pattern based on project
-        from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
-        
-        # Create pattern instance
-        pattern = CloudFrontLambdaAppPattern(config, environment)
+        if project == "media-register":
+            # Use cost-optimized serverless pattern without VPC
+            from patterns.serverless_app import ServerlessAppPattern
+            pattern = ServerlessAppPattern(config, environment)
+        else:
+            # Default to VPC-based pattern for other projects
+            from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
+            pattern = CloudFrontLambdaAppPattern(config, environment)
         
         # Generate template
         template = pattern.to_dict()

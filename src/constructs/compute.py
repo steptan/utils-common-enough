@@ -37,7 +37,7 @@ class ComputeConstruct:
         self.template = template
         self.config = config
         self.environment = environment
-        self.vpc_config = vpc_config
+        self.vpc_config = None  # Always None - Lambda runs without VPC for cost optimization
         self.dynamodb_tables = dynamodb_tables or {}
         self.resources = {}
         
@@ -63,23 +63,7 @@ class ComputeConstruct:
         # Build inline policies list
         policies = []
         
-        # Add VPC execution policy if in VPC
-        if self.vpc_config:
-            policies.append(iam.Policy(
-                PolicyName="VPCAccess",
-                PolicyDocument={
-                    "Version": "2012-10-17",
-                    "Statement": [{
-                        "Effect": "Allow",
-                        "Action": [
-                            "ec2:CreateNetworkInterface",
-                            "ec2:DescribeNetworkInterfaces",
-                            "ec2:DeleteNetworkInterface"
-                        ],
-                        "Resource": "*"
-                    }]
-                }
-            ))
+        # VPC execution policy removed - Lambda runs without VPC for cost optimization
         
         # Add DynamoDB access if tables provided
         if self.dynamodb_tables:
@@ -151,13 +135,8 @@ class ComputeConstruct:
             env_key = f"{key.upper()}_TABLE"
             env_vars[env_key] = table_name
         
-        # VPC configuration
+        # VPC configuration removed - Lambda runs without VPC for cost optimization
         vpc_config_props = {}
-        if self.vpc_config:
-            vpc_config_props = awslambda.VPCConfig(
-                SubnetIds=self.vpc_config.get("subnet_ids", []),
-                SecurityGroupIds=self.vpc_config.get("security_group_ids", [])
-            )
         
         # Determine Lambda code configuration
         s3_bucket = lambda_config.get("s3_bucket", "")
@@ -194,9 +173,7 @@ class ComputeConstruct:
             )
         }
         
-        # Add VPC config if provided
-        if vpc_config_props:
-            function_props["VpcConfig"] = vpc_config_props
+        # VPC config not used - Lambda runs without VPC
         
         # Add reserved concurrent executions if specified
         reserved_concurrent = lambda_config.get("reserved_concurrent_executions")

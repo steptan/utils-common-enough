@@ -1,0 +1,11 @@
+[console_scripts]
+git-submodule-setup = scripts.git_submodules:main
+media-register-deploy = cli.deploy_media_register:main
+project-cfn = cli.cloudformation:main
+project-db = cli.database:main
+project-deploy = cli.deploy:main
+project-git = cli.git:main
+project-iam = cli.iam:main
+project-lambda = cli.lambda_cmd:main
+project-test = cli.test:main
+project-utils = cli.__main__:cli
