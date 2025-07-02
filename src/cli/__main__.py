@@ -14,13 +14,13 @@ from .database import main as db_commands
 from .test import main as test_commands
 
 # Import new commands
-from ..cli.setup import SetupWizard
-from ..deployment.validation import PreDeploymentValidator
-from ..security.audit import SecurityAuditor
-from ..security.compliance import ComplianceChecker
-from ..cost.estimator import CostEstimator
-from ..cost.analyzer import CostAnalyzer
-from ..config import get_project_config
+from .setup import SetupWizard
+from deployment.validation import PreDeploymentValidator
+from security.audit import SecurityAuditor
+from security.compliance import ComplianceChecker
+from cost.estimator import CostEstimator
+from cost.analyzer import CostAnalyzer
+from config import get_project_config
 
 
 @click.group()
@@ -69,7 +69,7 @@ def validate(project, environment, region, skip, config_only, output):
         }
         
         # Configuration validation
-        from ..config_validation.validator import ConfigurationValidator
+        from config_validation.validator import ConfigurationValidator
         config_validator = ConfigurationValidator(project)
         config_valid, config_result = config_validator.validate_environment(environment)
         combined_report['validations']['configuration'] = config_result
