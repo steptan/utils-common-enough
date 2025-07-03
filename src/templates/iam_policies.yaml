@@ -126,8 +126,13 @@ dynamodb_policy:
         - "dynamodb:DescribeTimeToLive"
         - "dynamodb:UpdateContinuousBackups"
         - "dynamodb:DescribeContinuousBackups"
+        - "dynamodb:CreateBackup"
+        - "dynamodb:DescribeBackup"
+        - "dynamodb:ListBackups"
+        - "dynamodb:DeleteBackup"
       resources:
         - "arn:aws:dynamodb:${region}:${account}:table/${project}-*"
+        - "arn:aws:dynamodb:${region}:${account}:table/${project}-*/backup/*"
 
 apigateway_policy:
   statements:

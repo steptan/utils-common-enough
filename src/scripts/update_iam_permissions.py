@@ -37,6 +37,7 @@ class IAMPermissionUpdater:
             "dynamodb:CreateBackup",
             "dynamodb:DescribeBackup",
             "dynamodb:ListBackups",
+            "dynamodb:DeleteBackup",
             
             # CloudFormation stack recovery
             "cloudformation:ContinueUpdateRollback",
