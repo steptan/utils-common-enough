@@ -27,9 +27,9 @@ if [ -z "$REPO" ]; then
   echo "🌐 REPO not set. Attempting to detect from git remote..."
 
   # Check if inside a submodule and try to get the parent repo's remote
-  if git rev-parse --show-superproject-working-tree > /dev/null 2>&1; then
+  PARENT_DIR=$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)
+  if [ -n "$PARENT_DIR" ]; then
     echo "🔍 Detected submodule. Attempting to get parent repo remote URL..."
-    PARENT_DIR=$(git rev-parse --show-superproject-working-tree)
     REMOTE_URL=$(git --git-dir="$PARENT_DIR/.git" config --get remote.origin.url)
   else
     REMOTE_URL=$(git config --get remote.origin.url)
