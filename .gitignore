@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # =============================================
 # Utils Project .gitignore (Python-only)
 # =============================================
@@ -9,6 +10,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+=======
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+>>>>>>> 77e1be9 (chore: add Python gitignore file)
 
 # Distribution / packaging
 .Python
@@ -24,6 +31,7 @@ parts/
 sdist/
 var/
 wheels/
+<<<<<<< HEAD
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
@@ -45,12 +53,26 @@ pip-delete-this-directory.txt
 htmlcov/
 .tox/
 .nox/
+=======
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+>>>>>>> 77e1be9 (chore: add Python gitignore file)
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
+<<<<<<< HEAD
 *.py,cover
 .hypothesis/
 .pytest_cache/
@@ -159,10 +181,22 @@ cython_debug/
 
 # IDE / Editors
 # =============================================
+=======
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+>>>>>>> 77e1be9 (chore: add Python gitignore file)
 .vscode/
 .idea/
 *.swp
 *.swo
+<<<<<<< HEAD
 *.swn
 *~
 .project
@@ -223,3 +257,12 @@ docs/api/
 test_data/
 *.test.yaml
 *.test.yml
+=======
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+>>>>>>> 77e1be9 (chore: add Python gitignore file)

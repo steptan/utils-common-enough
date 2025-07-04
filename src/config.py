@@ -47,6 +47,8 @@ class ProjectConfig:
     lambda_memory: int = 512
     lambda_architecture: str = "arm64"
     lambda_handler: str = "index.handler"
+    lambda_code_bucket: str = ""  # Set dynamically by CI/CD
+    require_nat: bool = True  # Whether Lambda needs NAT Gateway
     
     # Build requirements
     node_version: str = "20.x"
