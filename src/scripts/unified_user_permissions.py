@@ -19,18 +19,17 @@ from config import get_project_config, ConfigManager, ProjectConfig
 
 class PolicyGenerator:
     """Generate IAM policies for different use cases."""
-    
+
     def __init__(self, config: ProjectConfig):
         """Initialize policy generator with project configuration."""
         self.config = config
-    
-    def generate_policy_by_category(self, account_id: str, category: str) -> Dict[str, Any]:
+
+    def generate_policy_by_category(
+        self, account_id: str, category: str
+    ) -> Dict[str, Any]:
         """Generate IAM policy for a specific category of permissions."""
-        policy = {
-            "Version": "2012-10-17",
-            "Statement": []
-        }
-        
+        policy = {"Version": "2012-10-17", "Statement": []}
+
         if category == "infrastructure":
             policy["Statement"].extend(self._get_infrastructure_statements(account_id))
         elif category == "compute":
@@ -43,22 +42,20 @@ class PolicyGenerator:
             policy["Statement"].extend(self._get_monitoring_statements(account_id))
         else:
             raise ValueError(f"Unknown category: {category}")
-            
+
         return policy
-    
+
     def _get_infrastructure_statements(self, account_id: str) -> List[Dict[str, Any]]:
         """Get infrastructure-related permission statements."""
         return [
             {
                 "Sid": "CloudFormationAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "cloudformation:*"
-                ],
+                "Action": ["cloudformation:*"],
                 "Resource": [
                     f"arn:aws:cloudformation:{self.config.aws_region}:{account_id}:stack/{self.config.name}-*/*",
-                    f"arn:aws:cloudformation:{self.config.aws_region}:{account_id}:stack/CDKToolkit/*"
-                ]
+                    f"arn:aws:cloudformation:{self.config.aws_region}:{account_id}:stack/CDKToolkit/*",
+                ],
             },
             {
                 "Sid": "IAMAccess",
@@ -68,24 +65,19 @@ class PolicyGenerator:
                     "iam:*Policy*",
                     "iam:PassRole",
                     "iam:GetUser",
-                    "iam:ListAccessKeys"
+                    "iam:ListAccessKeys",
                 ],
                 "Resource": [
                     f"arn:aws:iam::{account_id}:role/{self.config.name}-*",
                     f"arn:aws:iam::{account_id}:policy/{self.config.name}-*",
-                    f"arn:aws:iam::{account_id}:role/cdk-*"
-                ]
+                    f"arn:aws:iam::{account_id}:role/cdk-*",
+                ],
             },
             {
                 "Sid": "CDKBootstrapAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "sts:AssumeRole",
-                    "sts:GetCallerIdentity"
-                ],
-                "Resource": [
-                    f"arn:aws:iam::{account_id}:role/cdk-*"
-                ]
+                "Action": ["sts:AssumeRole", "sts:GetCallerIdentity"],
+                "Resource": [f"arn:aws:iam::{account_id}:role/cdk-*"],
             },
             {
                 "Sid": "SSMParameterAccess",
@@ -95,87 +87,79 @@ class PolicyGenerator:
                     "ssm:GetParameters",
                     "ssm:PutParameter",
                     "ssm:DeleteParameter",
-                    "ssm:DescribeParameters"
+                    "ssm:DescribeParameters",
                 ],
                 "Resource": [
                     f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/{self.config.name}/*",
-                    f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/cdk-bootstrap/*"
-                ]
-            }
+                    f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/cdk-bootstrap/*",
+                ],
+            },
         ]
-    
+
     def _get_compute_statements(self, account_id: str) -> List[Dict[str, Any]]:
         """Get compute-related permission statements."""
         statements = [
             {
                 "Sid": "LambdaFullAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "lambda:*"
-                ],
+                "Action": ["lambda:*"],
                 "Resource": [
                     f"arn:aws:lambda:{self.config.aws_region}:{account_id}:function:{self.config.name}-*",
-                    f"arn:aws:lambda:{self.config.aws_region}:{account_id}:layer:{self.config.name}-*"
-                ]
+                    f"arn:aws:lambda:{self.config.aws_region}:{account_id}:layer:{self.config.name}-*",
+                ],
             },
             {
                 "Sid": "APIGatewayFullAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "apigateway:*"
-                ],
+                "Action": ["apigateway:*"],
                 "Resource": [
                     f"arn:aws:apigateway:{self.config.aws_region}::/restapis",
-                    f"arn:aws:apigateway:{self.config.aws_region}::/restapis/*"
-                ]
-            }
+                    f"arn:aws:apigateway:{self.config.aws_region}::/restapis/*",
+                ],
+            },
         ]
-        
+
         # Add Cognito if authentication is likely needed
-        statements.append({
-            "Sid": "CognitoAccess",
-            "Effect": "Allow",
-            "Action": [
-                "cognito-idp:*"
-            ],
-            "Resource": [
-                f"arn:aws:cognito-idp:{self.config.aws_region}:{account_id}:userpool/*"
-            ]
-        })
-        
+        statements.append(
+            {
+                "Sid": "CognitoAccess",
+                "Effect": "Allow",
+                "Action": ["cognito-idp:*"],
+                "Resource": [
+                    f"arn:aws:cognito-idp:{self.config.aws_region}:{account_id}:userpool/*"
+                ],
+            }
+        )
+
         return statements
-    
+
     def _get_storage_statements(self, account_id: str) -> List[Dict[str, Any]]:
         """Get storage-related permission statements."""
         return [
             {
                 "Sid": "S3FullAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "s3:*"
-                ],
+                "Action": ["s3:*"],
                 "Resource": [
                     f"arn:aws:s3:::{self.config.name}-*",
                     f"arn:aws:s3:::{self.config.name}-*/*",
                     f"arn:aws:s3:::cdk-*-{self.config.aws_region}-{account_id}",
-                    f"arn:aws:s3:::cdk-*-{self.config.aws_region}-{account_id}/*"
-                ]
+                    f"arn:aws:s3:::cdk-*-{self.config.aws_region}-{account_id}/*",
+                ],
             },
             {
                 "Sid": "DynamoDBFullAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "dynamodb:*"
-                ],
+                "Action": ["dynamodb:*"],
                 "Resource": [
                     f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*",
                     f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/stream/*",
                     f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/index/*",
-                    f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/backup/*"
-                ]
-            }
+                    f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/backup/*",
+                ],
+            },
         ]
-    
+
     def _get_networking_statements(self, account_id: str) -> List[Dict[str, Any]]:
         """Get networking-related permission statements."""
         statements = [
@@ -197,75 +181,67 @@ class PolicyGenerator:
                     "ec2:DescribeTags",
                     "ec2:DescribeAvailabilityZones",
                     "ec2:DescribeAccountAttributes",
-                    "ec2:DescribeRegions"
+                    "ec2:DescribeRegions",
                 ],
-                "Resource": "*"
+                "Resource": "*",
             },
             {
                 "Sid": "CloudFrontAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "cloudfront:*"
-                ],
-                "Resource": "*"
-            }
+                "Action": ["cloudfront:*"],
+                "Resource": "*",
+            },
         ]
-        
+
         # Add WAF if enabled
         if self.config.enable_waf:
-            statements.append({
-                "Sid": "WAFAccess",
-                "Effect": "Allow",
-                "Action": [
-                    "wafv2:*"
-                ],
-                "Resource": [
-                    f"arn:aws:wafv2:us-east-1:{account_id}:global/webacl/*",
-                    f"arn:aws:wafv2:{self.config.aws_region}:{account_id}:regional/webacl/*"
-                ]
-            })
-            
+            statements.append(
+                {
+                    "Sid": "WAFAccess",
+                    "Effect": "Allow",
+                    "Action": ["wafv2:*"],
+                    "Resource": [
+                        f"arn:aws:wafv2:us-east-1:{account_id}:global/webacl/*",
+                        f"arn:aws:wafv2:{self.config.aws_region}:{account_id}:regional/webacl/*",
+                    ],
+                }
+            )
+
         return statements
-    
+
     def _get_monitoring_statements(self, account_id: str) -> List[Dict[str, Any]]:
         """Get monitoring-related permission statements."""
         return [
             {
                 "Sid": "CloudWatchFullAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "logs:*",
-                    "cloudwatch:*"
-                ],
-                "Resource": "*"
+                "Action": ["logs:*", "cloudwatch:*"],
+                "Resource": "*",
             },
             {
                 "Sid": "XRayAccess",
                 "Effect": "Allow",
-                "Action": [
-                    "xray:*"
-                ],
-                "Resource": "*"
-            }
+                "Action": ["xray:*"],
+                "Resource": "*",
+            },
         ]
-    
 
 
 class UnifiedPermissionManager:
     """Unified permission management for all IAM users."""
-    
+
     def __init__(self, profile: Optional[str] = None):
         """Initialize permission manager."""
         self.profile = profile
         session_args = {}
         if profile:
             session_args["profile_name"] = profile
-            
+
         session = boto3.Session(**session_args)
         self.iam = session.client("iam")
         self.sts = session.client("sts")
         self.account_id = self.sts.get_caller_identity()["Account"]
-    
+
     def get_user_projects(self, user_name: str) -> List[str]:
         """Determine which projects a user needs access to based on naming convention."""
         # Common CI/CD user patterns
@@ -289,117 +265,149 @@ class UnifiedPermissionManager:
                 return projects if projects else []
             except:
                 return []
-    
-    
-    def update_user_permissions(self, user_name: str, projects: Optional[List[str]] = None) -> None:
+
+    def update_user_permissions(
+        self, user_name: str, projects: Optional[List[str]] = None
+    ) -> None:
         """Update permissions for a user across all their projects."""
         click.echo(f"\n🔧 Updating permissions for user: {user_name}")
-        
+
         # Determine projects if not specified
         if not projects:
             projects = self.get_user_projects(user_name)
             if projects:
                 click.echo(f"   Detected projects: {', '.join(projects)}")
             else:
-                click.echo("   No projects detected. Please specify projects explicitly.")
+                click.echo(
+                    "   No projects detected. Please specify projects explicitly."
+                )
                 return
-        
+
         # Create separate policies by category
         self._update_categorized_policies(user_name, projects)
-    
+
     def _update_categorized_policies(self, user_name: str, projects: List[str]) -> None:
         """Update user with separate policies by category."""
-        categories = ["infrastructure", "compute", "storage", "networking", "monitoring"]
-        
+        categories = [
+            "infrastructure",
+            "compute",
+            "storage",
+            "networking",
+            "monitoring",
+        ]
+
         for category in categories:
             try:
                 # Generate category policy for all projects
                 policy_statements = []
-                
+
                 for project_name in projects:
                     config = get_project_config(project_name)
                     policy_generator = PolicyGenerator(config)
-                    cat_policy = policy_generator.generate_policy_by_category(self.account_id, category)
-                    
+                    cat_policy = policy_generator.generate_policy_by_category(
+                        self.account_id, category
+                    )
+
                     # Add project prefix to avoid conflicts
                     for statement in cat_policy["Statement"]:
                         statement["Sid"] = f"{project_name}_{statement['Sid']}"
                         policy_statements.append(statement)
-                
+
                 if policy_statements:
                     # Create policy document
                     policy_doc = {
                         "Version": "2012-10-17",
-                        "Statement": policy_statements
+                        "Statement": policy_statements,
                     }
-                    
+
                     policy_name = f"{user_name}-{category}-policy"
-                    
+
                     # Check policy size
                     policy_size = len(json.dumps(policy_doc))
                     if policy_size > 6144:
-                        click.echo(f"⚠️  Warning: {category} policy size ({policy_size}) exceeds limit")
-                    
+                        click.echo(
+                            f"⚠️  Warning: {category} policy size ({policy_size}) exceeds limit"
+                        )
+
                     # Update or create the policy
                     self.iam.put_user_policy(
                         UserName=user_name,
                         PolicyName=policy_name,
-                        PolicyDocument=json.dumps(policy_doc)
+                        PolicyDocument=json.dumps(policy_doc),
                     )
-                    
-                    click.echo(f"✅ Updated {category} policy for user '{user_name}' ({policy_size} chars)")
-                    
+
+                    click.echo(
+                        f"✅ Updated {category} policy for user '{user_name}' ({policy_size} chars)"
+                    )
+
             except Exception as e:
                 click.echo(f"❌ Error updating {category} policy: {e}")
-        
+
         # Clean up old unified policy if it exists
         self._cleanup_old_policies(user_name, keep_pattern=f"{user_name}-*-policy")
-    
-    
-    def _cleanup_old_policies(self, user_name: str, keep_policy: Optional[str] = None, 
-                            keep_pattern: Optional[str] = None) -> None:
+
+    def _cleanup_old_policies(
+        self,
+        user_name: str,
+        keep_policy: Optional[str] = None,
+        keep_pattern: Optional[str] = None,
+    ) -> None:
         """Remove old project-specific policies, keeping specified ones."""
         try:
             policies = self.iam.list_user_policies(UserName=user_name)
             for policy_name in policies["PolicyNames"]:
                 should_delete = False
-                
+
                 if keep_pattern:
                     # Keep policies matching the pattern
                     import fnmatch
+
                     if not fnmatch.fnmatch(policy_name, keep_pattern):
                         # Check if it's an old project-specific policy
-                        if any(proj in policy_name for proj in ["fraud-or-not", "media-register", 
-                                                                 "people-cards", "cicd"]):
+                        if any(
+                            proj in policy_name
+                            for proj in [
+                                "fraud-or-not",
+                                "media-register",
+                                "people-cards",
+                                "cicd",
+                            ]
+                        ):
                             should_delete = True
                 elif keep_policy:
                     # Keep only the specified policy
                     if policy_name != keep_policy and any(
-                        proj in policy_name for proj in ["fraud-or-not", "media-register", 
-                                                         "people-cards", "cicd"]
+                        proj in policy_name
+                        for proj in [
+                            "fraud-or-not",
+                            "media-register",
+                            "people-cards",
+                            "cicd",
+                        ]
                     ):
                         should_delete = True
-                
+
                 if should_delete:
-                    self.iam.delete_user_policy(UserName=user_name, PolicyName=policy_name)
+                    self.iam.delete_user_policy(
+                        UserName=user_name, PolicyName=policy_name
+                    )
                     click.echo(f"   🧹 Removed old policy: {policy_name}")
         except Exception as e:
             click.echo(f"   ⚠️  Warning: Could not clean up old policies: {e}")
-    
+
     def show_user_permissions(self, user_name: str) -> None:
         """Display all permissions for a user."""
         try:
             click.echo(f"\n📋 Permissions for user '{user_name}':")
-            
+
             # List inline policies
             inline_policies = self.iam.list_user_policies(UserName=user_name)
             for policy_name in inline_policies["PolicyNames"]:
                 policy_doc = self.iam.get_user_policy(
-                    UserName=user_name,
-                    PolicyName=policy_name
+                    UserName=user_name, PolicyName=policy_name
                 )
                 click.echo(f"\n  Inline Policy: {policy_name}")
-                
+
                 # Extract and display projects covered
                 projects_covered = set()
                 for statement in policy_doc["PolicyDocument"]["Statement"]:
@@ -407,10 +415,12 @@ class UnifiedPermissionManager:
                     for project in ["fraud-or-not", "media-register", "people-cards"]:
                         if project in sid:
                             projects_covered.add(project)
-                
+
                 if projects_covered:
-                    click.echo(f"  Projects covered: {', '.join(sorted(projects_covered))}")
-                
+                    click.echo(
+                        f"  Projects covered: {', '.join(sorted(projects_covered))}"
+                    )
+
                 # Show key permission categories
                 policy_text = json.dumps(policy_doc["PolicyDocument"])
                 categories = {
@@ -422,46 +432,56 @@ class UnifiedPermissionManager:
                     "CloudFront": ["cloudfront:"],
                     "IAM": ["iam:"],
                     "Cognito": ["cognito-idp:"],
-                    "VPC": ["ec2:"]
+                    "VPC": ["ec2:"],
                 }
-                
+
                 click.echo("  Permission categories:")
                 for category, prefixes in categories.items():
                     if any(prefix in policy_text for prefix in prefixes):
                         click.echo(f"    ✅ {category}")
-            
+
             # List attached policies
             attached_policies = self.iam.list_attached_user_policies(UserName=user_name)
             for policy in attached_policies["AttachedPolicies"]:
                 click.echo(f"\n  Attached Policy: {policy['PolicyName']}")
-                
+
         except self.iam.exceptions.NoSuchEntityException:
             click.echo(f"❌ User '{user_name}' not found", err=True)
             sys.exit(1)
-    
+
     def list_all_users_with_permissions(self) -> None:
         """List all IAM users that have project-related permissions."""
         click.echo("\n👥 IAM Users with Project Permissions:")
-        
+
         paginator = self.iam.get_paginator("list_users")
         for page in paginator.paginate():
             for user in page["Users"]:
                 user_name = user["UserName"]
-                
+
                 # Check if user has any project-related policies
                 try:
                     policies = self.iam.list_user_policies(UserName=user_name)
                     has_project_policy = any(
-                        any(proj in policy for proj in ["fraud-or-not", "media-register", "people-cards", "cicd"])
+                        any(
+                            proj in policy
+                            for proj in [
+                                "fraud-or-not",
+                                "media-register",
+                                "people-cards",
+                                "cicd",
+                            ]
+                        )
                         for policy in policies["PolicyNames"]
                     )
-                    
+
                     if has_project_policy:
                         projects = self.get_user_projects(user_name)
                         if projects:
                             click.echo(f"\n  User: {user_name}")
                             click.echo(f"  Projects: {', '.join(projects)}")
-                            click.echo(f"  Policies: {', '.join(policies['PolicyNames'])}")
+                            click.echo(
+                                f"  Policies: {', '.join(policies['PolicyNames'])}"
+                            )
                 except:
                     pass
 
@@ -474,7 +494,12 @@ def cli():
 
 @cli.command()
 @click.option("--user", "-u", required=True, help="IAM user name")
-@click.option("--projects", "-p", multiple=True, help="Projects to grant access to (can specify multiple)")
+@click.option(
+    "--projects",
+    "-p",
+    multiple=True,
+    help="Projects to grant access to (can specify multiple)",
+)
 @click.option("--profile", help="AWS profile to use")
 def update(user: str, projects: tuple, profile: str):
     """Update permissions for a user across all their projects."""
@@ -504,28 +529,28 @@ def list_users(profile: str):
 def update_all(profile: str):
     """Update permissions for all detected users."""
     manager = UnifiedPermissionManager(profile=profile)
-    
+
     click.echo("🔍 Scanning for users with project permissions...")
-    
+
     # Find all users with project permissions
     paginator = manager.iam.get_paginator("list_users")
     users_to_update = []
-    
+
     for page in paginator.paginate():
         for user in page["Users"]:
             user_name = user["UserName"]
             projects = manager.get_user_projects(user_name)
             if projects:
                 users_to_update.append((user_name, projects))
-    
+
     if not users_to_update:
         click.echo("No users found with project permissions.")
         return
-    
+
     click.echo(f"\nFound {len(users_to_update)} users to update:")
     for user_name, projects in users_to_update:
         click.echo(f"  - {user_name}: {', '.join(projects)}")
-    
+
     if click.confirm("\nProceed with updating all users?"):
         for user_name, projects in users_to_update:
             manager.update_user_permissions(user_name, projects)
@@ -539,38 +564,43 @@ def update_all(profile: str):
 @click.option("--output", "-o", type=click.Path(), help="Output file for policy JSON")
 @click.option("--projects", "-p", multiple=True, help="Projects to include in policy")
 @click.option("--profile", help="AWS profile to use")
-@click.option("--category", "-c", required=True,
-              type=click.Choice(["infrastructure", "compute", "storage", "networking", "monitoring"]),
-              help="Category to generate policy for")
+@click.option(
+    "--category",
+    "-c",
+    required=True,
+    type=click.Choice(
+        ["infrastructure", "compute", "storage", "networking", "monitoring"]
+    ),
+    help="Category to generate policy for",
+)
 def generate(user: str, output: str, projects: tuple, profile: str, category: str):
     """Generate policy JSON for a specific category."""
     manager = UnifiedPermissionManager(profile=profile)
-    
+
     # Determine projects
     project_list = list(projects) if projects else manager.get_user_projects(user)
     if not project_list:
         click.echo("No projects specified or detected. Please specify projects with -p")
         sys.exit(1)
-    
+
     # Generate policy for specific category
     policy_statements = []
     for project_name in project_list:
         config = get_project_config(project_name)
         policy_generator = PolicyGenerator(config)
-        cat_policy = policy_generator.generate_policy_by_category(manager.account_id, category)
-        
+        cat_policy = policy_generator.generate_policy_by_category(
+            manager.account_id, category
+        )
+
         for statement in cat_policy["Statement"]:
             statement["Sid"] = f"{project_name}_{statement['Sid']}"
             policy_statements.append(statement)
-    
-    policy = {
-        "Version": "2012-10-17",
-        "Statement": policy_statements
-    }
-    
+
+    policy = {"Version": "2012-10-17", "Statement": policy_statements}
+
     policy_json = json.dumps(policy, indent=2)
     size = len(policy_json)
-    
+
     if output:
         with open(output, "w") as f:
             f.write(policy_json)

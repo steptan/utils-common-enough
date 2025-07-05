@@ -9,8 +9,8 @@ from .distribution import DistributionConstruct
 
 __all__ = [
     "NetworkConstruct",
-    "CostOptimizedNetworkConstruct", 
+    "CostOptimizedNetworkConstruct",
     "ComputeConstruct",
     "StorageConstruct",
-    "DistributionConstruct"
+    "DistributionConstruct",
 ]

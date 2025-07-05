@@ -3,7 +3,4 @@
 from .audit import SecurityAuditor
 from .compliance import ComplianceChecker
 
-__all__ = [
-    'SecurityAuditor',
-    'ComplianceChecker'
-]
+__all__ = ["SecurityAuditor", "ComplianceChecker"]

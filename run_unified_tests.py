@@ -15,21 +15,26 @@ from tests.test_unified_permissions import (
     TestPolicyGenerator,
     TestUnifiedPermissionManager,
     TestCLICommands,
-    TestErrorHandling
+    TestErrorHandling,
 )
 
 if __name__ == "__main__":
     # Create test suite
     suite = unittest.TestSuite()
-    
+
     # Add test classes
-    for test_class in [TestPolicyGenerator, TestUnifiedPermissionManager, TestCLICommands, TestErrorHandling]:
+    for test_class in [
+        TestPolicyGenerator,
+        TestUnifiedPermissionManager,
+        TestCLICommands,
+        TestErrorHandling,
+    ]:
         tests = unittest.TestLoader().loadTestsFromTestCase(test_class)
         suite.addTests(tests)
-    
+
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-    
+
     # Exit with appropriate code
     sys.exit(0 if result.wasSuccessful() else 1)

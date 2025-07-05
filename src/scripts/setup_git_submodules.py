@@ -14,19 +14,19 @@ from pathlib import Path
 
 class GitSubmoduleSetup:
     """Setup git submodule configuration"""
-    
+
     def __init__(self, project_root: Path = None):
         self.project_root = project_root or Path.cwd()
-        self.git_dir = self.project_root / '.git'
-        self.hooks_dir = self.git_dir / 'hooks'
-        
+        self.git_dir = self.project_root / ".git"
+        self.hooks_dir = self.git_dir / "hooks"
+
     def create_pre_push_hook(self) -> bool:
         """Create pre-push hook for submodule checking"""
         print("Creating pre-push hook...")
-        
+
         # Ensure hooks directory exists
         self.hooks_dir.mkdir(parents=True, exist_ok=True)
-        
+
         hook_content = '''#!/usr/bin/env python3
 """
 Pre-push hook to ensure submodule changes are pushed
@@ -128,102 +128,111 @@ if __name__ == "__main__":
         sys.exit(1)
     sys.exit(0)
 '''
-        
-        hook_path = self.hooks_dir / 'pre-push'
-        with open(hook_path, 'w') as f:
+
+        hook_path = self.hooks_dir / "pre-push"
+        with open(hook_path, "w") as f:
             f.write(hook_content)
-        
+
         # Make executable
         hook_path.chmod(0o755)
         print(f"✅ Created pre-push hook at {hook_path}")
         return True
-    
+
     def setup_git_aliases(self) -> bool:
         """Setup useful git aliases for submodule management"""
         print("Setting up git aliases...")
-        
+
         aliases = {
-            'pushall': '!f() { echo "Checking for submodule changes..."; git submodule foreach "git add -A && git diff-index --quiet HEAD -- || git commit -m \\"Auto-commit from parent repo\\" && git push || true"; echo "Committing parent repository..."; git add -A && git commit -m "$1" && git push; }; f',
-            'sall': '!git status && echo "" && git submodule foreach "echo \\"Submodule: $path\\" && git status -s && echo"',
-            'pullall': '!git pull && git submodule update --remote --merge',
-            'addall': '!git submodule foreach "git add -A" && git add -A'
+            "pushall": '!f() { echo "Checking for submodule changes..."; git submodule foreach "git add -A && git diff-index --quiet HEAD -- || git commit -m \\"Auto-commit from parent repo\\" && git push || true"; echo "Committing parent repository..."; git add -A && git commit -m "$1" && git push; }; f',
+            "sall": '!git status && echo "" && git submodule foreach "echo \\"Submodule: $path\\" && git status -s && echo"',
+            "pullall": "!git pull && git submodule update --remote --merge",
+            "addall": '!git submodule foreach "git add -A" && git add -A',
         }
-        
+
         try:
             for alias, command in aliases.items():
                 subprocess.run(
-                    ['git', 'config', '--local', f'alias.{alias}', command],
-                    check=True
+                    ["git", "config", "--local", f"alias.{alias}", command], check=True
                 )
                 print(f"  ✅ Added alias: git {alias}")
             return True
         except subprocess.CalledProcessError as e:
             print(f"  ❌ Failed to set up aliases: {e}")
             return False
-    
+
     def configure_submodule_tracking(self) -> bool:
         """Configure submodule to track branch"""
         print("Configuring submodule tracking...")
-        
-        if not (self.project_root / '.gitmodules').exists():
+
+        if not (self.project_root / ".gitmodules").exists():
             print("  ⚠️  No .gitmodules file found")
             return True
-        
+
         try:
             # Configure utils submodule to track master branch
             subprocess.run(
-                ['git', 'config', '--file', '.gitmodules', 'submodule.utils.branch', 'master'],
-                check=True
+                [
+                    "git",
+                    "config",
+                    "--file",
+                    ".gitmodules",
+                    "submodule.utils.branch",
+                    "master",
+                ],
+                check=True,
             )
             subprocess.run(
-                ['git', 'config', '--file', '.gitmodules', 'submodule.utils.update', 'merge'],
-                check=True
+                [
+                    "git",
+                    "config",
+                    "--file",
+                    ".gitmodules",
+                    "submodule.utils.update",
+                    "merge",
+                ],
+                check=True,
             )
             print("  ✅ Configured utils submodule to track master branch")
             return True
         except subprocess.CalledProcessError as e:
             print(f"  ❌ Failed to configure submodule: {e}")
             return False
-    
+
     def setup_local_config(self) -> bool:
         """Setup local git configuration for submodules"""
         print("Setting up local git configuration...")
-        
-        configs = {
-            'submodule.recurse': 'true',
-            'push.recurseSubmodules': 'on-demand'
-        }
-        
+
+        configs = {"submodule.recurse": "true", "push.recurseSubmodules": "on-demand"}
+
         try:
             for key, value in configs.items():
-                subprocess.run(
-                    ['git', 'config', '--local', key, value],
-                    check=True
-                )
+                subprocess.run(["git", "config", "--local", key, value], check=True)
                 print(f"  ✅ Set {key} = {value}")
             return True
         except subprocess.CalledProcessError as e:
             print(f"  ❌ Failed to set configuration: {e}")
             return False
-    
+
     def run_setup(self) -> bool:
         """Run complete setup"""
         print("🔧 Git Submodule Configuration Setup")
         print("=" * 50)
-        
+
         # Check if we're in a git repository
         if not self.git_dir.exists():
             print("❌ Error: Not in a git repository")
             return False
-        
+
         # Run all setup steps
-        success = all([
-            self.create_pre_push_hook(),
-            self.setup_git_aliases(),
-            self.configure_submodule_tracking(),
-            self.setup_local_config()
-        ])
-        
+        success = all(
+            [
+                self.create_pre_push_hook(),
+                self.setup_git_aliases(),
+                self.configure_submodule_tracking(),
+                self.setup_local_config(),
+            ]
+        )
+
         if success:
             print("\n✅ Git submodule configuration complete!")
             print("\nAvailable commands:")
@@ -231,29 +240,29 @@ if __name__ == "__main__":
             print("  git addall    - Add all changes in parent repo and submodules")
             print("  git pushall   - Commit and push parent repo and all submodules")
             print("  git pullall   - Pull parent repo and update all submodules")
-            print("\nThe pre-push hook will automatically check submodules before pushing.")
+            print(
+                "\nThe pre-push hook will automatically check submodules before pushing."
+            )
         else:
             print("\n❌ Some setup steps failed")
-        
+
         return success
 
 
 def main():
     """Main function"""
-    parser = argparse.ArgumentParser(
-        description="Setup git submodule configuration"
-    )
+    parser = argparse.ArgumentParser(description="Setup git submodule configuration")
     parser.add_argument(
         "--project-root",
         type=Path,
-        help="Project root directory (default: current directory)"
+        help="Project root directory (default: current directory)",
     )
-    
+
     args = parser.parse_args()
-    
+
     setup = GitSubmoduleSetup(project_root=args.project_root)
     success = setup.run_setup()
-    
+
     sys.exit(0 if success else 1)
 
 

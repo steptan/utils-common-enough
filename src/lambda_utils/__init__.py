@@ -4,4 +4,4 @@ from .nodejs_builder import NodeJSBuilder
 from .typescript_compiler import TypeScriptCompiler
 from .packager import LambdaPackager
 
-__all__ = ['NodeJSBuilder', 'TypeScriptCompiler', 'LambdaPackager']
+__all__ = ["NodeJSBuilder", "TypeScriptCompiler", "LambdaPackager"]

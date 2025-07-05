@@ -13,5 +13,5 @@ __all__ = [
     "ServerlessAPIPattern",
     "StaticWebsitePattern",
     "FullStackAppPattern",
-    "CloudFrontLambdaAppPattern"
+    "CloudFrontLambdaAppPattern",
 ]

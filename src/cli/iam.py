@@ -11,8 +11,8 @@ def main():
 
 
 @main.command()
-@click.option('--project', required=True, help='Project name')
-@click.option('--environment', required=True, help='Environment name')
+@click.option("--project", required=True, help="Project name")
+@click.option("--environment", required=True, help="Environment name")
 def create_user(project: str, environment: str):
     """Create IAM user for CI/CD."""
     click.echo(f"Creating IAM user for {project} in {environment}")
@@ -21,8 +21,8 @@ def create_user(project: str, environment: str):
 
 
 @main.command()
-@click.option('--project', required=True, help='Project name')
-@click.option('--environment', required=True, help='Environment name')
+@click.option("--project", required=True, help="Project name")
+@click.option("--environment", required=True, help="Environment name")
 def update_permissions(project: str, environment: str):
     """Update IAM permissions."""
     click.echo(f"Updating IAM permissions for {project} in {environment}")
@@ -30,5 +30,5 @@ def update_permissions(project: str, environment: str):
     raise NotImplementedError("IAM permission update not yet implemented")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
