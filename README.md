@@ -17,6 +17,19 @@ This package consolidates common scripts and utilities used across all three pro
 
 ## Installation
 
+### As a Git Submodule
+
+For projects using utils as a submodule (fraud-or-not, media-register, people-cards):
+
+```bash
+# From your project root
+./utils/setup-git-submodules.sh
+```
+
+This sets up git aliases, pre-push hooks, and proper submodule tracking. See [docs/setup-git-submodules.md](docs/setup-git-submodules.md) for details.
+
+### Standalone Installation
+
 ```bash
 # Clone the utils repository
 cd /path/to/utils
