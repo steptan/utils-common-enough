@@ -1,8 +1,9 @@
 # Claude Settings - Improved Security
 
 This directory contains security-hardened Claude settings files for the three projects:
+
 - fraud-or-not
-- media-register  
+- media-register
 - people-cards
 
 ## Files

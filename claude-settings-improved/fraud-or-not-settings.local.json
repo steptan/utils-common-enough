@@ -7,7 +7,7 @@
       "Bash(./scripts/deploy-infrastructure.py --environment staging)",
       "Bash(./scripts/deploy-infrastructure.py --environment production)",
       "Bash(AWS_REGION=us-west-1 python scripts/deploy_staging_direct.py)",
-      
+
       // Git operations - limited to safe operations
       "Bash(git status)",
       "Bash(git diff)",
@@ -18,13 +18,13 @@
       "Bash(git log)",
       "Bash(git branch)",
       "Bash(git checkout *)",
-      
+
       // GitHub CLI - limited to read operations
       "Bash(gh run list)",
       "Bash(gh run view *)",
       "Bash(gh run watch *)",
       "Bash(gh workflow view *)",
-      
+
       // Node.js and npm - limited to project operations
       "Bash(npm install)",
       "Bash(npm test)",
@@ -32,24 +32,24 @@
       "Bash(npm run start)",
       "Bash(npm update)",
       "Bash(npx tsc)",
-      
+
       // Testing - specific test commands
       "Bash(NODE_ENV=test npm test -- --testPathPattern=* --no-coverage)",
       "Bash(NODE_ENV=test npm test -- --testNamePattern=* --no-coverage)",
       "Bash(NODE_ENV=development npm test -- --testNamePattern=* --no-coverage)",
-      
+
       // Python - limited to project scripts
       "Bash(python ./scripts/*.py)",
       "Bash(python3 ./scripts/*.py)",
       "Bash(pip install -r requirements.txt)",
       "Bash(pip3 install -r requirements.txt)",
-      
+
       // AWS operations - limited and specific
       "Bash(aws cloudformation list-stacks --region us-west-1)",
       "Bash(aws cloudformation describe-stacks --stack-name fraud-or-not-* --region us-west-1)",
       "Bash(aws cloudformation create-stack --stack-name fraud-or-not-* --region us-west-1 *)",
       "Bash(aws cloudformation update-stack --stack-name fraud-or-not-* --region us-west-1 *)",
-      
+
       // File operations - limited to project directory
       "Bash(ls)",
       "Bash(ls -la)",
@@ -58,15 +58,15 @@
       "Bash(mkdir -p *)",
       "Bash(touch *)",
       "Bash(chmod +x ./scripts/*)",
-      
+
       // Search operations - limited to project
       "Bash(rg * .)",
       "Bash(grep -r * .)",
-      
+
       // Project utilities
       "Bash(project-utils *)",
       "Bash(project-deploy *)",
-      
+
       // Safe informational commands
       "Bash(echo *)",
       "Bash(cat ./README.md)",
@@ -78,39 +78,39 @@
       "Bash(rm -rf *)",
       "Bash(rm -f /*)",
       "Bash(chmod 777 *)",
-      
+
       // Prevent system-wide changes
       "Bash(brew install *)",
       "Bash(apt-get *)",
       "Bash(sudo *)",
-      
+
       // Prevent accessing sensitive files
       "Bash(cat ~/.aws/*)",
       "Bash(cat ~/.ssh/*)",
       "Bash(cat .env)",
-      
+
       // Prevent dangerous git operations
       "Bash(git push --force)",
       "Bash(git reset --hard)",
       "Bash(git clean -fd)",
-      
+
       // Prevent npm publish
       "Bash(npm publish)",
-      
+
       // Prevent AWS account-wide operations
       "Bash(aws iam create-user *)",
       "Bash(aws iam delete-user *)",
       "Bash(aws iam create-access-key *)",
       "Bash(aws s3 rm s3://* --recursive)",
-      
+
       // Prevent accessing parent directories
       "Bash(cd ..)",
       "Bash(ls ..)",
       "Bash(find .. *)",
-      
+
       // Prevent modifying git config
       "Bash(git config --global *)",
-      
+
       // Prevent installing global packages
       "Bash(npm install -g *)",
       "Bash(pip install --user *)"

@@ -24,16 +24,19 @@ This document describes the deployment patterns used by Project Utils across the
 ### Implementation Steps
 
 1. **Deploy to Green Environment**
+
    ```bash
    project-deploy deploy --project media-register --environment green
    ```
 
 2. **Run Validation Tests**
+
    ```bash
    project-test smoke --project media-register --environment green
    ```
 
 3. **Switch Traffic**
+
    ```bash
    project-deploy switch-traffic --project media-register --from blue --to green
    ```
@@ -269,17 +272,17 @@ jobs:
     steps:
       - name: Deploy to Dev
         run: project-deploy full --project $PROJECT --environment dev
-        
+
       - name: Run Tests
         run: project-test smoke --project $PROJECT --environment dev
-        
+
       - name: Deploy to Staging
         if: success()
         run: project-deploy full --project $PROJECT --environment staging
-        
+
       - name: Approval Gate
         uses: trstringer/manual-approval@v1
-        
+
       - name: Deploy to Production
         if: success()
         run: project-deploy full --project $PROJECT --environment prod

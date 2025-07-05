@@ -6,35 +6,35 @@ This guide helps you migrate from the old bash scripts to the new Python-based u
 
 ### IAM Setup Scripts
 
-| Old Script | New Command |
-|------------|-------------|
-| `fraud-or-not/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd` |
-| `media-register/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user media-register-cicd` |
-| `people-cards/.github/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user people-cards-cicd` |
+| Old Script                                  | New Command                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `fraud-or-not/scripts/setup-iam.sh`         | `python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd`   |
+| `media-register/scripts/setup-iam.sh`       | `python src/scripts/unified_user_permissions.py update --user media-register-cicd` |
+| `people-cards/.github/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user people-cards-cicd`   |
 
 ### Deployment Scripts
 
-| Old Script | New Command |
-|------------|-------------|
-| `fraud-or-not/deploy.py` | `project-deploy deploy --project fraud-or-not -e <env>` |
-| `media-register/scripts/deploy.sh` | `project-deploy deploy --project media-register -e <env>` |
-| `people-cards/scripts/deploy_full.py` | `project-deploy full --project people-cards -e <env>` |
+| Old Script                                | New Command                                               |
+| ----------------------------------------- | --------------------------------------------------------- |
+| `fraud-or-not/deploy.py`                  | `project-deploy deploy --project fraud-or-not -e <env>`   |
+| `media-register/scripts/deploy.sh`        | `project-deploy deploy --project media-register -e <env>` |
+| `people-cards/scripts/deploy_full.py`     | `project-deploy full --project people-cards -e <env>`     |
 | `people-cards/scripts/deploy_frontend.py` | `project-deploy frontend --project people-cards -e <env>` |
-| `people-cards/scripts/deploy_staging.sh` | `project-deploy full --project people-cards -e staging` |
+| `people-cards/scripts/deploy_staging.sh`  | `project-deploy full --project people-cards -e staging`   |
 
 ### CloudFormation Management Scripts
 
-| Old Script | New Command |
-|------------|-------------|
-| `people-cards/scripts/diagnose-stack-failure.sh` | `project-cfn diagnose --stack-name <name>` |
-| `people-cards/scripts/fix-rollback-stack.sh` | `project-cfn fix-rollback --stack-name <name>` |
-| `people-cards/scripts/force-delete-stack.sh` | `project-cfn delete --stack-name <name> --force` |
-| `people-cards/scripts/ensure-lambda-bucket.sh` | Automatic in deployment commands |
+| Old Script                                       | New Command                                      |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `people-cards/scripts/diagnose-stack-failure.sh` | `project-cfn diagnose --stack-name <name>`       |
+| `people-cards/scripts/fix-rollback-stack.sh`     | `project-cfn fix-rollback --stack-name <name>`   |
+| `people-cards/scripts/force-delete-stack.sh`     | `project-cfn delete --stack-name <name> --force` |
+| `people-cards/scripts/ensure-lambda-bucket.sh`   | Automatic in deployment commands                 |
 
 ### Health Check Scripts
 
-| Old Script | New Command |
-|------------|-------------|
+| Old Script                               | New Command                                             |
+| ---------------------------------------- | ------------------------------------------------------- |
 | `media-register/scripts/health_check.py` | `project-test health --project media-register -e <env>` |
 
 ## Key Differences
@@ -42,6 +42,7 @@ This guide helps you migrate from the old bash scripts to the new Python-based u
 ### 1. Configuration-Based
 
 Old approach:
+
 ```bash
 # Hard-coded values in scripts
 IAM_USER_NAME="fraud-or-not-cicd"
@@ -49,6 +50,7 @@ AWS_REGION="us-east-1"
 ```
 
 New approach:
+
 ```yaml
 # config/fraud-or-not.yaml
 name: fraud-or-not
@@ -58,11 +60,13 @@ aws_region: us-east-1
 ### 2. Better Error Handling
 
 Old approach:
+
 ```bash
 aws iam create-user --user-name $IAM_USER_NAME || echo "User might already exist"
 ```
 
 New approach:
+
 - Proper exception handling
 - Clear error messages
 - Rollback capabilities
@@ -75,6 +79,7 @@ New approach:
 ### 4. Unified Interface
 
 Instead of different scripts in each project, use consistent commands:
+
 ```bash
 # Works for all projects
 python src/scripts/unified_user_permissions.py update --user <name>-cicd
@@ -93,6 +98,7 @@ pip install -e .
 ### 2. Verify Configuration
 
 Check that your project configuration exists:
+
 ```bash
 ls config/
 cat config/your-project.yaml
@@ -101,6 +107,7 @@ cat config/your-project.yaml
 ### 3. Test IAM Setup
 
 First, validate existing permissions:
+
 ```bash
 python src/scripts/unified_user_permissions.py show --user your-project-cicd
 ```
@@ -110,12 +117,14 @@ python src/scripts/unified_user_permissions.py show --user your-project-cicd
 Replace script calls in your GitHub Actions:
 
 Old:
+
 ```yaml
 - name: Setup IAM
   run: ./scripts/setup-iam.sh
 ```
 
 New:
+
 ```yaml
 - name: Setup IAM
   run: |
@@ -126,12 +135,14 @@ New:
 ### 5. Update Deployment Scripts
 
 Old:
+
 ```yaml
 - name: Deploy
   run: ./scripts/deploy.sh ${{ github.event.inputs.environment }}
 ```
 
 New:
+
 ```yaml
 - name: Deploy
   run: |
@@ -148,6 +159,7 @@ python src/scripts/unified_user_permissions.py update --user your-project-cicd
 ```
 
 Then update your workflow:
+
 ```yaml
 permissions:
   id-token: write
@@ -164,6 +176,7 @@ steps:
 ## Environment Variables
 
 The utils respect these environment variables:
+
 - `PROJECT_NAME` - Override project selection
 - `AWS_REGION` - Override configured region
 - `AWS_PROFILE` - Use specific AWS profile
@@ -173,6 +186,7 @@ The utils respect these environment variables:
 ### Command not found
 
 If commands aren't in PATH:
+
 ```bash
 # Use Python module syntax
 python src/scripts/unified_user_permissions.py update --user your-project-cicd
@@ -181,6 +195,7 @@ python src/scripts/unified_user_permissions.py update --user your-project-cicd
 ### Configuration not found
 
 Ensure you're running from the correct directory or set:
+
 ```bash
 export PROJECT_UTILS_CONFIG_DIR=/path/to/utils/config
 ```
@@ -188,6 +203,7 @@ export PROJECT_UTILS_CONFIG_DIR=/path/to/utils/config
 ### AWS credentials
 
 The utils use the same credential chain as AWS CLI:
+
 1. Environment variables
 2. AWS credentials file
 3. IAM role (EC2/Lambda)
@@ -195,6 +211,7 @@ The utils use the same credential chain as AWS CLI:
 ## Rollback
 
 If you need to rollback:
+
 1. The old scripts are still in each project
 2. Just use them directly as before
 3. The utils don't modify existing resources

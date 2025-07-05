@@ -17,7 +17,7 @@
    - Block AWS account-wide operations
 
 3. **Made Permissions Project-Specific**
-   - AWS stack names must match project prefix (fraud-or-not-*, media-register-*, people-cards-*)
+   - AWS stack names must match project prefix (fraud-or-not-_, media-register-_, people-cards-\*)
    - S3 operations limited to project-specific buckets
    - Scripts limited to project's ./scripts directory
 
@@ -29,6 +29,7 @@
 ## Implementation Steps
 
 ### 1. Backup Current Settings
+
 ```bash
 # For each project, backup the current settings
 cp /Users/sj/projects/fraud-or-not/.claude/settings.local.json /Users/sj/projects/fraud-or-not/.claude/settings.local.json.backup
@@ -38,6 +39,7 @@ cp /Users/sj/projects/people-cards/utils/github-build-logs/.claude/settings.loca
 ```
 
 ### 2. Copy New Settings Files
+
 ```bash
 # Copy the improved settings to each project
 cp /Users/sj/projects/utils/claude-settings-improved/fraud-or-not-settings.local.json /Users/sj/projects/fraud-or-not/.claude/settings.local.json
@@ -47,7 +49,9 @@ cp /Users/sj/projects/utils/claude-settings-improved/github-build-logs-settings.
 ```
 
 ### 3. Test Claude Functionality
+
 After updating settings, test that Claude can still:
+
 - Run build scripts
 - Execute tests
 - Deploy to staging
@@ -55,7 +59,9 @@ After updating settings, test that Claude can still:
 - Access required AWS resources
 
 ### 4. Adjust as Needed
+
 If Claude needs additional permissions:
+
 1. Add specific commands to the allow list (avoid wildcards)
 2. Document why the permission is needed
 3. Consider if a deny rule should also be added to prevent misuse
@@ -63,18 +69,22 @@ If Claude needs additional permissions:
 ## Ongoing Maintenance
 
 ### Regular Reviews
+
 - Review settings quarterly
 - After adding new functionality, check if permissions need updating
 - Remove permissions for deprecated features
 
 ### Permission Request Guidelines
+
 When Claude requests a new permission:
+
 1. Verify it's necessary for the task
 2. Make it as specific as possible
 3. Add to allow list only if truly needed
 4. Consider adding related deny rules
 
 ### Security Best Practices
+
 1. Never use wildcards unless absolutely necessary
 2. Always specify full command paths for scripts
 3. Limit AWS operations to specific resources

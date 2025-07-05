@@ -7,7 +7,9 @@ This document describes the unified IAM permission system that provides a supers
 ## Key Features
 
 ### 1. Comprehensive Permission Set
+
 The unified permissions include all unique permissions discovered across all three projects, ensuring that:
+
 - Each project has access to all tools and operations available in any other project
 - Project-specific resources are properly scoped using project name prefixes
 - No project is limited by missing permissions that another project has
@@ -15,11 +17,13 @@ The unified permissions include all unique permissions discovered across all thr
 ### 2. Permission Categories
 
 #### CloudFormation
+
 - Full stack management (create, update, delete, describe)
 - Change set operations
 - Stack recovery operations (`ContinueUpdateRollback`, `SignalResource`)
 
 #### S3
+
 - Comprehensive bucket and object operations
 - Advanced features:
   - Lifecycle configuration management
@@ -30,24 +34,28 @@ The unified permissions include all unique permissions discovered across all thr
   - CORS and website configuration
 
 #### Lambda
+
 - Complete function lifecycle management
 - Layer support (`GetLayerVersion`, `PublishLayerVersion`, `DeleteLayerVersion`)
 - Alias and version management
 - Concurrency controls
 
 #### DynamoDB
+
 - Table management with full backup support:
   - On-demand backups (`CreateBackup`, `DeleteBackup`, etc.)
   - Continuous backups
   - Global secondary index management
 
 #### VPC and Networking
+
 - Complete VPC infrastructure management
 - Network interface operations for Lambda in VPC
 - Flow logs and VPC peering
 - Network ACLs and security groups
 
 #### Additional Services
+
 - **API Gateway**: Full access
 - **CloudFront**: Distribution management with origin access control
 - **Cognito**: User pool and client management
@@ -59,6 +67,7 @@ The unified permissions include all unique permissions discovered across all thr
 ### 3. Project-Specific Resources
 
 Resources are scoped by project name to maintain isolation:
+
 ```
 {project-name}-*  # For most resources
 arn:aws:service:region:account:resource/{project-name}-*
@@ -67,6 +76,7 @@ arn:aws:service:region:account:resource/{project-name}-*
 ### 4. Cross-Project Permissions
 
 Common permissions that all projects need:
+
 - `sts:GetCallerIdentity`
 - `iam:GetUser`
 - `iam:ListAccessKeys`
@@ -128,6 +138,7 @@ python /Users/sj/projects/utils/scripts/apply_unified_permissions.py check \
 Located in `/Users/sj/projects/utils/src/iam/unified_permissions.py`
 
 Key methods:
+
 - `generate_unified_cicd_policy()`: Creates the complete policy with all permissions
 - `generate_project_specific_resources()`: Generates resource ARNs for a specific project
 - `generate_lambda_execution_policy()`: Creates Lambda execution role policy
@@ -135,6 +146,7 @@ Key methods:
 ### Permission Discovery Process
 
 The unified permissions were created by:
+
 1. Analyzing the existing permissions in all three projects
 2. Identifying unique permissions in each project
 3. Including additional permissions discovered during troubleshooting (e.g., from people-cards)
@@ -154,11 +166,13 @@ The unified permissions were created by:
 To migrate from project-specific policies to unified permissions:
 
 1. **Backup current policies** (optional):
+
    ```bash
    aws iam get-user-policy --user-name YOUR-USER --policy-name CURRENT-POLICY > backup-policy.json
    ```
 
 2. **Apply unified permissions**:
+
    ```bash
    python apply_unified_permissions.py apply --user YOUR-USER --projects YOUR-PROJECTS
    ```
@@ -172,11 +186,13 @@ To migrate from project-specific policies to unified permissions:
 ### Policy Size Limits
 
 AWS has a 6KB limit for inline policies. The unified policy is optimized to stay under this limit by:
+
 - Using wildcards where appropriate
 - Grouping related permissions
 - Avoiding redundant statements
 
 If you encounter size issues:
+
 1. Consider using managed policies instead
 2. Split permissions across multiple policies
 3. Use more specific resource ARNs to reduce statement count
@@ -184,6 +200,7 @@ If you encounter size issues:
 ### Missing Permissions
 
 If you discover a missing permission:
+
 1. Add it to the `UnifiedPolicyGenerator` class
 2. Document why it's needed
 3. Test with all affected projects
@@ -191,6 +208,7 @@ If you discover a missing permission:
 ### Regional Considerations
 
 The policy supports different regions through the `--region` parameter. Ensure:
+
 - CloudFront resources use `us-east-1` for global resources
 - Other resources use the appropriate regional ARNs
 

@@ -14,6 +14,7 @@ The `unified_user_permissions.py` script consolidates all IAM permission managem
 ## Policy Structure
 
 Creates 5 separate policies per user, grouped by function:
+
 - **infrastructure-policy**: CloudFormation, IAM, SSM (≈1KB)
 - **compute-policy**: Lambda, API Gateway, Cognito (≈600B)
 - **storage-policy**: S3, DynamoDB (≈600B)
@@ -93,11 +94,13 @@ To migrate from the old permission scripts:
 ## Examples
 
 ### Example 1: CI/CD user for single project
+
 ```bash
 python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
 ```
 
 ### Example 2: Shared CI/CD user for multiple projects
+
 ```bash
 python src/scripts/unified_user_permissions.py update \
   --user project-cicd \
@@ -107,11 +110,13 @@ python src/scripts/unified_user_permissions.py update \
 ```
 
 ### Example 3: Check what a user can access
+
 ```bash
 python src/scripts/unified_user_permissions.py show --user project-cicd
 ```
 
 This will display:
+
 - All inline policies
 - Projects covered by each policy
 - Permission categories (S3, Lambda, DynamoDB, etc.)

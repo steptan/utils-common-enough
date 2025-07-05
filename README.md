@@ -5,6 +5,7 @@ Shared utilities for fraud-or-not, media-register, and people-cards projects.
 ## Overview
 
 This package consolidates common scripts and utilities used across all three projects, providing:
+
 - Consistent deployment automation
 - IAM permission management
 - CloudFormation stack operations
@@ -56,7 +57,7 @@ deactivate
 Project configurations are stored in the `config/` directory within the utils project:
 
 - `config/fraud-or-not.yaml` - Fraud or Not project settings
-- `config/media-register.yaml` - Media Register project settings  
+- `config/media-register.yaml` - Media Register project settings
 - `config/people-cards.yaml` - People Cards project settings
 
 Each configuration file contains project-specific settings like AWS region, Lambda runtime, build commands, and custom features. See `config/README.md` for detailed documentation.
@@ -69,7 +70,7 @@ Each configuration file contains project-specific settings like AWS region, Lamb
 # Deploy infrastructure only
 project-deploy deploy --project fraud-or-not --environment staging
 
-# Deploy frontend only  
+# Deploy frontend only
 project-deploy frontend --project media-register --environment prod
 
 # Full deployment (infrastructure + frontend)
@@ -223,6 +224,7 @@ project-utils setup
 ```
 
 Features:
+
 - AWS credential configuration (profiles, environment variables, IAM roles)
 - Project configuration generation
 - Environment setup (dev, staging, prod)
@@ -245,6 +247,7 @@ project-utils validate -p fraud-or-not -e dev --output html
 ```
 
 Validation categories:
+
 - **AWS**: Credentials, permissions, service limits
 - **Configuration**: Config files, environment settings, parameters
 - **Dependencies**: NPM packages, Python packages, Lambda code
@@ -263,6 +266,7 @@ project-utils audit-security -p fraud-or-not -e prod --output html
 ```
 
 Security checks include:
+
 - S3 bucket encryption and public access
 - Lambda function environment variables and permissions
 - IAM role trust policies and permissions
@@ -280,6 +284,7 @@ project-utils check-compliance --project fraud-or-not --environment prod
 ```
 
 Pillars checked:
+
 - Operational Excellence
 - Security
 - Reliability
@@ -303,6 +308,7 @@ project-utils estimate-cost --project fraud-or-not --monthly-budget 1000
 ```
 
 Example usage profile (usage.json):
+
 ```json
 {
   "api_requests_per_month": 1000000,
@@ -335,6 +341,7 @@ project-utils analyze-cost --project fraud-or-not --profile prod-account
 ```
 
 Features:
+
 - Cost breakdown by service
 - Cost trends and forecasting
 - Anomaly detection

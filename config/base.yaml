@@ -1,8 +1,8 @@
 aws:
   primary_region: us-west-1
   regions:
-  - us-west-1
+    - us-west-1
 project:
-  created: '2025-07-01T14:56:43.490054'
+  created: "2025-07-01T14:56:43.490054"
   name: utils
-  organization: ''
+  organization: ""

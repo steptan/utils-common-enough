@@ -4,11 +4,11 @@
       // Only allow listing files in the current directory
       "Bash(ls)",
       "Bash(ls -la)",
-      
+
       // Allow reading log files
       "Bash(cat *.log)",
       "Bash(cat *.txt)",
-      
+
       // Allow searching within logs
       "Bash(grep * *.log)",
       "Bash(rg * .)"
@@ -19,17 +19,17 @@
       "Bash(touch *)",
       "Bash(echo * > *)",
       "Bash(sed *)",
-      
+
       // Deny directory changes
       "Bash(cd *)",
       "Bash(mkdir *)",
-      
+
       // Deny any script execution
       "Bash(python *)",
       "Bash(node *)",
       "Bash(sh *)",
       "Bash(bash *)",
-      
+
       // Deny accessing parent directories
       "Bash(ls ..)",
       "Bash(cat ../*)"

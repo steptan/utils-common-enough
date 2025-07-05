@@ -73,6 +73,7 @@ project-cost     # Cost monitoring
 ### 3. Core Utilities
 
 #### IAM Management
+
 ```python
 scripts/
 ├── unified_user_permissions.py  # Unified permission management
@@ -83,6 +84,7 @@ iam/
 ```
 
 #### CloudFormation
+
 ```python
 cloudformation/
 ├── stack_manager.py   # Stack lifecycle management
@@ -90,6 +92,7 @@ cloudformation/
 ```
 
 #### Lambda Utilities
+
 ```python
 lambda_utils/
 ├── builder.py         # Build functions for deployment
@@ -97,6 +100,7 @@ lambda_utils/
 ```
 
 #### Deployment
+
 ```python
 deployment/
 ├── base_deployer.py       # Base deployment logic
@@ -105,6 +109,7 @@ deployment/
 ```
 
 #### Testing
+
 ```python
 testing/
 ├── smoke_tests.py     # Post-deployment validation
@@ -112,6 +117,7 @@ testing/
 ```
 
 #### Cost Monitoring
+
 ```python
 cost/
 ├── analyzer.py        # Cost analysis and trends

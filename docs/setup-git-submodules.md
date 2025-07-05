@@ -38,7 +38,7 @@ cd ..
 The script sets up these helpful aliases:
 
 - `git sall` - Show status of parent repo and all submodules
-- `git addall` - Add all changes in parent repo and submodules  
+- `git addall` - Add all changes in parent repo and submodules
 - `git pushall` - Commit and push parent repo and all submodules
 - `git pullall` - Pull parent repo and update all submodules
 - `git update-subs` - Pull and update all submodules
@@ -59,11 +59,13 @@ The script creates a pre-push hook that:
 To migrate from individual project scripts:
 
 1. Run the centralized setup script:
+
    ```bash
    ./utils/setup-git-submodules.sh
    ```
 
 2. Remove the old script from your project:
+
    ```bash
    rm setup-git-submodules.sh
    ```

@@ -4,19 +4,20 @@ This document analyzes the permissions granted by the unified permissions script
 
 ## Summary
 
-| Service | Total Available Actions | Actions Granted | Actions NOT Granted | Coverage |
-|---------|------------------------|-----------------|---------------------|----------|
-| VPC (EC2) | ~400+ | 59 | 340+ | ~15% |
-| S3 | ~100+ | 26 | 74+ | ~26% |
-| Lambda | ~70+ | 24 | 46+ | ~34% |
-| DynamoDB | ~50+ | 20 | 30+ | ~40% |
-| CloudFront | ~40+ | 18 | 22+ | ~45% |
+| Service    | Total Available Actions | Actions Granted | Actions NOT Granted | Coverage |
+| ---------- | ----------------------- | --------------- | ------------------- | -------- |
+| VPC (EC2)  | ~400+                   | 59              | 340+                | ~15%     |
+| S3         | ~100+                   | 26              | 74+                 | ~26%     |
+| Lambda     | ~70+                    | 24              | 46+                 | ~34%     |
+| DynamoDB   | ~50+                    | 20              | 30+                 | ~40%     |
+| CloudFront | ~40+                    | 18              | 22+                 | ~45%     |
 
 ## Detailed Analysis
 
 ### VPC (EC2) Permissions
 
 #### Currently Granted (59 actions):
+
 - **VPC Management**: CreateVpc, DeleteVpc, ModifyVpcAttribute, DescribeVpcs
 - **Subnet Management**: CreateSubnet, DeleteSubnet, ModifySubnetAttribute, DescribeSubnets
 - **Internet Gateway**: CreateInternetGateway, DeleteInternetGateway, AttachInternetGateway, DetachInternetGateway, DescribeInternetGateways
@@ -32,6 +33,7 @@ This document analyzes the permissions granted by the unified permissions script
 - **General**: DescribeAvailabilityZones, DescribeAccountAttributes
 
 #### NOT Granted (Major ones):
+
 - **EC2 Instances**: RunInstances, TerminateInstances, StartInstances, StopInstances, RebootInstances, DescribeInstances, ModifyInstanceAttribute
 - **EBS Volumes**: CreateVolume, DeleteVolume, AttachVolume, DetachVolume, DescribeVolumes, CreateSnapshot, DeleteSnapshot
 - **AMIs**: CreateImage, DeregisterImage, DescribeImages, CopyImage, ModifyImageAttribute
@@ -46,10 +48,11 @@ This document analyzes the permissions granted by the unified permissions script
 ### S3 Permissions
 
 #### Currently Granted (26 actions):
+
 - **Bucket Operations**: CreateBucket, DeleteBucket, ListBucket, GetBucketLocation
 - **Object Operations**: PutObject, GetObject, DeleteObject, ListBucketVersions, DeleteObjectVersion
 - **Bucket Policies**: GetBucketPolicy, PutBucketPolicy, DeleteBucketPolicy
-- **Bucket Configuration**: 
+- **Bucket Configuration**:
   - PutBucketVersioning, GetBucketVersioning (implied)
   - PutBucketPublicAccessBlock, GetBucketPublicAccessBlock
   - PutBucketEncryption, GetBucketEncryption
@@ -60,6 +63,7 @@ This document analyzes the permissions granted by the unified permissions script
   - PutBucketOwnershipControls, GetBucketOwnershipControls
 
 #### NOT Granted (Major ones):
+
 - **Advanced Object Operations**: CopyObject, RestoreObject, SelectObjectContent, GetObjectTorrent
 - **Object ACLs**: GetObjectAcl, PutObjectAcl
 - **Bucket ACLs**: GetBucketAcl, PutBucketAcl
@@ -82,6 +86,7 @@ This document analyzes the permissions granted by the unified permissions script
 ### Lambda Permissions
 
 #### Currently Granted (24 actions):
+
 - **Function Management**: CreateFunction, DeleteFunction, UpdateFunctionCode, UpdateFunctionConfiguration, GetFunction, GetFunctionConfiguration, ListFunctions
 - **Function Execution**: InvokeFunction
 - **Permissions**: AddPermission, RemovePermission
@@ -91,6 +96,7 @@ This document analyzes the permissions granted by the unified permissions script
 - **Versions**: PublishVersion, ListVersionsByFunction
 
 #### NOT Granted (Major ones):
+
 - **Layers**: CreateLayer, DeleteLayer, GetLayerVersion, PublishLayerVersion, ListLayers, ListLayerVersions
 - **Event Source Mappings**: CreateEventSourceMapping, DeleteEventSourceMapping, GetEventSourceMapping, UpdateEventSourceMapping, ListEventSourceMappings
 - **Function URLs**: CreateFunctionUrlConfig, DeleteFunctionUrlConfig, GetFunctionUrlConfig, UpdateFunctionUrlConfig
@@ -106,6 +112,7 @@ This document analyzes the permissions granted by the unified permissions script
 ### DynamoDB Permissions
 
 #### Currently Granted (20 actions):
+
 - **Table Management**: CreateTable, DeleteTable, DescribeTable, UpdateTable, ListTables (implied)
 - **Tags**: TagResource, UntagResource, ListTagsOfResource
 - **TTL**: UpdateTimeToLive, DescribeTimeToLive
@@ -113,6 +120,7 @@ This document analyzes the permissions granted by the unified permissions script
 - **Global Secondary Indexes**: CreateGlobalSecondaryIndex, DeleteGlobalSecondaryIndex, DescribeGlobalSecondaryIndex, UpdateGlobalSecondaryIndex
 
 #### NOT Granted (Major ones):
+
 - **Data Operations**: GetItem, PutItem, UpdateItem, DeleteItem, Query, Scan, BatchGetItem, BatchWriteItem, TransactGetItems, TransactWriteItems, ExecuteStatement, BatchExecuteStatement, ExecuteTransaction
 - **Streams**: DescribeStream, GetRecords, GetShardIterator, ListStreams, EnableStreams, DisableStreams
 - **Global Tables**: CreateGlobalTable, UpdateGlobalTable, DescribeGlobalTable, ListGlobalTables, UpdateGlobalTableSettings
@@ -125,12 +133,14 @@ This document analyzes the permissions granted by the unified permissions script
 ### CloudFront Permissions
 
 #### Currently Granted (18 actions):
+
 - **Distribution Management**: CreateDistribution, UpdateDistribution, DeleteDistribution, GetDistribution, GetDistributionConfig, ListDistributions
 - **Tags**: TagResource, UntagResource, ListTagsForResource
 - **Invalidations**: CreateInvalidation, GetInvalidation, ListInvalidations
 - **Origin Access Control**: CreateOriginAccessControl, GetOriginAccessControl, UpdateOriginAccessControl, DeleteOriginAccessControl, ListOriginAccessControls
 
 #### NOT Granted (Major ones):
+
 - **Origin Access Identity**: CreateCloudFrontOriginAccessIdentity, UpdateCloudFrontOriginAccessIdentity, DeleteCloudFrontOriginAccessIdentity, GetCloudFrontOriginAccessIdentity, ListCloudFrontOriginAccessIdentities
 - **Cache Policies**: CreateCachePolicy, UpdateCachePolicy, DeleteCachePolicy, GetCachePolicy, ListCachePolicies
 - **Origin Request Policies**: CreateOriginRequestPolicy, UpdateOriginRequestPolicy, DeleteOriginRequestPolicy, GetOriginRequestPolicy, ListOriginRequestPolicies
@@ -146,33 +156,31 @@ This document analyzes the permissions granted by the unified permissions script
 ## Recommendations
 
 ### Option 1: Use Wildcard Permissions (Simplest)
+
 Instead of listing individual actions, use wildcards for full service access:
 
 ```json
 {
   "Effect": "Allow",
-  "Action": [
-    "ec2:*",
-    "s3:*",
-    "lambda:*",
-    "dynamodb:*",
-    "cloudfront:*"
-  ],
+  "Action": ["ec2:*", "s3:*", "lambda:*", "dynamodb:*", "cloudfront:*"],
   "Resource": "*"
 }
 ```
 
-**Pros**: 
+**Pros**:
+
 - Much smaller policy size
 - Automatically includes new permissions as AWS adds them
 - Simple to manage
 
-**Cons**: 
+**Cons**:
+
 - Less secure (grants all permissions)
 - No fine-grained control
 - May grant dangerous permissions like deleting production resources
 
 ### Option 2: Group by Function (Recommended)
+
 Create separate policies for different functions:
 
 1. **Infrastructure Policy**: VPC, EC2 networking, CloudFormation
@@ -182,7 +190,9 @@ Create separate policies for different functions:
 5. **Monitoring Policy**: CloudWatch, X-Ray
 
 ### Option 3: Use AWS Managed Policies
+
 Attach existing AWS managed policies like:
+
 - `PowerUserAccess` (most permissions except IAM)
 - `AmazonS3FullAccess`
 - `AmazonDynamoDBFullAccess`
@@ -190,13 +200,16 @@ Attach existing AWS managed policies like:
 - `CloudFrontFullAccess`
 
 ### Option 4: Critical Permissions Only
+
 Focus on the minimum permissions needed for CI/CD:
+
 - Create/update resources
 - Read configurations
 - Tag resources
 - Basic monitoring
 
 Exclude permissions for:
+
 - Data operations (GetItem, PutItem, Query)
 - Manual debugging (InvokeFunction)
 - Advanced features rarely used in CI/CD

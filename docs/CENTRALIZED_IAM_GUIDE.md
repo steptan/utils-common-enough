@@ -49,6 +49,7 @@ python src/scripts/create_centralized_roles.py \
 ```
 
 This creates the following roles:
+
 - `central-fraud-reports-{env}` - For fraud-or-not fraud reports Lambda
 - `central-comments-{env}` - For fraud-or-not comments Lambda
 - `central-image-processor-{env}` - For fraud-or-not image processor Lambda
@@ -82,6 +83,7 @@ Repeat for media-register and people-cards CI/CD users.
 Use the centralized IAM templates with the role ARNs from Step 1:
 
 #### fraud-or-not
+
 ```bash
 aws cloudformation deploy \
   --template-file cloudformation-centralized-iam.yaml \
@@ -94,6 +96,7 @@ aws cloudformation deploy \
 ```
 
 #### media-register
+
 ```bash
 aws cloudformation deploy \
   --template-file deploy/template-centralized-iam.yaml \
@@ -104,6 +107,7 @@ aws cloudformation deploy \
 ```
 
 #### people-cards
+
 ```bash
 aws cloudformation deploy \
   --template-file cloudformation/dev-stack-centralized-iam.yaml \
@@ -147,6 +151,7 @@ python src/scripts/unified_user_permissions.py update-all
 People-cards now includes Cognito authentication matching the other projects:
 
 ### Features Added
+
 - Amazon Cognito User Pool for user management
 - User registration with email verification
 - Password reset functionality
@@ -154,12 +159,15 @@ People-cards now includes Cognito authentication matching the other projects:
 - Integration with API Gateway
 
 ### Frontend Setup
+
 1. Install dependencies:
+
    ```bash
    npm install amazon-cognito-identity-js aws-amplify
    ```
 
 2. Configure environment variables:
+
    ```env
    NEXT_PUBLIC_AWS_REGION=us-east-1
    NEXT_PUBLIC_USER_POOL_ID=<from CloudFormation outputs>
@@ -168,8 +176,8 @@ People-cards now includes Cognito authentication matching the other projects:
 
 3. Use the authentication components:
    ```tsx
-   import { AuthButton } from '@/components/auth';
-   import { useAuth } from '@/hooks/useAuth';
+   import { AuthButton } from "@/components/auth";
+   import { useAuth } from "@/hooks/useAuth";
    ```
 
 ## Best Practices
