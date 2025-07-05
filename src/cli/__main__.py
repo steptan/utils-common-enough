@@ -6,21 +6,58 @@ import sys
 from pathlib import Path
 
 # Import all command groups
-from .deploy import main as deploy_commands
-from .cloudformation import main as cf_commands
-from .lambda_cmd import main as lambda_commands
-from .iam import main as iam_commands
-from .database import main as db_commands
-from .test import main as test_commands
+try:
+    from .deploy import main as deploy_commands
+except ImportError:
+    deploy_commands = None
+    
+try:
+    from .cloudformation import main as cf_commands
+except ImportError:
+    cf_commands = None
+    
+try:
+    from .lambda_cmd import main as lambda_commands
+except ImportError:
+    lambda_commands = None
+    
+try:
+    from .iam import main as iam_commands
+except ImportError:
+    iam_commands = None
+    
+try:
+    from .database import main as db_commands
+except ImportError:
+    db_commands = None
+    
+try:
+    from .test import main as test_commands
+except ImportError:
+    test_commands = None
 
 # Import new commands
-from .setup import SetupWizard
-from deployment.validation import PreDeploymentValidator
-from security.audit import SecurityAuditor
-from security.compliance import ComplianceChecker
-from cost.estimator import CostEstimator
-from cost.analyzer import CostAnalyzer
-from config import get_project_config
+try:
+    from .setup import SetupWizard
+except ImportError:
+    SetupWizard = None
+    
+from ..deployment.validation import PreDeploymentValidator
+try:
+    from ..security.audit import SecurityAuditor
+    from ..security.compliance import ComplianceChecker
+except ImportError:
+    SecurityAuditor = None
+    ComplianceChecker = None
+    
+try:
+    from ..cost.estimator import CostEstimator
+    from ..cost.analyzer import CostAnalyzer
+except ImportError:
+    CostEstimator = None
+    CostAnalyzer = None
+    
+from ..config import get_project_config
 
 
 @click.group()
@@ -34,12 +71,18 @@ def cli():
 
 
 # Add existing command groups
-cli.add_command(deploy_commands, name='deploy')
-cli.add_command(cf_commands, name='cloudformation')
-cli.add_command(lambda_commands, name='lambda')
-cli.add_command(iam_commands, name='iam')
-cli.add_command(db_commands, name='database')
-cli.add_command(test_commands, name='test')
+if deploy_commands:
+    cli.add_command(deploy_commands, name='deploy')
+if cf_commands:
+    cli.add_command(cf_commands, name='cloudformation')
+if lambda_commands:
+    cli.add_command(lambda_commands, name='lambda')
+if iam_commands:
+    cli.add_command(iam_commands, name='iam')
+if db_commands:
+    cli.add_command(db_commands, name='database')
+if test_commands:
+    cli.add_command(test_commands, name='test')
 
 
 # New commands
@@ -69,7 +112,7 @@ def validate(project, environment, region, skip, config_only, output):
         }
         
         # Configuration validation
-        from config_validation.validator import ConfigurationValidator
+        from ..config_validation.validator import ConfigurationValidator
         config_validator = ConfigurationValidator(project)
         config_valid, config_result = config_validator.validate_environment(environment)
         combined_report['validations']['configuration'] = config_result

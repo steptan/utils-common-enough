@@ -32,6 +32,9 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
+[project.scripts]
+project-utils = "src.cli.__main__:cli"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
