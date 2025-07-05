@@ -1,0 +1,28 @@
+#!/bin/bash
+# Generic AWS cost checker for any project
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Check if Python 3 is available
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 is required but not installed."
+    echo "   Please install Python 3 to use this script."
+    exit 1
+fi
+
+# Check if boto3 is installed
+if ! python3 -c "import boto3" 2>/dev/null; then
+    echo "📦 Installing boto3 (AWS SDK for Python)..."
+    pip3 install boto3 --quiet || {
+        echo "❌ Failed to install boto3. Please run: pip3 install boto3"
+        exit 1
+    }
+fi
+
+# Add utils/src to Python path
+export PYTHONPATH="${UTILS_DIR}/src:${PYTHONPATH}"
+
+# Run the cost checker
+python3 "${UTILS_DIR}/src/cost/check_costs.py" "$@"

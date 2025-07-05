@@ -1,0 +1,73 @@
+#!/bin/bash
+# Analyze CloudFormation template for resource counts
+
+if [ $# -eq 0 ]; then
+    echo "Usage: analyze-cf-template <template.yaml>"
+    exit 1
+fi
+
+TEMPLATE="$1"
+
+if [ ! -f "$TEMPLATE" ]; then
+    echo "Error: Template file not found: $TEMPLATE"
+    exit 1
+fi
+
+echo "📋 CloudFormation Template Analysis"
+echo "==================================="
+echo "Template: $TEMPLATE"
+echo
+
+echo "📊 Resource Counts:"
+echo "  Lambda Functions: $(grep -c "AWS::Lambda::Function" "$TEMPLATE" || echo 0)"
+echo "  DynamoDB Tables: $(grep -c "AWS::DynamoDB::Table" "$TEMPLATE" || echo 0)"
+echo "  S3 Buckets: $(grep -c "AWS::S3::Bucket" "$TEMPLATE" || echo 0)"
+echo "  API Gateways: $(grep -c "AWS::ApiGateway" "$TEMPLATE" || echo 0)"
+echo "  CloudFront: $(grep -c "AWS::CloudFront" "$TEMPLATE" || echo 0)"
+echo "  Cognito: $(grep -c "AWS::Cognito" "$TEMPLATE" || echo 0)"
+echo "  IAM Roles: $(grep -c "AWS::IAM::Role" "$TEMPLATE" || echo 0)"
+echo
+
+echo "💡 To estimate costs:"
+echo "  1. Create a usage profile based on expected traffic"
+echo "  2. Run: python3 utils/src/cost/estimate_costs_simple.py <project> --profile <profile.json>"
+echo
+echo "📝 Example usage profile template saved to: cf-usage-profile-template.json"
+
+# Create template usage profile
+cat > cf-usage-profile-template.json << 'EOF'
+{
+  "lambda": {
+    "requests_per_month": 1000000,
+    "avg_duration_ms": 100,
+    "memory_mb": 512
+  },
+  "dynamodb": {
+    "reads_per_month": 5000000,
+    "writes_per_month": 500000,
+    "storage_gb": 20
+  },
+  "s3": {
+    "storage_gb": 100,
+    "put_requests_per_month": 10000,
+    "get_requests_per_month": 100000,
+    "data_transfer_gb": 10
+  },
+  "cloudfront": {
+    "data_transfer_gb": 100,
+    "requests_per_month": 5000000
+  },
+  "api_gateway": {
+    "requests_per_month": 1000000,
+    "data_transfer_gb": 5
+  },
+  "cognito": {
+    "monthly_active_users": 10000
+  },
+  "cloudwatch": {
+    "logs_ingestion_gb": 10,
+    "logs_storage_gb": 50,
+    "custom_metrics": 10
+  }
+}
+EOF

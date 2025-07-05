@@ -1,0 +1,60 @@
+#!/bin/bash
+# AWS cost estimator for projects
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Check if Python 3 is available
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 is required but not installed."
+    echo "   Please install Python 3 to use this script."
+    exit 1
+fi
+
+# Check if boto3 is installed
+if ! python3 -c "import boto3" 2>/dev/null; then
+    echo "📦 Installing boto3 (AWS SDK for Python)..."
+    pip3 install boto3 --quiet || {
+        echo "❌ Failed to install boto3. Please run: pip3 install boto3"
+        exit 1
+    }
+fi
+
+# Add utils/src to Python path
+export PYTHONPATH="${UTILS_DIR}/src:${PYTHONPATH}"
+
+# Show usage if no arguments
+if [ $# -eq 0 ]; then
+    echo "💰 AWS Cost Estimator"
+    echo "===================="
+    echo ""
+    echo "Usage: estimate-costs <project> [options]"
+    echo ""
+    echo "Options:"
+    echo "  -e, --environment ENV    Environment (dev/staging/prod)"
+    echo "  -t, --template FILE      CloudFormation template to analyze"
+    echo "  -u, --usage-profile FILE Usage profile JSON file"
+    echo "  -b, --monthly-budget AMT Monthly budget for alerts"
+    echo "  -r, --region REGION      AWS region (default: us-west-1)"
+    echo ""
+    echo "Examples:"
+    echo "  # Estimate with default usage profile"
+    echo "  estimate-costs people-cards -e prod"
+    echo ""
+    echo "  # Estimate from CloudFormation template"
+    echo "  estimate-costs people-cards -e prod -t cloudformation/stack.yaml"
+    echo ""
+    echo "  # Estimate with custom usage profile"
+    echo "  estimate-costs people-cards -e prod -u usage-profile.json"
+    echo ""
+    echo "  # Estimate and generate budget alerts"
+    echo "  estimate-costs people-cards -e prod -b 100"
+    exit 0
+fi
+
+# Change to utils directory to run the module
+cd "${UTILS_DIR}" || exit 1
+
+# Run the cost estimator CLI
+python3 -m src.cli estimate-cost --project "$@"
