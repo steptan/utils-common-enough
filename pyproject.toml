@@ -33,7 +33,15 @@ dependencies = [
 ]
 
 [project.scripts]
-project-utils = "src.cli.__main__:cli"
+project-utils = "cli.__main__:cli"
+project-deploy = "cli.deploy:main"
+project-lambda = "cli.lambda_cmd:main"
+project-test = "cli.test:main"
+project-cfn = "cli.cloudformation:main"
+project-db = "cli.database:main"
+project-git = "cli.git:main"
+media-register-deploy = "cli.deploy_media_register:main"
+git-submodule-setup = "scripts.git_submodules:main"
 
 [project.optional-dependencies]
 dev = [
@@ -46,17 +54,6 @@ dev = [
     "flake8>=6.1.0",
     "moto>=4.2.0",
 ]
-
-[project.scripts]
-project-utils = "cli.__main__:cli"
-project-deploy = "cli.deploy:main"
-project-lambda = "cli.lambda_cmd:main"
-project-test = "cli.test:main"
-project-cfn = "cli.cloudformation:main"
-project-db = "cli.database:main"
-project-git = "cli.git:main"
-media-register-deploy = "cli.deploy_media_register:main"
-git-submodule-setup = "scripts.git_submodules:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
