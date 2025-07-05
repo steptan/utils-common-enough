@@ -188,15 +188,20 @@ while true; do
   if [[ "$STATUS" == "success" ]]; then
     echo "✅ Latest CI run passed. Nothing to fix."
   else
+    # Ensure logs directory exists
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    LOGS_DIR="${SCRIPT_DIR}/logs"
+    mkdir -p "$LOGS_DIR"
+    
     # Fetch CI logs
-    LOG_FILE="github-output-${REPO_BASENAME}.log"
+    LOG_FILE="${LOGS_DIR}/github-output-${REPO_BASENAME}.log"
     echo "📥 Downloading logs for failed CI run: $RUN_ID"
     echo "📝 Saving to: $LOG_FILE"
     gh run view $RUN_ID --repo $REPO --log > "$LOG_FILE"
 
     # Ask Claude to review the error log
     echo "🤖 Sending logs to Claude for analysis..."
-    RESPONSE_FILE="claude-response.txt"
+    RESPONSE_FILE="${LOGS_DIR}/claude-response-${REPO_BASENAME}.txt"
     
     # Process and send the log file
     process_log_file "$LOG_FILE" "$RESPONSE_FILE"
