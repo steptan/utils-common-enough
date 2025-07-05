@@ -28,6 +28,7 @@ class IAMPermissionUpdater:
         missing_permissions = [
             # CloudWatch Logs permissions
             "logs:TagResource",
+            "logs:CreateExportTask",  # Added for daily maintenance logs export
             
             # S3 lifecycle permissions
             "s3:PutLifecycleConfiguration",
@@ -53,7 +54,10 @@ class IAMPermissionUpdater:
             "ec2:DescribeNetworkInterfaces",
             "ec2:DeleteNetworkInterface",
             "ec2:AssignPrivateIpAddresses",
-            "ec2:UnassignPrivateIpAddresses"
+            "ec2:UnassignPrivateIpAddresses",
+            
+            # CloudWatch metrics permissions (for daily performance monitoring)
+            "cloudwatch:GetMetricStatistics"
         ]
         
         # Project-specific permissions
