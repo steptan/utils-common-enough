@@ -1,0 +1,126 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      // Build and deployment scripts - specific to this project
+      "Bash(./scripts/build-lambdas.sh)",
+      "Bash(./scripts/deploy-infrastructure.py --environment staging)",
+      "Bash(./scripts/deploy-infrastructure.py --environment production)",
+      "Bash(./scripts/fix-lambda-bucket-region.py)",
+      "Bash(AWS_REGION=us-west-1 python scripts/deploy_staging_direct.py)",
+      "Bash(AWS_REGION=us-west-1 ENVIRONMENT=staging python scripts/fix-lambda-bucket-region.py)",
+      
+      // Git operations - limited to safe operations
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git add .)",
+      "Bash(git commit -m *)",
+      "Bash(git push)",
+      "Bash(git pull)",
+      "Bash(git log)",
+      "Bash(git branch)",
+      "Bash(git checkout *)",
+      
+      // GitHub CLI - limited to read operations
+      "Bash(gh run list)",
+      "Bash(gh run view *)",
+      "Bash(gh run watch *)",
+      
+      // Node.js and npm - limited to project operations
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(npm run build)",
+      "Bash(npm run start)",
+      
+      // Python - limited to project scripts
+      "Bash(python ./scripts/*.py)",
+      "Bash(python3 ./scripts/*.py)",
+      "Bash(pip install -r requirements.txt)",
+      "Bash(pip3 install -r requirements.txt)",
+      
+      // AWS operations - limited and specific
+      "Bash(aws cloudformation list-stacks --region us-west-1)",
+      "Bash(aws cloudformation describe-stacks --stack-name people-cards-* --region us-west-1)",
+      "Bash(aws cloudformation create-stack --stack-name people-cards-* --region us-west-1 *)",
+      "Bash(aws cloudformation update-stack --stack-name people-cards-* --region us-west-1 *)",
+      
+      // S3 operations - limited to project buckets
+      "Bash(aws s3 ls s3://people-cards-*)",
+      "Bash(aws s3api get-bucket-location --bucket people-cards-*)",
+      "Bash(aws s3api create-bucket --bucket people-cards-lambda-staging-* --region us-west-1 --create-bucket-configuration LocationConstraint=us-west-1)",
+      "Bash(aws s3api put-bucket-versioning --bucket people-cards-* --versioning-configuration Status=Enabled)",
+      "Bash(aws s3 cp ./lambda-packages/* s3://people-cards-lambda-*)",
+      
+      // IAM operations - limited to listing and policy management
+      "Bash(aws iam list-policies --scope Local)",
+      "Bash(aws iam list-attached-user-policies --user-name people-cards-*)",
+      
+      // File operations - limited to project directory
+      "Bash(ls)",
+      "Bash(ls -la)",
+      "Bash(find . -name * -type f)",
+      "Bash(find . -name * -type d)",
+      "Bash(mkdir -p *)",
+      "Bash(touch *)",
+      "Bash(chmod +x ./scripts/*)",
+      "Bash(mv ./temp/* ./src/*)",
+      "Bash(tree -L 2)",
+      
+      // Search operations - limited to project
+      "Bash(rg * .)",
+      "Bash(grep -r * .)",
+      
+      // Safe informational commands
+      "Bash(echo *)",
+      "Bash(true)",
+      "Bash(cat ./README.md)",
+      "Bash(cat ./package.json)",
+      "Bash(cat ./.env.example)"
+    ],
+    "deny": [
+      // Prevent dangerous file operations
+      "Bash(rm -rf *)",
+      "Bash(rm -f /*)",
+      "Bash(chmod 777 *)",
+      
+      // Prevent system-wide changes
+      "Bash(brew install *)",
+      "Bash(apt-get *)",
+      "Bash(sudo *)",
+      
+      // Prevent accessing sensitive files
+      "Bash(cat ~/.aws/*)",
+      "Bash(cat ~/.ssh/*)",
+      "Bash(cat .env)",
+      
+      // Prevent dangerous git operations
+      "Bash(git push --force)",
+      "Bash(git reset --hard)",
+      "Bash(git clean -fd)",
+      
+      // Prevent npm publish
+      "Bash(npm publish)",
+      
+      // Prevent dangerous AWS operations
+      "Bash(aws iam create-user *)",
+      "Bash(aws iam delete-user *)",
+      "Bash(aws iam create-access-key *)",
+      "Bash(aws iam attach-user-policy --policy-arn arn:aws:iam::aws:policy/AdministratorAccess *)",
+      "Bash(aws iam detach-user-policy --policy-arn * --user-name *)",
+      "Bash(aws s3 rm s3://* --recursive)",
+      "Bash(aws s3 rb s3://* --force)",
+      
+      // Prevent accessing parent directories
+      "Bash(cd ..)",
+      "Bash(ls ..)",
+      "Bash(find .. *)",
+      
+      // Prevent modifying git config
+      "Bash(git config --global *)",
+      
+      // Prevent installing global packages
+      "Bash(npm install -g *)",
+      "Bash(pip install --user *)"
+    ]
+  }
+}

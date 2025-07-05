@@ -4,6 +4,10 @@
 # Script: ci-watch-and-fix.sh
 # Purpose: Automatically monitor GitHub Actions CI runs, feed failures to Claude,
 #          and request suggested fixes until the build passes.
+# 
+# Enhanced to handle large logs by splitting them into chunks to avoid
+# Claude's prompt length limits. Logs over 50KB are automatically split
+# and sent in sequential parts.
 # ----------------------------------------------------------------------
 
 # USAGE:
@@ -20,44 +24,159 @@
 # ----------------------------------------------------------------------
 
 # Looping settings
-SLEEP_BETWEEN=${SLEEP_BETWEEN:-6000}  # Default to 100 minutes (6000 seconds)
+SLEEP_BETWEEN=${SLEEP_BETWEEN:-600}  # Default to 10 minutes (600 seconds)
 
-# Ensure REPO is set via environment variable or inferred from git
-if [ -z "$REPO" ]; then
-  echo "🌐 REPO not set. Attempting to detect from git remote..."
-
-  # Check if inside a submodule and try to get the parent repo's remote
-  PARENT_DIR=$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)
-  if [ -n "$PARENT_DIR" ]; then
-    echo "🔍 Detected submodule. Attempting to get parent repo remote URL..."
-    REMOTE_URL=$(git --git-dir="$PARENT_DIR/.git" config --get remote.origin.url)
-  else
-    REMOTE_URL=$(git config --get remote.origin.url)
+# Function to detect repository from git
+detect_repo() {
+  if [ -n "$REPO" ]; then
+    echo "📦 Using REPO from environment: $REPO"
+    return
   fi
-
-  REPO=$(echo "$REMOTE_URL" | sed -E 's#(git@|https://)github.com[:/](.*)\.git#\2#')
-
+  
+  echo "🌐 REPO not set. Attempting to detect from git remote..."
+  
+  # Check if inside a submodule and try to get the parent repo's remote
+  local parent_dir=$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)
+  local remote_url
+  
+  if [ -n "$parent_dir" ]; then
+    echo "🔍 Detected submodule. Attempting to get parent repo remote URL..."
+    remote_url=$(git --git-dir="$parent_dir/.git" config --get remote.origin.url)
+  else
+    remote_url=$(git config --get remote.origin.url)
+  fi
+  
+  REPO=$(echo "$remote_url" | sed -E 's#(git@|https://)github.com[:/](.*)\.git#\2#')
+  
   if [ -z "$REPO" ]; then
     echo "❌ ERROR: Could not determine REPO from git remote."
     echo "Please set it manually like: export REPO=your-org/your-repo"
     exit 1
-  else
-    echo "✅ Inferred REPO: $REPO"
   fi
-else
-  echo "📦 Using REPO from environment: $REPO"
-fi
+  
+  echo "✅ Inferred REPO: $REPO"
+}
+
+# Detect repository
+detect_repo
 
 # Extract repo base name
 REPO_BASENAME=$(basename "$REPO")
 
 # Set Claude session command for headless mode to avoid stdin/raw mode errors
 # Uses echo + pipe to feed prompt and enables stream-json output for non-interactive contexts
-if [ -n "$NO_DANGEROUS" ]; then
-  CLAUDE="claude code -p -"
-else
-  CLAUDE="claude code --dangerously-skip-permissions -p -"
+CLAUDE="claude code -p -"
+
+# Add dangerous permissions flag if NO_DANGEROUS is not set
+if [ -z "$NO_DANGEROUS" ]; then
+  CLAUDE="$CLAUDE --dangerously-skip-permissions -p -"
 fi
+
+# Function to send content to Claude
+send_to_claude() {
+  local prompt="$1"
+  local output_file="$2"
+  local append_mode="$3"  # Optional: "append" to append to file
+  
+  if [ "$append_mode" = "append" ]; then
+    $CLAUDE <<EOF | tee -a "$output_file"
+$prompt
+EOF
+  else
+    $CLAUDE <<EOF | tee "$output_file"
+$prompt
+EOF
+  fi
+}
+
+# Function to format log content with prompt
+format_log_prompt() {
+  local header="$1"
+  local file="$2"
+  local footer="$3"
+  
+  echo "$header"
+  echo ""
+  echo "\`\`\`"
+  cat "$file"
+  echo "\`\`\`"
+  echo ""
+  echo "$footer"
+}
+
+# Function to process and send log file to Claude
+process_log_file() {
+  local log_file="$1"
+  local response_file="$2"
+  local max_chunk_size=50000  # ~50KB chunks to stay well under Claude's limit
+  
+  local log_size=$(wc -c < "$log_file")
+  
+  if [ "$log_size" -le "$max_chunk_size" ]; then
+    # Small log, send as is
+    echo "📄 Log size: $log_size bytes. Sending as single request..."
+    
+    local prompt=$(format_log_prompt \
+      "We received the following CI error log from GitHub Actions:" \
+      "$log_file" \
+      "address issues, commit and push")
+    send_to_claude "$prompt" "$response_file"
+  else
+    # Large log, split and send in chunks
+    echo "📚 Log size: $log_size bytes. Splitting into chunks..."
+    
+    # Split the log file
+    local base_name="${log_file%.log}"
+    split -b "$max_chunk_size" "$log_file" "${base_name}.chunk."
+    
+    # Rename chunks to have .log extension
+    for chunk in "${base_name}.chunk."*; do
+      [ -f "$chunk" ] && mv "$chunk" "${chunk}.log"
+    done
+    
+    # Count and process chunks
+    local chunk_count=$(ls -1 "${base_name}.chunk."*.log 2>/dev/null | wc -l)
+    echo "📊 Split into $chunk_count chunks"
+    
+    local chunk_num=1
+    for chunk_file in "${base_name}.chunk."*.log; do
+      echo "📤 Sending chunk $chunk_num of $chunk_count to Claude..."
+      
+      local prompt
+      local append_mode=""
+      local header
+      local footer
+      
+      if [ "$chunk_num" -eq 1 ]; then
+        header="We received a large CI error log from GitHub Actions that I'll send in $chunk_count parts.
+This is part $chunk_num of $chunk_count:"
+        footer="Please analyze this part and wait for the remaining chunks before suggesting fixes."
+      elif [ "$chunk_num" -eq "$chunk_count" ]; then
+        header="This is the final part ($chunk_num of $chunk_count) of the CI error log:"
+        footer="Now that you have all parts of the log, please:
+1. Analyze the complete error
+2. Address issues
+3. Commit and push"
+        append_mode="append"
+      else
+        header="This is part $chunk_num of $chunk_count of the CI error log:"
+        footer="Please continue analyzing. More chunks to follow."
+        append_mode="append"
+      fi
+      
+      prompt=$(format_log_prompt "$header" "$chunk_file" "$footer")
+      send_to_claude "$prompt" "$response_file" "$append_mode"
+      
+      chunk_num=$((chunk_num + 1))
+      
+      # Small delay between chunks to avoid rate limiting
+      [ "$chunk_num" -le "$chunk_count" ] && sleep 2
+    done
+    
+    # Clean up chunk files
+    rm -f "${base_name}.chunk."*.log
+  fi
+}
 
 while true; do
   echo "🔄 Checking latest CI status for $REPO..."
@@ -70,25 +189,17 @@ while true; do
     echo "✅ Latest CI run passed. Nothing to fix."
   else
     # Fetch CI logs
-    LOG_FILE="${REPO_BASENAME}-git.log"
+    LOG_FILE="github-output-${REPO_BASENAME}.log"
     echo "📥 Downloading logs for failed CI run: $RUN_ID"
+    echo "📝 Saving to: $LOG_FILE"
     gh run view $RUN_ID --repo $REPO --log > "$LOG_FILE"
 
     # Ask Claude to review the error log
     echo "🤖 Sending logs to Claude for analysis..."
     RESPONSE_FILE="claude-response.txt"
-
-    $CLAUDE <<EOF | tee "$RESPONSE_FILE"
-We received the following CI error log from GitHub Actions:
-
-\`\`\`
-$(cat "$LOG_FILE")
-\`\`\`
-
-address issues
-commit and push
-
-EOF
+    
+    # Process and send the log file
+    process_log_file "$LOG_FILE" "$RESPONSE_FILE"
 
     echo "📝 Claude's response shown above and saved to \$RESPONSE_FILE"
   fi

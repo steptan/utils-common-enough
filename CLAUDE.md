@@ -62,7 +62,8 @@ src/
 ├── constructs/    # L2 infrastructure components
 ├── patterns/      # L3 application patterns
 ├── deployment/    # Deployment orchestration
-├── iam/           # IAM policy management
+├── iam/           # IAM policy management (see below)
+├── lambda/        # Lambda packaging utilities (see below)
 ├── lambda_utils/  # Lambda build/package utilities
 ├── cost/          # Cost estimation/analysis
 ├── security/      # Security auditing
@@ -145,3 +146,82 @@ from cli import common  # for shared CLI utilities
 2. Check CloudFormation stack events with `project-cfn diagnose`
 3. Use `project-cfn fix-rollback` for stuck stacks
 4. Enable AWS SDK debug logging with `export BOTO_LOG_LEVEL=DEBUG`
+
+## Centralized IAM Management
+
+### Overview
+The utils project provides centralized IAM role and policy management for all projects, eliminating the need for inline IAM definitions in CloudFormation templates.
+
+### Key Scripts
+1. **create_centralized_roles.py** - Creates Lambda execution roles for all projects
+   ```bash
+   python src/scripts/create_centralized_roles.py --environment dev --output roles-dev.json
+   ```
+
+2. **unified_user_permissions.py** - Manages CI/CD user permissions
+   ```bash
+   # Show user permissions
+   python src/scripts/unified_user_permissions.py show --user fraud-or-not-cicd
+   
+   # Update user permissions
+   python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
+   ```
+
+3. **update_iam_permissions.py** - Updates permissions based on discoveries
+   ```bash
+   # Check missing permissions
+   python src/scripts/update_iam_permissions.py check --user-name fraud-or-not-cicd --project fraud-or-not
+   
+   # Update permissions
+   python src/scripts/update_iam_permissions.py update --user-name fraud-or-not-cicd --project fraud-or-not
+   ```
+
+### IAM Best Practices
+- All Lambda roles are created centrally with least privilege
+- CI/CD users have project-scoped permissions
+- Permissions are categorized (infrastructure, compute, storage, etc.)
+- Regular auditing using the check commands
+
+## Lambda Packaging Utilities
+
+### Overview
+Comprehensive Lambda function packaging for both Node.js and Python runtimes, with support for TypeScript, minification, and dependency management.
+
+### CLI Commands
+```bash
+# Package a single Lambda function
+project-lambda package \
+  --source src/lambda \
+  --output dist/lambda.zip \
+  --runtime nodejs20.x \
+  --handler index.handler \
+  --minify
+
+# Validate a Lambda package
+project-lambda validate \
+  --package dist/lambda.zip \
+  --handler index.handler \
+  --runtime nodejs20.x
+
+# Package all Lambda functions for a project
+project-lambda package-all \
+  --project fraud-or-not \
+  --environment dev
+```
+
+### Features
+- **Node.js Support**: npm/yarn dependencies, TypeScript compilation, minification
+- **Python Support**: pip dependencies, platform-specific packages for Lambda
+- **Validation**: Package size checks, handler verification
+- **Optimization**: Excludes unnecessary files, supports tree-shaking
+
+### Usage in CI/CD
+The Lambda packager is integrated into the CI/CD workflows:
+```yaml
+- name: Package Lambda functions
+  run: |
+    python -m cli.lambda package \
+      --source src/lambda \
+      --output dist/lambda.zip \
+      --runtime nodejs20.x
+```

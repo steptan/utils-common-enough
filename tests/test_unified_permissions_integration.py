@@ -26,24 +26,24 @@ def test_policy_generation():
     )
     
     generator = PolicyGenerator(config)
-    policy = generator.generate_cicd_policy("123456789012")
     
-    # Basic assertions
-    assert policy["Version"] == "2012-10-17", "Policy version should be 2012-10-17"
-    assert len(policy["Statement"]) > 10, "Policy should have multiple statements"
+    # Test categorized policies
+    categories = {
+        "infrastructure": ["CloudFormationAccess", "IAMAccess", "SSMParameterAccess"],
+        "compute": ["LambdaFullAccess", "APIGatewayFullAccess"],
+        "storage": ["S3FullAccess", "DynamoDBFullAccess"],
+        "networking": ["VPCManagement", "CloudFrontAccess"],
+        "monitoring": ["CloudWatchFullAccess"]
+    }
     
-    # Check for required permission sets
-    sids = [s["Sid"] for s in policy["Statement"]]
-    required_sids = [
-        "CloudFormationAccess",
-        "S3Access",
-        "LambdaAccess",
-        "IAMAccess",
-        "DynamoDBAccess"
-    ]
+    for category, expected_sids in categories.items():
+        policy = generator.generate_policy_by_category("123456789012", category)
+        assert policy["Version"] == "2012-10-17", "Policy version should be 2012-10-17"
+        
+        sids = [s["Sid"] for s in policy["Statement"]]
+        for expected_sid in expected_sids:
+            assert expected_sid in sids, f"Missing {expected_sid} in {category} policy"
     
-    for sid in required_sids:
-        assert sid in sids, f"Missing {sid} in policy"
     
     print("✅ Policy generation test passed")
 
@@ -68,51 +68,6 @@ def test_project_detection():
     print("✅ Project detection test passed")
 
 
-def test_unified_policy_generation():
-    """Test generating unified policy for multiple projects."""
-    print("\nTesting unified policy generation...")
-    
-    # Create a manager without AWS clients
-    manager = UnifiedPermissionManager.__new__(UnifiedPermissionManager)
-    manager.account_id = "123456789012"
-    
-    # Mock get_project_config
-    import scripts.unified_user_permissions
-    original_get_config = scripts.unified_user_permissions.get_project_config
-    
-    def mock_get_config(name):
-        return ProjectConfig(
-            name=name,
-            display_name=f"{name} Project",
-            aws_region="us-east-1"
-        )
-    
-    scripts.unified_user_permissions.get_project_config = mock_get_config
-    
-    try:
-        # Generate unified policy
-        policy = manager.generate_unified_policy(
-            "test-user",
-            ["fraud-or-not", "media-register"]
-        )
-        
-        # Check structure
-        assert policy["Version"] == "2012-10-17", "Policy version should be 2012-10-17"
-        
-        # Check that both projects are represented
-        sids = [s["Sid"] for s in policy["Statement"]]
-        assert any("fraud-or-not_" in sid for sid in sids), \
-            "Should have fraud-or-not statements"
-        assert any("media-register_" in sid for sid in sids), \
-            "Should have media-register statements"
-        assert "CrossProjectAccess" in sids, \
-            "Should have cross-project access statement"
-        
-        print("✅ Unified policy generation test passed")
-        
-    finally:
-        # Restore original function
-        scripts.unified_user_permissions.get_project_config = original_get_config
 
 
 def test_policy_size():
@@ -127,25 +82,24 @@ def test_policy_size():
     )
     
     generator = PolicyGenerator(config)
-    policy = generator.generate_cicd_policy("123456789012")
     
-    policy_json = json.dumps(policy)
-    policy_size = len(policy_json)
     
-    # AWS managed policy limit is 6144 characters
-    # Note: The actual limit for managed policies is 6144, but for inline policies it's 2048
-    # Since we're using inline policies (put_user_policy), we should warn about size
+    # Test categorized policies (new approach)
+    print("\nCategorized policy sizes:")
+    categories = ["infrastructure", "compute", "storage", "networking", "monitoring"]
+    total_size = 0
     
-    print(f"ℹ️  Policy size: {policy_size} chars")
-    if policy_size > 6144:
-        print(f"⚠️  Warning: Policy exceeds AWS managed policy limit (6144 chars)")
-        print("   Consider using managed policies or splitting permissions")
-    elif policy_size > 2048:
-        print(f"ℹ️  Note: Policy exceeds inline policy limit (2048 chars)")
-        print("   This is OK for managed policies but not for inline policies")
+    for category in categories:
+        cat_policy = generator.generate_policy_by_category("123456789012", category)
+        cat_size = len(json.dumps(cat_policy))
+        total_size += cat_size
+        print(f"  {category}: {cat_size} chars")
+        
+        # All category policies should fit in inline policy limit
+        assert cat_size < 2048, f"{category} policy exceeds inline limit"
     
-    # For this test, we'll just warn but not fail
-    print(f"✅ Policy size test completed")
+    print(f"\nTotal across categories: {total_size} chars")
+    print(f"✅ All categorized policies within limits!")
 
 
 def main():
@@ -155,7 +109,6 @@ def main():
     tests = [
         test_policy_generation,
         test_project_detection,
-        test_unified_policy_generation,
         test_policy_size
     ]
     

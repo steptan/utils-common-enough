@@ -74,10 +74,10 @@ project-deploy frontend --project people-cards -e staging --skip-build
 
 ### IAM Management
 
-Use the unified permissions script for managing IAM permissions:
+Use the unified permissions script for managing IAM permissions with categorized policies:
 
 ```bash
-# Update permissions for a specific user
+# Update permissions for a specific user (creates 5 categorized policies)
 python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
 
 # Update permissions for multiple projects
@@ -92,9 +92,11 @@ python src/scripts/unified_user_permissions.py list-users
 # Update all users at once
 python src/scripts/unified_user_permissions.py update-all
 
-# Generate policy JSON without applying
-python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --output policy.json
+# Generate policy JSON for a specific category
+python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --category infrastructure
 ```
+
+The script creates 5 smaller policies per user (infrastructure, compute, storage, networking, monitoring), each well within AWS size limits.
 
 See `src/scripts/README_unified_permissions.md` for detailed documentation.
 

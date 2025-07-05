@@ -24,8 +24,8 @@ from config import ProjectConfig
 class TestPolicyGenerator:
     """Test the PolicyGenerator class."""
     
-    def test_generate_cicd_policy_structure(self):
-        """Test that generated policy has correct structure."""
+    def test_generate_policy_by_category_structure(self):
+        """Test that generated category policies have correct structure."""
         config = ProjectConfig(
             name="test-project",
             display_name="Test Project",
@@ -33,22 +33,25 @@ class TestPolicyGenerator:
         )
         
         generator = PolicyGenerator(config)
-        policy = generator.generate_cicd_policy("123456789012")
+        categories = ["infrastructure", "compute", "storage", "networking", "monitoring"]
         
-        # Check basic structure
-        assert policy["Version"] == "2012-10-17"
-        assert isinstance(policy["Statement"], list)
-        assert len(policy["Statement"]) > 10  # Should have many permission sets
-        
-        # Check each statement has required fields
-        for statement in policy["Statement"]:
-            assert "Sid" in statement
-            assert "Effect" in statement
-            assert "Action" in statement
-            assert "Resource" in statement
+        for category in categories:
+            policy = generator.generate_policy_by_category("123456789012", category)
+            
+            # Check basic structure
+            assert policy["Version"] == "2012-10-17"
+            assert isinstance(policy["Statement"], list)
+            assert len(policy["Statement"]) > 0  # Should have statements
+            
+            # Check each statement has required fields
+            for statement in policy["Statement"]:
+                assert "Sid" in statement
+                assert "Effect" in statement
+                assert "Action" in statement
+                assert "Resource" in statement
     
-    def test_generate_cicd_policy_permissions(self):
-        """Test that all required permissions are included."""
+    def test_generate_category_permissions(self):
+        """Test that category policies include expected permissions."""
         config = ProjectConfig(
             name="test-project",
             display_name="Test Project",
@@ -56,32 +59,28 @@ class TestPolicyGenerator:
         )
         
         generator = PolicyGenerator(config)
-        policy = generator.generate_cicd_policy("123456789012")
         
-        # Create a map of Sids to statements
-        statements = {s["Sid"]: s for s in policy["Statement"]}
+        # Test infrastructure category
+        policy = generator.generate_policy_by_category("123456789012", "infrastructure")
+        sids = {s["Sid"] for s in policy["Statement"]}
+        assert "CloudFormationAccess" in sids
+        assert "IAMAccess" in sids
+        assert "SSMParameterAccess" in sids
         
-        # Check key permission groups exist
-        required_sids = [
-            "CloudFormationAccess",
-            "S3Access",
-            "LambdaAccess",
-            "IAMAccess",
-            "DynamoDBAccess",
-            "APIGatewayAccess",
-            "CloudFrontAccess",
-            "CognitoAccess",
-            "EC2VPCAccess",
-            "CloudWatchAccess",
-            "SSMAccess",
-            "CDKBootstrapAccess"
-        ]
+        # Test compute category  
+        policy = generator.generate_policy_by_category("123456789012", "compute")
+        sids = {s["Sid"] for s in policy["Statement"]}
+        assert "LambdaFullAccess" in sids
+        assert "APIGatewayFullAccess" in sids
         
-        for sid in required_sids:
-            assert sid in statements, f"Missing {sid} permissions"
+        # Test storage category
+        policy = generator.generate_policy_by_category("123456789012", "storage")
+        sids = {s["Sid"] for s in policy["Statement"]}
+        assert "S3FullAccess" in sids
+        assert "DynamoDBFullAccess" in sids
     
-    def test_generate_cicd_policy_with_waf(self):
-        """Test WAF permissions are included when enabled."""
+    def test_generate_networking_policy_with_waf(self):
+        """Test WAF permissions are included in networking category when enabled."""
         config = ProjectConfig(
             name="test-project",
             display_name="Test Project",
@@ -90,7 +89,7 @@ class TestPolicyGenerator:
         )
         
         generator = PolicyGenerator(config)
-        policy = generator.generate_cicd_policy("123456789012")
+        policy = generator.generate_policy_by_category("123456789012", "networking")
         
         # Check WAF statement exists
         waf_statement = next(
@@ -98,7 +97,7 @@ class TestPolicyGenerator:
             None
         )
         assert waf_statement is not None
-        assert "wafv2:CreateWebACL" in waf_statement["Action"]
+        assert "wafv2:*" in waf_statement["Action"]
     
     def test_policy_resource_scoping(self):
         """Test that resources are properly scoped to project."""
@@ -109,18 +108,20 @@ class TestPolicyGenerator:
         )
         
         generator = PolicyGenerator(config)
-        policy = generator.generate_cicd_policy("123456789012")
         
-        # Check CloudFormation resources
+        # Check infrastructure resources
+        policy = generator.generate_policy_by_category("123456789012", "infrastructure")
         cf_statement = next(s for s in policy["Statement"] if s["Sid"] == "CloudFormationAccess")
         assert any("my-app-*" in r for r in cf_statement["Resource"])
         
-        # Check S3 resources
-        s3_statement = next(s for s in policy["Statement"] if s["Sid"] == "S3Access")
+        # Check storage resources
+        policy = generator.generate_policy_by_category("123456789012", "storage")
+        s3_statement = next(s for s in policy["Statement"] if s["Sid"] == "S3FullAccess")
         assert any("arn:aws:s3:::my-app-*" in r for r in s3_statement["Resource"])
         
-        # Check Lambda resources
-        lambda_statement = next(s for s in policy["Statement"] if s["Sid"] == "LambdaAccess")
+        # Check compute resources
+        policy = generator.generate_policy_by_category("123456789012", "compute")
+        lambda_statement = next(s for s in policy["Statement"] if s["Sid"] == "LambdaFullAccess")
         assert any("function:my-app-*" in r for r in lambda_statement["Resource"])
 
 
@@ -174,33 +175,6 @@ class TestUnifiedPermissionManager:
         
         assert set(projects) == {"media-register", "fraud-or-not"}
     
-    def test_generate_unified_policy(self, mock_aws_clients):
-        """Test unified policy generation for multiple projects."""
-        mock_iam, mock_sts = mock_aws_clients
-        
-        with patch('scripts.unified_user_permissions.get_project_config') as mock_config:
-            # Mock project configs
-            mock_config.side_effect = lambda name: ProjectConfig(
-                name=name,
-                display_name=f"{name.title()} Project",
-                aws_region="us-east-1"
-            )
-            
-            manager = UnifiedPermissionManager()
-            policy = manager.generate_unified_policy(
-                "project-cicd",
-                ["fraud-or-not", "media-register"]
-            )
-            
-            # Check structure
-            assert policy["Version"] == "2012-10-17"
-            assert len(policy["Statement"]) > 0
-            
-            # Check that statements from both projects are included
-            sids = [s["Sid"] for s in policy["Statement"]]
-            assert any("fraud-or-not_" in sid for sid in sids)
-            assert any("media-register_" in sid for sid in sids)
-            assert "CrossProjectAccess" in sids
     
     def test_update_user_permissions(self, mock_aws_clients):
         """Test updating user permissions."""
@@ -222,7 +196,7 @@ class TestUnifiedPermissionManager:
             mock_iam.put_user_policy.assert_called_once()
             call_args = mock_iam.put_user_policy.call_args
             assert call_args[1]["UserName"] == "test-user"
-            assert call_args[1]["PolicyName"] == "unified-permissions-policy"
+            assert "policy" in call_args[1]["PolicyName"]
             
             # Check policy document
             policy_doc = json.loads(call_args[1]["PolicyDocument"])
@@ -235,7 +209,7 @@ class TestUnifiedPermissionManager:
         
         mock_iam.list_user_policies.return_value = {
             "PolicyNames": [
-                "unified-permissions-policy",
+                "test-user-infrastructure-policy",
                 "fraud-or-not-cicd-policy",
                 "media-register-permissions",
                 "custom-policy"
@@ -243,7 +217,7 @@ class TestUnifiedPermissionManager:
         }
         
         manager = UnifiedPermissionManager()
-        manager._cleanup_old_policies("test-user", "unified-permissions-policy")
+        manager._cleanup_old_policies("test-user", keep_pattern="test-user-*-policy")
         
         # Should delete project-specific policies but not others
         assert mock_iam.delete_user_policy.call_count == 2
@@ -329,25 +303,31 @@ class TestCLICommands:
     def test_generate_command(self, runner, mock_manager):
         """Test the generate command."""
         mock_instance = mock_manager.return_value
-        mock_instance.generate_unified_policy.return_value = {
-            "Version": "2012-10-17",
-            "Statement": []
-        }
+        mock_instance.account_id = "123456789012"
+        mock_instance.get_user_projects.return_value = ["fraud-or-not"]
         
-        with runner.isolated_filesystem():
-            result = runner.invoke(cli, [
-                'generate',
-                '--user', 'test-user',
-                '--projects', 'fraud-or-not',
-                '--output', 'policy.json'
-            ])
+        with patch('scripts.unified_user_permissions.get_project_config') as mock_config:
+            mock_config.return_value = ProjectConfig(
+                name="fraud-or-not",
+                display_name="Fraud or Not",
+                aws_region="us-east-1"
+            )
             
-            assert result.exit_code == 0
-            assert Path('policy.json').exists()
-            
-            with open('policy.json') as f:
-                policy = json.load(f)
-                assert policy["Version"] == "2012-10-17"
+            with runner.isolated_filesystem():
+                result = runner.invoke(cli, [
+                    'generate',
+                    '--user', 'test-user',
+                    '--projects', 'fraud-or-not',
+                    '--category', 'infrastructure',
+                    '--output', 'policy.json'
+                ])
+                
+                assert result.exit_code == 0
+                assert Path('policy.json').exists()
+                
+                with open('policy.json') as f:
+                    policy = json.load(f)
+                    assert policy["Version"] == "2012-10-17"
 
 
 class TestErrorHandling:
@@ -386,14 +366,6 @@ class TestErrorHandling:
             with pytest.raises(SystemExit):
                 manager.update_user_permissions("nonexistent-user", ["test-project"])
     
-    def test_generate_policy_no_projects(self, mock_aws_clients):
-        """Test generating policy with no projects."""
-        mock_iam, mock_sts = mock_aws_clients
-        
-        manager = UnifiedPermissionManager()
-        
-        with pytest.raises(ValueError, match="No projects specified"):
-            manager.generate_unified_policy("test-user", [])
     
     def test_show_permissions_nonexistent_user(self, mock_aws_clients):
         """Test showing permissions for non-existent user."""

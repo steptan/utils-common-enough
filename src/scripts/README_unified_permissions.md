@@ -7,8 +7,20 @@ The `unified_user_permissions.py` script consolidates all IAM permission managem
 - **Single script per user**: Manage all permissions for a user in one place
 - **Multi-project support**: A single user can have permissions for multiple projects
 - **Automatic project detection**: Detects which projects a user needs based on naming conventions
-- **Policy consolidation**: Merges multiple project-specific policies into one unified policy
-- **Cleanup capabilities**: Removes old project-specific policies when updating to unified approach
+- **Categorized policies**: Split permissions into smaller, focused policies by function (NEW!)
+- **Policy size optimization**: Uses wildcards and categories to stay within AWS limits
+- **Cleanup capabilities**: Removes old project-specific policies when updating
+
+## Policy Structure
+
+Creates 5 separate policies per user, grouped by function:
+- **infrastructure-policy**: CloudFormation, IAM, SSM (≈1KB)
+- **compute-policy**: Lambda, API Gateway, Cognito (≈600B)
+- **storage-policy**: S3, DynamoDB (≈600B)
+- **networking-policy**: VPC, CloudFront, WAF (≈500B)
+- **monitoring-policy**: CloudWatch, X-Ray (≈200B)
+
+Total: ≈3KB across 5 policies (well within AWS limits)
 
 ## Usage
 
@@ -43,11 +55,14 @@ python src/scripts/unified_user_permissions.py update-all
 ### Generate policy JSON without applying
 
 ```bash
-# Output to stdout
-python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not
+# Generate policy for a specific category (required)
+python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --category infrastructure
 
 # Save to file
-python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --output policy.json
+python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --category storage --output policy.json
+
+# Available categories: infrastructure, compute, storage, networking, monitoring
+# Note: The --category parameter is required
 ```
 
 ## User Naming Conventions

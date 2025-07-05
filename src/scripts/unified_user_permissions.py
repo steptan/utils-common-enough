@@ -24,380 +24,231 @@ class PolicyGenerator:
         """Initialize policy generator with project configuration."""
         self.config = config
     
-    def generate_cicd_policy(self, account_id: str) -> Dict[str, Any]:
-        """Generate CI/CD IAM policy for GitHub Actions or other CI/CD systems."""
+    def generate_policy_by_category(self, account_id: str, category: str) -> Dict[str, Any]:
+        """Generate IAM policy for a specific category of permissions."""
         policy = {
             "Version": "2012-10-17",
             "Statement": []
         }
         
-        # CloudFormation permissions
-        policy["Statement"].append({
-            "Sid": "CloudFormationAccess",
-            "Effect": "Allow",
-            "Action": [
-                "cloudformation:CreateStack",
-                "cloudformation:UpdateStack",
-                "cloudformation:DeleteStack",
-                "cloudformation:DescribeStacks",
-                "cloudformation:DescribeStackEvents",
-                "cloudformation:GetTemplate",
-                "cloudformation:ValidateTemplate",
-                "cloudformation:CreateChangeSet",
-                "cloudformation:DeleteChangeSet",
-                "cloudformation:DescribeChangeSet",
-                "cloudformation:ExecuteChangeSet",
-                "cloudformation:ListStacks",
-                "cloudformation:ListStackResources"
-            ],
-            "Resource": [
-                f"arn:aws:cloudformation:{self.config.aws_region}:{account_id}:stack/{self.config.name}-*/*",
-                f"arn:aws:cloudformation:{self.config.aws_region}:{account_id}:stack/CDKToolkit/*"
-            ]
-        })
+        if category == "infrastructure":
+            policy["Statement"].extend(self._get_infrastructure_statements(account_id))
+        elif category == "compute":
+            policy["Statement"].extend(self._get_compute_statements(account_id))
+        elif category == "storage":
+            policy["Statement"].extend(self._get_storage_statements(account_id))
+        elif category == "networking":
+            policy["Statement"].extend(self._get_networking_statements(account_id))
+        elif category == "monitoring":
+            policy["Statement"].extend(self._get_monitoring_statements(account_id))
+        else:
+            raise ValueError(f"Unknown category: {category}")
+            
+        return policy
+    
+    def _get_infrastructure_statements(self, account_id: str) -> List[Dict[str, Any]]:
+        """Get infrastructure-related permission statements."""
+        return [
+            {
+                "Sid": "CloudFormationAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "cloudformation:*"
+                ],
+                "Resource": [
+                    f"arn:aws:cloudformation:{self.config.aws_region}:{account_id}:stack/{self.config.name}-*/*",
+                    f"arn:aws:cloudformation:{self.config.aws_region}:{account_id}:stack/CDKToolkit/*"
+                ]
+            },
+            {
+                "Sid": "IAMAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:*Role*",
+                    "iam:*Policy*",
+                    "iam:PassRole",
+                    "iam:GetUser",
+                    "iam:ListAccessKeys"
+                ],
+                "Resource": [
+                    f"arn:aws:iam::{account_id}:role/{self.config.name}-*",
+                    f"arn:aws:iam::{account_id}:policy/{self.config.name}-*",
+                    f"arn:aws:iam::{account_id}:role/cdk-*"
+                ]
+            },
+            {
+                "Sid": "CDKBootstrapAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "sts:AssumeRole",
+                    "sts:GetCallerIdentity"
+                ],
+                "Resource": [
+                    f"arn:aws:iam::{account_id}:role/cdk-*"
+                ]
+            },
+            {
+                "Sid": "SSMParameterAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "ssm:GetParameter",
+                    "ssm:GetParameters",
+                    "ssm:PutParameter",
+                    "ssm:DeleteParameter",
+                    "ssm:DescribeParameters"
+                ],
+                "Resource": [
+                    f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/{self.config.name}/*",
+                    f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/cdk-bootstrap/*"
+                ]
+            }
+        ]
+    
+    def _get_compute_statements(self, account_id: str) -> List[Dict[str, Any]]:
+        """Get compute-related permission statements."""
+        statements = [
+            {
+                "Sid": "LambdaFullAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "lambda:*"
+                ],
+                "Resource": [
+                    f"arn:aws:lambda:{self.config.aws_region}:{account_id}:function:{self.config.name}-*",
+                    f"arn:aws:lambda:{self.config.aws_region}:{account_id}:layer:{self.config.name}-*"
+                ]
+            },
+            {
+                "Sid": "APIGatewayFullAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "apigateway:*"
+                ],
+                "Resource": [
+                    f"arn:aws:apigateway:{self.config.aws_region}::/restapis",
+                    f"arn:aws:apigateway:{self.config.aws_region}::/restapis/*"
+                ]
+            }
+        ]
         
-        # S3 permissions
-        policy["Statement"].append({
-            "Sid": "S3Access",
-            "Effect": "Allow",
-            "Action": [
-                "s3:CreateBucket",
-                "s3:DeleteBucket",
-                "s3:PutObject",
-                "s3:GetObject",
-                "s3:DeleteObject",
-                "s3:ListBucket",
-                "s3:GetBucketLocation",
-                "s3:GetBucketPolicy",
-                "s3:PutBucketPolicy",
-                "s3:DeleteBucketPolicy",
-                "s3:PutBucketVersioning",
-                "s3:PutBucketPublicAccessBlock",
-                "s3:GetBucketPublicAccessBlock",
-                "s3:PutBucketEncryption",
-                "s3:GetBucketEncryption",
-                "s3:PutBucketCORS",
-                "s3:GetBucketCORS",
-                "s3:PutBucketWebsite",
-                "s3:GetBucketWebsite",
-                "s3:DeleteBucketWebsite",
-                "s3:PutBucketTagging",
-                "s3:GetBucketTagging",
-                "s3:PutLifecycleConfiguration",
-                "s3:GetLifecycleConfiguration",
-                "s3:PutBucketOwnershipControls",
-                "s3:GetBucketOwnershipControls",
-                "s3:ListBucketVersions",
-                "s3:DeleteObjectVersion"
-            ],
-            "Resource": [
-                f"arn:aws:s3:::{self.config.name}-*",
-                f"arn:aws:s3:::{self.config.name}-*/*",
-                f"arn:aws:s3:::cdk-*-{self.config.aws_region}-{account_id}",
-                f"arn:aws:s3:::cdk-*-{self.config.aws_region}-{account_id}/*"
-            ]
-        })
-        
-        # Lambda permissions
-        policy["Statement"].append({
-            "Sid": "LambdaAccess",
-            "Effect": "Allow",
-            "Action": [
-                "lambda:CreateFunction",
-                "lambda:UpdateFunctionCode",
-                "lambda:UpdateFunctionConfiguration",
-                "lambda:DeleteFunction",
-                "lambda:GetFunction",
-                "lambda:GetFunctionConfiguration",
-                "lambda:ListFunctions",
-                "lambda:AddPermission",
-                "lambda:RemovePermission",
-                "lambda:InvokeFunction",
-                "lambda:TagResource",
-                "lambda:UntagResource",
-                "lambda:ListTags",
-                "lambda:PutFunctionConcurrency",
-                "lambda:DeleteFunctionConcurrency",
-                "lambda:CreateAlias",
-                "lambda:UpdateAlias",
-                "lambda:DeleteAlias",
-                "lambda:GetAlias",
-                "lambda:ListAliases",
-                "lambda:PublishVersion",
-                "lambda:ListVersionsByFunction"
-            ],
-            "Resource": [
-                f"arn:aws:lambda:{self.config.aws_region}:{account_id}:function:{self.config.name}-*"
-            ]
-        })
-        
-        # IAM permissions
-        policy["Statement"].append({
-            "Sid": "IAMAccess",
-            "Effect": "Allow",
-            "Action": [
-                "iam:CreateRole",
-                "iam:DeleteRole",
-                "iam:AttachRolePolicy",
-                "iam:DetachRolePolicy",
-                "iam:PutRolePolicy",
-                "iam:DeleteRolePolicy",
-                "iam:GetRole",
-                "iam:GetRolePolicy",
-                "iam:PassRole",
-                "iam:TagRole",
-                "iam:UntagRole",
-                "iam:CreatePolicy",
-                "iam:DeletePolicy",
-                "iam:CreatePolicyVersion",
-                "iam:DeletePolicyVersion",
-                "iam:GetPolicy",
-                "iam:GetPolicyVersion",
-                "iam:ListPolicyVersions",
-                "iam:UpdateAssumeRolePolicy"
-            ],
-            "Resource": [
-                f"arn:aws:iam::{account_id}:role/{self.config.name}-*",
-                f"arn:aws:iam::{account_id}:policy/{self.config.name}-*",
-                f"arn:aws:iam::{account_id}:role/cdk-*"
-            ]
-        })
-        
-        # DynamoDB permissions
-        policy["Statement"].append({
-            "Sid": "DynamoDBAccess",
-            "Effect": "Allow",
-            "Action": [
-                "dynamodb:CreateTable",
-                "dynamodb:DeleteTable",
-                "dynamodb:DescribeTable",
-                "dynamodb:UpdateTable",
-                "dynamodb:TagResource",
-                "dynamodb:UntagResource",
-                "dynamodb:ListTagsOfResource",
-                "dynamodb:UpdateTimeToLive",
-                "dynamodb:DescribeTimeToLive",
-                "dynamodb:UpdateContinuousBackups",
-                "dynamodb:DescribeContinuousBackups",
-                "dynamodb:CreateBackup",
-                "dynamodb:DeleteBackup",
-                "dynamodb:ListBackups",
-                "dynamodb:DescribeBackup",
-                "dynamodb:RestoreTableFromBackup",
-                "dynamodb:CreateGlobalSecondaryIndex",
-                "dynamodb:DeleteGlobalSecondaryIndex",
-                "dynamodb:DescribeGlobalSecondaryIndex",
-                "dynamodb:UpdateGlobalSecondaryIndex"
-            ],
-            "Resource": [
-                f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*",
-                f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/backup/*"
-            ]
-        })
-        
-        # API Gateway permissions
-        policy["Statement"].append({
-            "Sid": "APIGatewayAccess",
-            "Effect": "Allow",
-            "Action": [
-                "apigateway:*"
-            ],
-            "Resource": [
-                f"arn:aws:apigateway:{self.config.aws_region}::/restapis",
-                f"arn:aws:apigateway:{self.config.aws_region}::/restapis/*"
-            ]
-        })
-        
-        # CloudFront permissions
-        policy["Statement"].append({
-            "Sid": "CloudFrontAccess",
-            "Effect": "Allow",
-            "Action": [
-                "cloudfront:CreateDistribution",
-                "cloudfront:UpdateDistribution",
-                "cloudfront:DeleteDistribution",
-                "cloudfront:GetDistribution",
-                "cloudfront:GetDistributionConfig",
-                "cloudfront:ListDistributions",
-                "cloudfront:TagResource",
-                "cloudfront:UntagResource",
-                "cloudfront:ListTagsForResource",
-                "cloudfront:CreateInvalidation",
-                "cloudfront:GetInvalidation",
-                "cloudfront:ListInvalidations",
-                "cloudfront:CreateOriginAccessControl",
-                "cloudfront:GetOriginAccessControl",
-                "cloudfront:UpdateOriginAccessControl",
-                "cloudfront:DeleteOriginAccessControl",
-                "cloudfront:ListOriginAccessControls"
-            ],
-            "Resource": "*"
-        })
-        
-        # Cognito permissions
-        policy["Statement"].append({
+        # Add Cognito if authentication is likely needed
+        statements.append({
             "Sid": "CognitoAccess",
             "Effect": "Allow",
             "Action": [
-                "cognito-idp:CreateUserPool",
-                "cognito-idp:DeleteUserPool",
-                "cognito-idp:UpdateUserPool",
-                "cognito-idp:DescribeUserPool",
-                "cognito-idp:CreateUserPoolClient",
-                "cognito-idp:DeleteUserPoolClient",
-                "cognito-idp:UpdateUserPoolClient",
-                "cognito-idp:DescribeUserPoolClient",
-                "cognito-idp:CreateUserPoolDomain",
-                "cognito-idp:DeleteUserPoolDomain",
-                "cognito-idp:DescribeUserPoolDomain",
-                "cognito-idp:UpdateUserPoolDomain",
-                "cognito-idp:SetUserPoolMfaConfig",
-                "cognito-idp:GetUserPoolMfaConfig"
+                "cognito-idp:*"
             ],
             "Resource": [
                 f"arn:aws:cognito-idp:{self.config.aws_region}:{account_id}:userpool/*"
             ]
         })
         
-        # VPC and networking permissions
-        policy["Statement"].append({
-            "Sid": "EC2VPCAccess",
-            "Effect": "Allow",
-            "Action": [
-                "ec2:CreateVpc",
-                "ec2:DeleteVpc",
-                "ec2:ModifyVpcAttribute",
-                "ec2:DescribeVpcs",
-                "ec2:CreateSubnet",
-                "ec2:DeleteSubnet",
-                "ec2:ModifySubnetAttribute",
-                "ec2:DescribeSubnets",
-                "ec2:CreateInternetGateway",
-                "ec2:DeleteInternetGateway",
-                "ec2:AttachInternetGateway",
-                "ec2:DetachInternetGateway",
-                "ec2:DescribeInternetGateways",
-                "ec2:CreateNatGateway",
-                "ec2:DeleteNatGateway",
-                "ec2:DescribeNatGateways",
-                "ec2:AllocateAddress",
-                "ec2:ReleaseAddress",
-                "ec2:DescribeAddresses",
-                "ec2:CreateRoute",
-                "ec2:DeleteRoute",
-                "ec2:CreateRouteTable",
-                "ec2:DeleteRouteTable",
-                "ec2:AssociateRouteTable",
-                "ec2:DisassociateRouteTable",
-                "ec2:DescribeRouteTables",
-                "ec2:CreateSecurityGroup",
-                "ec2:DeleteSecurityGroup",
-                "ec2:AuthorizeSecurityGroupIngress",
-                "ec2:AuthorizeSecurityGroupEgress",
-                "ec2:RevokeSecurityGroupIngress",
-                "ec2:RevokeSecurityGroupEgress",
-                "ec2:DescribeSecurityGroups",
-                "ec2:CreateTags",
-                "ec2:DeleteTags",
-                "ec2:DescribeTags",
-                "ec2:CreateVpcEndpoint",
-                "ec2:DeleteVpcEndpoints",
-                "ec2:DescribeVpcEndpoints",
-                "ec2:ModifyVpcEndpoint",
-                "ec2:DescribeAvailabilityZones",
-                "ec2:DescribeAccountAttributes",
-                "ec2:AssociateAddress",
-                "ec2:DisassociateAddress",
-                "ec2:CreateFlowLogs",
-                "ec2:DeleteFlowLogs",
-                "ec2:DescribeFlowLogs",
-                "ec2:CreateVpcPeeringConnection",
-                "ec2:AcceptVpcPeeringConnection",
-                "ec2:DeleteVpcPeeringConnection",
-                "ec2:DescribeVpcPeeringConnections",
-                "ec2:ModifyVpcPeeringConnectionOptions",
-                "ec2:CreateNetworkAcl",
-                "ec2:DeleteNetworkAcl",
-                "ec2:ReplaceNetworkAclAssociation",
-                "ec2:ReplaceNetworkAclEntry",
-                "ec2:CreateNetworkAclEntry",
-                "ec2:DeleteNetworkAclEntry",
-                "ec2:DescribeNetworkAcls"
-            ],
-            "Resource": "*"
-        })
+        return statements
+    
+    def _get_storage_statements(self, account_id: str) -> List[Dict[str, Any]]:
+        """Get storage-related permission statements."""
+        return [
+            {
+                "Sid": "S3FullAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "s3:*"
+                ],
+                "Resource": [
+                    f"arn:aws:s3:::{self.config.name}-*",
+                    f"arn:aws:s3:::{self.config.name}-*/*",
+                    f"arn:aws:s3:::cdk-*-{self.config.aws_region}-{account_id}",
+                    f"arn:aws:s3:::cdk-*-{self.config.aws_region}-{account_id}/*"
+                ]
+            },
+            {
+                "Sid": "DynamoDBFullAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "dynamodb:*"
+                ],
+                "Resource": [
+                    f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*",
+                    f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/stream/*",
+                    f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/index/*",
+                    f"arn:aws:dynamodb:{self.config.aws_region}:{account_id}:table/{self.config.name}-*/backup/*"
+                ]
+            }
+        ]
+    
+    def _get_networking_statements(self, account_id: str) -> List[Dict[str, Any]]:
+        """Get networking-related permission statements."""
+        statements = [
+            {
+                "Sid": "VPCManagement",
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:*Vpc*",
+                    "ec2:*Subnet*",
+                    "ec2:*Gateway*",
+                    "ec2:*Route*",
+                    "ec2:*SecurityGroup*",
+                    "ec2:*NetworkAcl*",
+                    "ec2:*NetworkInterface*",
+                    "ec2:*Address*",
+                    "ec2:*Endpoint*",
+                    "ec2:CreateTags",
+                    "ec2:DeleteTags",
+                    "ec2:DescribeTags",
+                    "ec2:DescribeAvailabilityZones",
+                    "ec2:DescribeAccountAttributes",
+                    "ec2:DescribeRegions"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "CloudFrontAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "cloudfront:*"
+                ],
+                "Resource": "*"
+            }
+        ]
         
-        # WAF permissions (if enabled)
+        # Add WAF if enabled
         if self.config.enable_waf:
-            policy["Statement"].append({
+            statements.append({
                 "Sid": "WAFAccess",
                 "Effect": "Allow",
                 "Action": [
-                    "wafv2:CreateWebACL",
-                    "wafv2:DeleteWebACL",
-                    "wafv2:UpdateWebACL",
-                    "wafv2:GetWebACL",
-                    "wafv2:ListWebACLs",
-                    "wafv2:AssociateWebACL",
-                    "wafv2:DisassociateWebACL",
-                    "wafv2:TagResource",
-                    "wafv2:UntagResource",
-                    "wafv2:ListTagsForResource"
+                    "wafv2:*"
                 ],
                 "Resource": [
-                    f"arn:aws:wafv2:us-east-1:{account_id}:global/webacl/*"
+                    f"arn:aws:wafv2:us-east-1:{account_id}:global/webacl/*",
+                    f"arn:aws:wafv2:{self.config.aws_region}:{account_id}:regional/webacl/*"
                 ]
             })
-        
-        # CloudWatch permissions
-        policy["Statement"].append({
-            "Sid": "CloudWatchAccess",
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:DeleteLogGroup",
-                "logs:PutRetentionPolicy",
-                "logs:TagLogGroup",
-                "logs:UntagLogGroup",
-                "logs:DescribeLogGroups",
-                "logs:TagResource",
-                "cloudwatch:PutMetricAlarm",
-                "cloudwatch:DeleteAlarms",
-                "cloudwatch:DescribeAlarms"
-            ],
-            "Resource": "*"
-        })
-        
-        # SSM Parameter Store permissions
-        policy["Statement"].append({
-            "Sid": "SSMAccess",
-            "Effect": "Allow",
-            "Action": [
-                "ssm:GetParameter",
-                "ssm:GetParameters",
-                "ssm:PutParameter",
-                "ssm:DeleteParameter",
-                "ssm:DescribeParameters"
-            ],
-            "Resource": [
-                f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/{self.config.name}/*",
-                f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/cdk-bootstrap/*"
-            ]
-        })
-        
-        # CDK Bootstrap permissions
-        policy["Statement"].append({
-            "Sid": "CDKBootstrapAccess",
-            "Effect": "Allow",
-            "Action": [
-                "sts:AssumeRole"
-            ],
-            "Resource": [
-                f"arn:aws:iam::{account_id}:role/cdk-*"
-            ]
-        })
-        
-        return policy
+            
+        return statements
+    
+    def _get_monitoring_statements(self, account_id: str) -> List[Dict[str, Any]]:
+        """Get monitoring-related permission statements."""
+        return [
+            {
+                "Sid": "CloudWatchFullAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "logs:*",
+                    "cloudwatch:*"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "XRayAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "xray:*"
+                ],
+                "Resource": "*"
+            }
+        ]
+    
 
 
 class UnifiedPermissionManager:
@@ -439,46 +290,6 @@ class UnifiedPermissionManager:
             except:
                 return []
     
-    def generate_unified_policy(self, user_name: str, projects: List[str]) -> Dict[str, Any]:
-        """Generate a unified policy that covers all projects for a user."""
-        if not projects:
-            raise ValueError(f"No projects specified for user {user_name}")
-        
-        # Start with base policy structure
-        unified_policy = {
-            "Version": "2012-10-17",
-            "Statement": []
-        }
-        
-        # For each project, generate permissions and merge them
-        for project_name in projects:
-            try:
-                config = get_project_config(project_name)
-                policy_generator = PolicyGenerator(config)
-                project_policy = policy_generator.generate_cicd_policy(self.account_id)
-                
-                # Merge statements, avoiding duplicates
-                for statement in project_policy["Statement"]:
-                    # Add project identifier to Sid to avoid conflicts
-                    statement["Sid"] = f"{project_name}_{statement['Sid']}"
-                    unified_policy["Statement"].append(statement)
-                    
-            except Exception as e:
-                click.echo(f"⚠️  Warning: Could not generate policy for {project_name}: {e}")
-        
-        # Add cross-project permissions that might be needed
-        unified_policy["Statement"].append({
-            "Sid": "CrossProjectAccess",
-            "Effect": "Allow",
-            "Action": [
-                "sts:GetCallerIdentity",
-                "iam:GetUser",
-                "iam:ListAccessKeys"
-            ],
-            "Resource": "*"
-        })
-        
-        return unified_policy
     
     def update_user_permissions(self, user_name: str, projects: Optional[List[str]] = None) -> None:
         """Update permissions for a user across all their projects."""
@@ -493,38 +304,83 @@ class UnifiedPermissionManager:
                 click.echo("   No projects detected. Please specify projects explicitly.")
                 return
         
-        # Generate unified policy
-        try:
-            unified_policy = self.generate_unified_policy(user_name, projects)
-            policy_name = "unified-permissions-policy"
-            
-            # Update or create the policy
-            self.iam.put_user_policy(
-                UserName=user_name,
-                PolicyName=policy_name,
-                PolicyDocument=json.dumps(unified_policy)
-            )
-            
-            click.echo(f"✅ Updated unified policy for user '{user_name}' covering projects: {', '.join(projects)}")
-            
-            # Clean up old project-specific policies if they exist
-            self._cleanup_old_policies(user_name, policy_name)
-            
-        except self.iam.exceptions.NoSuchEntityException:
-            click.echo(f"❌ User '{user_name}' not found", err=True)
-            sys.exit(1)
-        except Exception as e:
-            click.echo(f"❌ Error updating permissions: {e}", err=True)
-            sys.exit(1)
+        # Create separate policies by category
+        self._update_categorized_policies(user_name, projects)
     
-    def _cleanup_old_policies(self, user_name: str, keep_policy: str) -> None:
-        """Remove old project-specific policies, keeping only the unified one."""
+    def _update_categorized_policies(self, user_name: str, projects: List[str]) -> None:
+        """Update user with separate policies by category."""
+        categories = ["infrastructure", "compute", "storage", "networking", "monitoring"]
+        
+        for category in categories:
+            try:
+                # Generate category policy for all projects
+                policy_statements = []
+                
+                for project_name in projects:
+                    config = get_project_config(project_name)
+                    policy_generator = PolicyGenerator(config)
+                    cat_policy = policy_generator.generate_policy_by_category(self.account_id, category)
+                    
+                    # Add project prefix to avoid conflicts
+                    for statement in cat_policy["Statement"]:
+                        statement["Sid"] = f"{project_name}_{statement['Sid']}"
+                        policy_statements.append(statement)
+                
+                if policy_statements:
+                    # Create policy document
+                    policy_doc = {
+                        "Version": "2012-10-17",
+                        "Statement": policy_statements
+                    }
+                    
+                    policy_name = f"{user_name}-{category}-policy"
+                    
+                    # Check policy size
+                    policy_size = len(json.dumps(policy_doc))
+                    if policy_size > 6144:
+                        click.echo(f"⚠️  Warning: {category} policy size ({policy_size}) exceeds limit")
+                    
+                    # Update or create the policy
+                    self.iam.put_user_policy(
+                        UserName=user_name,
+                        PolicyName=policy_name,
+                        PolicyDocument=json.dumps(policy_doc)
+                    )
+                    
+                    click.echo(f"✅ Updated {category} policy for user '{user_name}' ({policy_size} chars)")
+                    
+            except Exception as e:
+                click.echo(f"❌ Error updating {category} policy: {e}")
+        
+        # Clean up old unified policy if it exists
+        self._cleanup_old_policies(user_name, keep_pattern=f"{user_name}-*-policy")
+    
+    
+    def _cleanup_old_policies(self, user_name: str, keep_policy: Optional[str] = None, 
+                            keep_pattern: Optional[str] = None) -> None:
+        """Remove old project-specific policies, keeping specified ones."""
         try:
             policies = self.iam.list_user_policies(UserName=user_name)
             for policy_name in policies["PolicyNames"]:
-                if policy_name != keep_policy and any(
-                    proj in policy_name for proj in ["fraud-or-not", "media-register", "people-cards", "cicd"]
-                ):
+                should_delete = False
+                
+                if keep_pattern:
+                    # Keep policies matching the pattern
+                    import fnmatch
+                    if not fnmatch.fnmatch(policy_name, keep_pattern):
+                        # Check if it's an old project-specific policy
+                        if any(proj in policy_name for proj in ["fraud-or-not", "media-register", 
+                                                                 "people-cards", "cicd"]):
+                            should_delete = True
+                elif keep_policy:
+                    # Keep only the specified policy
+                    if policy_name != keep_policy and any(
+                        proj in policy_name for proj in ["fraud-or-not", "media-register", 
+                                                         "people-cards", "cicd"]
+                    ):
+                        should_delete = True
+                
+                if should_delete:
                     self.iam.delete_user_policy(UserName=user_name, PolicyName=policy_name)
                     click.echo(f"   🧹 Removed old policy: {policy_name}")
         except Exception as e:
@@ -596,7 +452,7 @@ class UnifiedPermissionManager:
                 try:
                     policies = self.iam.list_user_policies(UserName=user_name)
                     has_project_policy = any(
-                        any(proj in policy for proj in ["fraud-or-not", "media-register", "people-cards", "cicd", "unified"])
+                        any(proj in policy for proj in ["fraud-or-not", "media-register", "people-cards", "cicd"])
                         for policy in policies["PolicyNames"]
                     )
                     
@@ -683,8 +539,11 @@ def update_all(profile: str):
 @click.option("--output", "-o", type=click.Path(), help="Output file for policy JSON")
 @click.option("--projects", "-p", multiple=True, help="Projects to include in policy")
 @click.option("--profile", help="AWS profile to use")
-def generate(user: str, output: str, projects: tuple, profile: str):
-    """Generate unified policy JSON for a user."""
+@click.option("--category", "-c", required=True,
+              type=click.Choice(["infrastructure", "compute", "storage", "networking", "monitoring"]),
+              help="Category to generate policy for")
+def generate(user: str, output: str, projects: tuple, profile: str, category: str):
+    """Generate policy JSON for a specific category."""
     manager = UnifiedPermissionManager(profile=profile)
     
     # Determine projects
@@ -693,16 +552,32 @@ def generate(user: str, output: str, projects: tuple, profile: str):
         click.echo("No projects specified or detected. Please specify projects with -p")
         sys.exit(1)
     
-    # Generate policy
-    policy = manager.generate_unified_policy(user, project_list)
+    # Generate policy for specific category
+    policy_statements = []
+    for project_name in project_list:
+        config = get_project_config(project_name)
+        policy_generator = PolicyGenerator(config)
+        cat_policy = policy_generator.generate_policy_by_category(manager.account_id, category)
+        
+        for statement in cat_policy["Statement"]:
+            statement["Sid"] = f"{project_name}_{statement['Sid']}"
+            policy_statements.append(statement)
+    
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": policy_statements
+    }
+    
     policy_json = json.dumps(policy, indent=2)
+    size = len(policy_json)
     
     if output:
         with open(output, "w") as f:
             f.write(policy_json)
-        click.echo(f"✅ Policy written to {output}")
+        click.echo(f"✅ Policy written to {output} ({size} chars)")
     else:
         click.echo(policy_json)
+        click.echo(f"\n# Policy size: {size} chars", err=True)
 
 
 if __name__ == "__main__":
