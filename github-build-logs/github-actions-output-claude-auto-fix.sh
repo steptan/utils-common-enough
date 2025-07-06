@@ -13,9 +13,7 @@
 # USAGE:
 #   Run this script in a terminal within your Git repo directory.
 #   It will loop continuously, checking your latest GitHub Actions run,
-#   and invoke Claude to analyze any failed build logs.
-
-# ENVIRONMENT VARIABLES:
+#   and invoke Claude to analyze any failed build logs.  ENVIRONMENT VARIABLES:
 #   REPO           Optional. Format: owner/repo. If not set, inferred from git remote URL.
 #   SLEEP_BETWEEN  Optional. Delay in seconds between checks (default: 6000 = 100 minutes).
 #                  Example: export SLEEP_BETWEEN=300   # 5-minute interval
@@ -65,28 +63,23 @@ REPO_BASENAME=$(basename "$REPO")
 
 # Set Claude session command for headless mode to avoid stdin/raw mode errors
 # Uses echo + pipe to feed prompt and enables stream-json output for non-interactive contexts
-CLAUDE="claude code -p -"
+CLAUDE="claude code"
 
 # Add dangerous permissions flag if NO_DANGEROUS is not set
 if [ -z "$NO_DANGEROUS" ]; then
-  CLAUDE="$CLAUDE --dangerously-skip-permissions -p -"
+  CLAUDE="$CLAUDE --dangerously-skip-permissions"
 fi
+
+CLAUDE="$CLAUDE -p -"
 
 # Function to send content to Claude
 send_to_claude() {
   local prompt="$1"
   local output_file="$2"
-  local append_mode="$3"  # Optional: "append" to append to file
   
-  if [ "$append_mode" = "append" ]; then
-    $CLAUDE <<EOF | tee -a "$output_file"
+  $CLAUDE <<EOF | tee "$output_file"
 $prompt
 EOF
-  else
-    $CLAUDE <<EOF | tee "$output_file"
-$prompt
-EOF
-  fi
 }
 
 # Function to format log content with prompt
@@ -114,12 +107,12 @@ process_log_file() {
   
   if [ "$log_size" -le "$max_chunk_size" ]; then
     # Small log, send as is
-    echo "📄 Log size: $log_size bytes. Sending as single request..."
+    echo "📄 Log size: $log_size bytes. Sending in entirety..."
     
     local prompt=$(format_log_prompt \
-      "We received the following CI error log from GitHub Actions:" \
+      "CI error log from GitHub Actions:" \
       "$log_file" \
-      "address issues, commit and push")
+      "analyze, fix, commit and push")
     send_to_claude "$prompt" "$response_file"
   else
     # Large log, split and send in chunks
@@ -127,54 +120,34 @@ process_log_file() {
     
     # Split the log file
     local base_name="${log_file%.log}"
-    split -b "$max_chunk_size" "$log_file" "${base_name}.chunk."
-    
-    # Rename chunks to have .log extension
-    for chunk in "${base_name}.chunk."*; do
-      [ -f "$chunk" ] && mv "$chunk" "${chunk}.log"
-    done
+    split -d -b "$max_chunk_size" "$log_file" "${base_name}.chunk."
     
     # Count and process chunks
-    local chunk_count=$(ls -1 "${base_name}.chunk."*.log 2>/dev/null | wc -l)
+    local chunk_count=$(ls -1 "${base_name}.chunk."* 2>/dev/null | wc -l)
     echo "📊 Split into $chunk_count chunks"
     
     local chunk_num=1
-    for chunk_file in "${base_name}.chunk."*.log; do
+    for chunk_file in "${base_name}.chunk."*; do
+
       echo "📤 Sending chunk $chunk_num of $chunk_count to Claude..."
-      
-      local prompt
-      local append_mode=""
-      local header
-      local footer
-      
-      if [ "$chunk_num" -eq 1 ]; then
-        header="We received a large CI error log from GitHub Actions that I'll send in $chunk_count parts.
-This is part $chunk_num of $chunk_count:"
-        footer="Please analyze this part and wait for the remaining chunks before suggesting fixes."
-      elif [ "$chunk_num" -eq "$chunk_count" ]; then
-        header="This is the final part ($chunk_num of $chunk_count) of the CI error log:"
-        footer="Now that you have all parts of the log, please:
-1. Analyze the complete error
-2. Address issues
-3. Commit and push"
-        append_mode="append"
-      else
-        header="This is part $chunk_num of $chunk_count of the CI error log:"
-        footer="Please continue analyzing. More chunks to follow."
-        append_mode="append"
-      fi
-      
-      prompt=$(format_log_prompt "$header" "$chunk_file" "$footer")
-      send_to_claude "$prompt" "$response_file" "$append_mode"
+
+      local prompt=$(format_log_prompt \
+        "CI error log from GitHub Actions, part $chunk_num of $chunk_count:" \
+        "$chunk_file" \
+        "analyze. Once you have enough info, fix, commit and push")
+      send_to_claude "$prompt" "$response_file"
       
       chunk_num=$((chunk_num + 1))
       
       # Small delay between chunks to avoid rate limiting
-      [ "$chunk_num" -le "$chunk_count" ] && sleep 2
+      # limit to 20 chunks for now
+      [ "$chunk_num" -le "$chunk_count" ] && [ "$chunk_num" -lt 21 ] && sleep 2
+
+      # [ "$chunk_num" -le "$chunk_count" ] && sleep 2
     done
     
     # Clean up chunk files
-    rm -f "${base_name}.chunk."*.log
+    rm -f "${base_name}.chunk."*
   fi
 }
 
