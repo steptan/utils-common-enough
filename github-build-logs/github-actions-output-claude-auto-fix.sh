@@ -13,16 +13,23 @@
 # USAGE:
 #   Run this script in a terminal within your Git repo directory.
 #   It will loop continuously, checking your latest GitHub Actions run,
-#   and invoke Claude to analyze any failed build logs.  ENVIRONMENT VARIABLES:
+#   and invoke Claude to analyze any failed build logs.
+#
+# ENVIRONMENT VARIABLES:
 #   REPO           Optional. Format: owner/repo. If not set, inferred from git remote URL.
 #   SLEEP_BETWEEN  Optional. Delay in seconds between checks (default: 6000 = 100 minutes).
 #                  Example: export SLEEP_BETWEEN=300   # 5-minute interval
 #   NO_DANGEROUS    Optional. If set, disables --dangerously-skip-permissions flag when invoking Claude.
 #                  This enables safer, interactive approval for commands Claude attempts to run.
+#   MODEL          Optional. Claude model to use (default: sonnet)
+#                  Example: export MODEL=haiku
 # ----------------------------------------------------------------------
 
 # Looping settings
 SLEEP_BETWEEN=${SLEEP_BETWEEN:-600}  # Default to 10 minutes (600 seconds)
+
+# Model settings
+MODEL=${MODEL:-sonnet}  # Default to sonnet
 
 # Function to detect repository from git
 detect_repo() {
@@ -63,7 +70,7 @@ REPO_BASENAME=$(basename "$REPO")
 
 # Set Claude session command for headless mode to avoid stdin/raw mode errors
 # Uses echo + pipe to feed prompt and enables stream-json output for non-interactive contexts
-CLAUDE="claude code"
+CLAUDE="claude code --model $MODEL"
 
 # Add dangerous permissions flag if NO_DANGEROUS is not set
 if [ -z "$NO_DANGEROUS" ]; then

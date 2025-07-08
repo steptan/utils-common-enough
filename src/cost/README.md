@@ -5,6 +5,7 @@ This directory contains tools for monitoring and analyzing AWS costs for project
 ## Quick Start
 
 ### For any project:
+
 ```bash
 # Check costs for the last 7 days
 utils/bin/check-costs <project-name>
@@ -23,6 +24,7 @@ utils/bin/check-costs <project-name> --json
 ```
 
 ### From within a project directory:
+
 The tool can auto-detect the project name from the current directory:
 
 ```bash
@@ -38,6 +40,7 @@ utils/bin/check-costs people-cards --budget 100
 ## Features
 
 ### 1. Cost Analysis (`check_costs.py`)
+
 - **Daily cost breakdown**: Shows costs per day for periods ≤ 14 days
 - **Service breakdown**: Costs grouped by AWS service
 - **Monthly projection**: Based on daily average
@@ -45,17 +48,20 @@ utils/bin/check-costs people-cards --budget 100
 - **Optimization tips**: Service-specific cost optimization suggestions
 
 ### 2. Tag Compliance Checking
+
 - Identifies resources that might be missing project tags
 - Checks Lambda functions, DynamoDB tables, and S3 buckets
 - Helps ensure accurate cost allocation
 
 ### 3. Cost Monitoring (`monitor.py`)
+
 - Create budget alerts
 - Set up anomaly detection
 - Monitor specific resource metrics
 - Get budget status
 
 ### 4. Cost Analysis (`analyzer.py`)
+
 - Detailed cost analysis by service
 - Cost trends and forecasting
 - Resource-level cost breakdown
@@ -64,6 +70,7 @@ utils/bin/check-costs people-cards --budget 100
 ## Prerequisites
 
 1. **AWS Credentials**: Configure AWS credentials:
+
    ```bash
    aws configure
    ```
@@ -76,7 +83,7 @@ utils/bin/check-costs people-cards --budget 100
    - `cloudwatch:*` - For metrics and alarms
    - Read permissions on resources for tag checking
 
-3. **Resource Tagging**: 
+3. **Resource Tagging**:
    All AWS resources should be tagged with:
    ```
    Project: <project-name>
@@ -104,21 +111,25 @@ Options:
 ## Examples
 
 ### Basic cost check:
+
 ```bash
 utils/bin/check-costs people-cards
 ```
 
 ### Check last 30 days with budget:
+
 ```bash
 utils/bin/check-costs people-cards --days 30 --budget 100
 ```
 
 ### Check specific environment with profile:
+
 ```bash
 utils/bin/check-costs fraud-or-not --profile production --check-tags
 ```
 
 ### Get JSON output for automation:
+
 ```bash
 utils/bin/check-costs media-register --json > costs.json
 ```
@@ -135,7 +146,7 @@ You can integrate cost checking into your CI/CD pipeline:
       --days 7 \
       --budget ${{ env.MONTHLY_BUDGET }} \
       --json > cost-report.json
-    
+
     # Fail if over budget
     if jq -e '.monthly_projection > (.budget // 100)' cost-report.json; then
       echo "⚠️ Warning: Projected costs exceed budget!"
@@ -157,16 +168,19 @@ The tool provides service-specific optimization tips based on your usage:
 ## Troubleshooting
 
 ### No cost data showing:
+
 1. Ensure resources are tagged with `Project=<project-name>`
 2. Cost Explorer data can take up to 24 hours to appear
 3. Check you have the required permissions
 
 ### Tag checking not working:
+
 1. Ensure you have read permissions on the resources
 2. Some resources may be in different regions
 3. Check the script output for specific error messages
 
 ### Budget alerts not working:
+
 1. Verify SNS topic permissions
 2. Confirm email subscription to SNS topic
 3. Check CloudWatch alarm configuration
@@ -174,6 +188,7 @@ The tool provides service-specific optimization tips based on your usage:
 ## Advanced Usage
 
 ### Creating Budget Alerts:
+
 ```python
 from cost.monitor import CostMonitor
 from config import get_project_config
@@ -190,6 +205,7 @@ monitor.create_budget_alert(
 ```
 
 ### Custom Cost Analysis:
+
 ```python
 from cost.analyzer import CostAnalyzer
 from datetime import datetime, timedelta
