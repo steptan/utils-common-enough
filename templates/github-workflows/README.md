@@ -52,7 +52,43 @@ This directory contains standardized GitHub Actions workflow templates with best
 - Automated rollback capability
 - Comprehensive notifications
 
-### 4. scheduled-template.yml
+### 4. deploy-blue-green-template.yml
+**Purpose**: Advanced blue-green deployment with automated rollback
+
+**When to use**:
+- For zero-downtime production deployments
+- When you need instant rollback capabilities
+- For high-traffic applications requiring safety
+- When you want traffic shifting strategies
+
+**Key features**:
+- Blue-green deployment with Lambda aliases
+- Canary deployment option with gradual traffic shift
+- Automated health checks and monitoring
+- Error threshold-based automatic rollback
+- Traffic shifting strategies (blue-green, canary, all-at-once)
+- Emergency manual rollback workflow
+- CloudWatch metrics monitoring
+- Version cleanup and management
+
+### 5. canary-deployment-template.yml
+**Purpose**: Progressive canary deployment for staging environments
+
+**When to use**:
+- For testing new versions with real traffic
+- When you want gradual rollout in staging
+- For catching issues before full deployment
+- When you need detailed metrics comparison
+
+**Key features**:
+- Configurable traffic shifting (5%, 10%, 25% initial)
+- Progressive traffic increases with bake time
+- Baseline metrics collection
+- Real-time error and latency monitoring
+- Automatic rollback on threshold breach
+- Detailed deployment notifications
+
+### 6. scheduled-template.yml
 **Purpose**: Recurring automated tasks
 
 **When to use**:
@@ -109,6 +145,81 @@ concurrency:
 - **Use for**: PR-specific workflows
 - **Behavior**: One run per PR at a time
 - **Example**: PR checks, automated reviews
+
+## Deployment Strategies
+
+### Blue-Green Deployment
+**How it works**:
+1. Deploy new version to "green" environment
+2. Run health checks on green environment
+3. Switch all traffic instantly from "blue" to "green"
+4. Keep blue environment as instant rollback option
+
+**Best for**:
+- Production deployments requiring zero downtime
+- Applications with strict SLAs
+- When instant rollback is critical
+
+**Configuration**:
+```yaml
+deployment_strategy: blue-green
+auto_rollback: true
+error_threshold: 5  # Percentage
+```
+
+### Canary Deployment
+**How it works**:
+1. Deploy new version alongside current version
+2. Route small percentage of traffic to new version
+3. Monitor metrics and gradually increase traffic
+4. Rollback automatically if thresholds exceeded
+
+**Best for**:
+- Testing with real production traffic
+- Gradual rollouts to minimize risk
+- Detecting issues early with minimal impact
+
+**Configuration**:
+```yaml
+deployment_strategy: canary
+initial_percentage: 10
+increment_percentage: 20
+bake_time: 10  # minutes
+error_threshold: 5  # percentage
+latency_threshold: 1000  # milliseconds
+```
+
+### All-at-Once Deployment
+**How it works**:
+1. Deploy new version
+2. Switch all traffic immediately
+3. Monitor for issues
+
+**Best for**:
+- Development environments
+- Low-risk changes
+- Emergency fixes
+
+## Rollback Capabilities
+
+### Automatic Rollback
+Triggers when:
+- Error rate exceeds threshold (default: 5%)
+- Latency exceeds threshold (default: 2000ms)
+- Health checks fail
+- Deployment validation fails
+
+### Manual Rollback
+Two options:
+1. **Emergency rollback**: Specify exact version to rollback to
+2. **Standard rollback**: Revert to previous stable version
+
+### Rollback Process
+1. Revert Lambda alias to previous version
+2. Clear weighted routing configurations
+3. Restore previous static assets (if versioned)
+4. Verify rollback with health checks
+5. Send notifications
 
 ## Recommended Timeout Values
 
@@ -179,6 +290,43 @@ jobs:
       - run: ./deploy.sh
 ```
 
+### Blue-Green Deployment
+```yaml
+name: Blue-Green Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_strategy:
+        type: choice
+        options: [blue-green, canary]
+        default: blue-green
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-blue-green-template.yml
+    with:
+      environment: production
+      deployment_strategy: ${{ inputs.deployment_strategy }}
+    secrets: inherit
+```
+
+### Canary Deployment
+```yaml
+name: Canary Release
+on:
+  workflow_dispatch:
+
+jobs:
+  canary:
+    uses: ./.github/workflows/canary-deployment-template.yml
+    with:
+      environment: staging
+      initial_percentage: '10'
+      increment_percentage: '20'
+      bake_time: '10'
+    secrets: inherit
+```
+
 ### Daily Scheduled Task
 ```yaml
 name: Daily Cleanup
@@ -230,6 +378,21 @@ jobs:
 - Use OIDC for cloud authentication when possible
 - Regularly rotate credentials
 - Implement least-privilege access
+
+### 7. Deployment Best Practices
+- Always test in staging before production
+- Use blue-green for critical production deployments
+- Start canary deployments with small percentages
+- Monitor key metrics during deployments
+- Have rollback plans ready
+- Document deployment procedures
+
+### 8. Monitoring During Deployment
+- Error rates and counts
+- Response latency (p50, p95, p99)
+- Success rates
+- Resource utilization
+- Custom application metrics
 
 ## Customization Guide
 

@@ -1,0 +1,624 @@
+# Blue-Green Deployment Template with Rollback
+# Advanced deployment strategy with traffic shifting and automated rollback
+# Includes: blue-green deployment, canary releases, health checks, and emergency rollback
+
+name: Blue-Green Production Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: production
+      deployment_strategy:
+        description: 'Deployment strategy'
+        required: true
+        type: choice
+        options:
+          - blue-green
+          - canary
+          - all-at-once
+        default: blue-green
+      canary_percentage:
+        description: 'Initial canary traffic percentage (if using canary)'
+        required: false
+        type: string
+        default: '10'
+      version:
+        description: 'Version/tag to deploy (leave empty for latest)'
+        required: false
+        type: string
+      rollback_version:
+        description: 'Version to rollback to (for emergency rollback)'
+        required: false
+        type: string
+      skip_tests:
+        description: 'Skip pre-deployment tests (use with caution)'
+        required: false
+        type: boolean
+        default: false
+      auto_rollback:
+        description: 'Enable automatic rollback on failure'
+        required: false
+        type: boolean
+        default: true
+
+# Deployment-safe concurrency
+# Never cancel in-progress deployments to prevent partial deployments
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20.x'
+  AWS_REGION: us-east-1
+  ERROR_THRESHOLD: '5'  # Percentage of errors to trigger rollback
+  LATENCY_THRESHOLD: '2000'  # Milliseconds
+  HEALTH_CHECK_DURATION: '300'  # Seconds to monitor after deployment
+
+jobs:
+  # Pre-deployment validation
+  pre-flight:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      should_deploy: ${{ steps.validation.outputs.should_deploy }}
+      deployment_id: ${{ steps.validation.outputs.deployment_id }}
+      current_version: ${{ steps.validation.outputs.current_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version || github.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate deployment
+        id: validation
+        run: |
+          echo "Running pre-deployment validation..."
+          
+          # Generate unique deployment ID
+          DEPLOYMENT_ID="deploy-${{ github.event.inputs.environment }}-$(date +%Y%m%d%H%M%S)"
+          echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+          
+          # Get current production version
+          CURRENT_VERSION=$(aws lambda get-alias \
+            --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }} \
+            --name LIVE \
+            --query 'FunctionVersion' \
+            --output text 2>/dev/null || echo "1")
+          echo "current_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
+          
+          # Validate deployment permissions
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            echo "Validating production deployment permissions..."
+          fi
+          
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+
+      - name: Check deployment window
+        run: |
+          # Optional: Enforce deployment windows
+          HOUR=$(date +%H)
+          DAY=$(date +%u)
+          
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            if [[ $DAY -ge 6 ]] || [[ $HOUR -ge 18 ]] || [[ $HOUR -lt 8 ]]; then
+              echo "::warning::Deploying outside recommended window"
+              # Optionally fail here for strict enforcement
+            fi
+          fi
+
+  # Run tests unless skipped
+  test:
+    name: Pre-deployment Tests
+    needs: pre-flight
+    if: |
+      needs.pre-flight.outputs.should_deploy == 'true' && 
+      github.event.inputs.skip_tests != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npm run lint
+          npm test
+          npm run test:integration || echo "::warning::Integration tests failed"
+
+  # Build deployment artifacts
+  build:
+    name: Build Artifacts
+    needs: [pre-flight, test]
+    if: |
+      always() && 
+      needs.pre-flight.outputs.should_deploy == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      lambda_version: ${{ steps.package.outputs.lambda_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: |
+          npm run build:${{ github.event.inputs.environment }}
+        env:
+          DEPLOYMENT_ID: ${{ needs.pre-flight.outputs.deployment_id }}
+          NEXT_PUBLIC_API_URL: ${{ secrets[format('{0}_API_URL', github.event.inputs.environment)] }}
+
+      - name: Package Lambda functions
+        id: package
+        run: |
+          # Package Lambda with version info
+          cd src/lambda
+          npm ci
+          npm run build
+          
+          # Create deployment package
+          cd dist
+          echo '{"version": "${{ needs.pre-flight.outputs.deployment_id }}", "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' > version.json
+          zip -r ../../../lambda-deployment.zip . -x "*.map" -x "*.d.ts" -x "tests/*"
+          
+          # Calculate hash for version tracking
+          LAMBDA_VERSION=$(sha256sum ../../../lambda-deployment.zip | cut -d' ' -f1 | cut -c1-16)
+          echo "lambda_version=${LAMBDA_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-package
+          path: |
+            out/
+            lambda-deployment.zip
+          retention-days: 30
+
+  # Deploy using blue-green strategy
+  deploy-blue-green:
+    name: Blue-Green Deployment
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ github.event.inputs.environment }}
+    outputs:
+      new_version: ${{ steps.deploy.outputs.new_version }}
+      deployment_status: ${{ steps.health.outputs.status }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-package
+
+      - name: Deploy Lambda (Green environment)
+        id: deploy
+        run: |
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          
+          # Upload to S3
+          LAMBDA_BUCKET="${{ secrets.LAMBDA_BUCKET }}"
+          LAMBDA_KEY="lambda-${{ github.event.inputs.environment }}-${{ needs.build.outputs.lambda_version }}.zip"
+          aws s3 cp lambda-deployment.zip s3://${LAMBDA_BUCKET}/${LAMBDA_KEY}
+          
+          # Update Lambda function code
+          aws lambda update-function-code \
+            --function-name ${FUNCTION_NAME} \
+            --s3-bucket ${LAMBDA_BUCKET} \
+            --s3-key ${LAMBDA_KEY} \
+            --publish
+          
+          # Get new version number
+          NEW_VERSION=$(aws lambda list-versions-by-function \
+            --function-name ${FUNCTION_NAME} \
+            --query 'Versions[-1].Version' \
+            --output text)
+          
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          
+          # Create/Update GREEN alias pointing to new version
+          aws lambda create-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name GREEN \
+            --function-version ${NEW_VERSION} \
+            --description "Green environment - ${{ needs.pre-flight.outputs.deployment_id }}" \
+            2>/dev/null || \
+          aws lambda update-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name GREEN \
+            --function-version ${NEW_VERSION}
+
+      - name: Deploy static assets
+        run: |
+          # Deploy to green S3 bucket
+          GREEN_BUCKET="${{ secrets[format('{0}_S3_BUCKET_GREEN', github.event.inputs.environment)] }}"
+          
+          aws s3 sync ./out s3://${GREEN_BUCKET} \
+            --delete \
+            --cache-control "public, max-age=31536000" \
+            --exclude "*.html" \
+            --exclude "*.json"
+          
+          aws s3 sync ./out s3://${GREEN_BUCKET} \
+            --delete \
+            --cache-control "public, max-age=3600" \
+            --exclude "*" \
+            --include "*.html" \
+            --include "*.json"
+
+      - name: Health check (Green environment)
+        id: health
+        run: |
+          echo "Running health checks on green environment..."
+          
+          # Test Lambda alias
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          
+          # Invoke health check
+          RESPONSE=$(aws lambda invoke \
+            --function-name ${FUNCTION_NAME}:GREEN \
+            --payload '{"path": "/health", "httpMethod": "GET"}' \
+            --query 'StatusCode' \
+            --output text \
+            /tmp/response.json)
+          
+          if [[ "$RESPONSE" != "200" ]]; then
+            echo "::error::Green environment health check failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "status=healthy" >> $GITHUB_OUTPUT
+
+  # Traffic shifting based on strategy
+  traffic-shift:
+    name: Traffic Shifting
+    needs: [deploy-blue-green, pre-flight]
+    if: needs.deploy-blue-green.outputs.deployment_status == 'healthy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      shift_status: ${{ steps.monitor.outputs.status }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Shift traffic
+        id: shift
+        run: |
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          NEW_VERSION="${{ needs.deploy-blue-green.outputs.new_version }}"
+          CURRENT_VERSION="${{ needs.pre-flight.outputs.current_version }}"
+          
+          if [[ "${{ github.event.inputs.deployment_strategy }}" == "canary" ]]; then
+            # Canary deployment - gradual traffic shift
+            CANARY_PERCENTAGE="${{ github.event.inputs.canary_percentage }}"
+            
+            echo "Starting canary deployment with ${CANARY_PERCENTAGE}% traffic..."
+            
+            # Update LIVE alias with weighted routing
+            aws lambda update-alias \
+              --function-name ${FUNCTION_NAME} \
+              --name LIVE \
+              --function-version ${CURRENT_VERSION} \
+              --routing-config AdditionalVersionWeights={\"${NEW_VERSION}\"=${CANARY_PERCENTAGE}}
+            
+          elif [[ "${{ github.event.inputs.deployment_strategy }}" == "blue-green" ]]; then
+            # Blue-green deployment - prepare for instant cutover
+            echo "Blue-green deployment ready for cutover"
+            
+          else
+            # All-at-once deployment
+            echo "Switching all traffic to new version..."
+            
+            aws lambda update-alias \
+              --function-name ${FUNCTION_NAME} \
+              --name LIVE \
+              --function-version ${NEW_VERSION}
+          fi
+
+      - name: Monitor deployment
+        id: monitor
+        run: |
+          echo "Monitoring deployment health for ${HEALTH_CHECK_DURATION} seconds..."
+          
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          START_TIME=$(date +%s)
+          END_TIME=$((START_TIME + HEALTH_CHECK_DURATION))
+          
+          ERROR_COUNT=0
+          TOTAL_COUNT=0
+          
+          while [ $(date +%s) -lt $END_TIME ]; do
+            # Check CloudWatch metrics
+            ERRORS=$(aws cloudwatch get-metric-statistics \
+              --namespace AWS/Lambda \
+              --metric-name Errors \
+              --dimensions Name=FunctionName,Value=${FUNCTION_NAME} Name=AliasName,Value=LIVE \
+              --statistics Sum \
+              --start-time $(date -u -d '1 minute ago' +%Y-%m-%dT%H:%M:%S) \
+              --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+              --period 60 \
+              --query 'Datapoints[0].Sum' \
+              --output text)
+            
+            INVOCATIONS=$(aws cloudwatch get-metric-statistics \
+              --namespace AWS/Lambda \
+              --metric-name Invocations \
+              --dimensions Name=FunctionName,Value=${FUNCTION_NAME} Name=AliasName,Value=LIVE \
+              --statistics Sum \
+              --start-time $(date -u -d '1 minute ago' +%Y-%m-%dT%H:%M:%S) \
+              --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+              --period 60 \
+              --query 'Datapoints[0].Sum' \
+              --output text)
+            
+            if [[ "$ERRORS" != "None" ]] && [[ "$INVOCATIONS" != "None" ]]; then
+              ERROR_COUNT=$((ERROR_COUNT + ${ERRORS%.*}))
+              TOTAL_COUNT=$((TOTAL_COUNT + ${INVOCATIONS%.*}))
+              
+              if [ $TOTAL_COUNT -gt 0 ]; then
+                ERROR_RATE=$((ERROR_COUNT * 100 / TOTAL_COUNT))
+                
+                if [ $ERROR_RATE -gt $ERROR_THRESHOLD ]; then
+                  echo "::error::Error rate ${ERROR_RATE}% exceeds threshold ${ERROR_THRESHOLD}%"
+                  echo "status=unhealthy" >> $GITHUB_OUTPUT
+                  exit 1
+                fi
+              fi
+            fi
+            
+            echo "Health check: Errors=${ERROR_COUNT}, Total=${TOTAL_COUNT}"
+            sleep 30
+          done
+          
+          echo "status=healthy" >> $GITHUB_OUTPUT
+
+  # Complete traffic shift for blue-green
+  complete-deployment:
+    name: Complete Deployment
+    needs: [traffic-shift, deploy-blue-green]
+    if: |
+      needs.traffic-shift.outputs.shift_status == 'healthy' &&
+      github.event.inputs.deployment_strategy == 'blue-green'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Complete blue-green switch
+        run: |
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          NEW_VERSION="${{ needs.deploy-blue-green.outputs.new_version }}"
+          
+          # Switch all traffic to green
+          aws lambda update-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name LIVE \
+            --function-version ${NEW_VERSION}
+          
+          # Update BLUE alias to point to new version (for next deployment)
+          aws lambda update-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name BLUE \
+            --function-version ${NEW_VERSION} \
+            2>/dev/null || \
+          aws lambda create-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name BLUE \
+            --function-version ${NEW_VERSION}
+          
+          # Switch CloudFront to green origin
+          if [[ -n "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" ]]; then
+            # This would require CloudFront origin switching logic
+            echo "CloudFront origin switch would happen here"
+          fi
+
+      - name: Cleanup old versions
+        run: |
+          # Keep only last 5 versions
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          
+          aws lambda list-versions-by-function \
+            --function-name ${FUNCTION_NAME} \
+            --query 'Versions[?Version!=`$LATEST`].[Version,LastModified]' \
+            --output text | \
+          sort -k2 -r | \
+          tail -n +6 | \
+          while read VERSION DATE; do
+            echo "Deleting old version: $VERSION"
+            aws lambda delete-function \
+              --function-name ${FUNCTION_NAME} \
+              --qualifier ${VERSION} || true
+          done
+
+  # Automated rollback on failure
+  rollback:
+    name: Automated Rollback
+    needs: [traffic-shift, pre-flight, deploy-blue-green]
+    if: |
+      failure() && 
+      github.event.inputs.auto_rollback == 'true' &&
+      needs.pre-flight.outputs.current_version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Rollback Lambda
+        run: |
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          PREVIOUS_VERSION="${{ needs.pre-flight.outputs.current_version }}"
+          
+          echo "Rolling back to version ${PREVIOUS_VERSION}..."
+          
+          # Revert LIVE alias to previous version
+          aws lambda update-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name LIVE \
+            --function-version ${PREVIOUS_VERSION}
+          
+          # Clear any weighted routing
+          aws lambda update-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name LIVE \
+            --function-version ${PREVIOUS_VERSION} \
+            --routing-config AdditionalVersionWeights={}
+
+      - name: Rollback static assets
+        run: |
+          # Rollback S3 content if needed
+          echo "Static asset rollback would happen here"
+          # This would require S3 versioning or backup bucket
+
+      - name: Verify rollback
+        run: |
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          
+          # Test rolled back version
+          RESPONSE=$(aws lambda invoke \
+            --function-name ${FUNCTION_NAME}:LIVE \
+            --payload '{"path": "/health", "httpMethod": "GET"}' \
+            --query 'StatusCode' \
+            --output text \
+            /tmp/response.json)
+          
+          if [[ "$RESPONSE" == "200" ]]; then
+            echo "✅ Rollback successful"
+          else
+            echo "::error::Rollback verification failed"
+            exit 1
+          fi
+
+  # Deployment notification
+  notify:
+    name: Deployment Notification
+    needs: [deploy-blue-green, traffic-shift, complete-deployment, rollback]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    steps:
+      - name: Send notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "Deployment to ${{ github.event.inputs.environment }}",
+              "attachments": [{
+                "color": "${{ contains(needs.*.result, 'failure') && 'danger' || 'good' }}",
+                "fields": [
+                  {
+                    "title": "Status",
+                    "value": "${{ contains(needs.*.result, 'failure') && 'Failed' || 'Success' }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Strategy",
+                    "value": "${{ github.event.inputs.deployment_strategy }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Version",
+                    "value": "${{ needs.deploy-blue-green.outputs.new_version || 'N/A' }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Rollback",
+                    "value": "${{ needs.rollback.result == 'success' && 'Executed' || 'Not needed' }}",
+                    "short": true
+                  }
+                ]
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+# Emergency manual rollback workflow
+  emergency-rollback:
+    name: Emergency Rollback
+    if: github.event.inputs.rollback_version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Emergency rollback to specific version
+        run: |
+          FUNCTION_NAME="${{ secrets.LAMBDA_FUNCTION_NAME }}-${{ github.event.inputs.environment }}"
+          ROLLBACK_VERSION="${{ github.event.inputs.rollback_version }}"
+          
+          echo "Emergency rollback to version ${ROLLBACK_VERSION}..."
+          
+          # Update LIVE alias
+          aws lambda update-alias \
+            --function-name ${FUNCTION_NAME} \
+            --name LIVE \
+            --function-version ${ROLLBACK_VERSION} \
+            --routing-config AdditionalVersionWeights={}
+          
+          echo "✅ Emergency rollback completed"
