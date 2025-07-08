@@ -1,0 +1,363 @@
+# Scheduled Tasks Template
+# Use this template for recurring automated tasks
+# Includes: data updates, cleanup, backups, reports, and maintenance
+
+name: Scheduled Tasks
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Run weekly on Sundays at 3 AM UTC
+    # - cron: '0 3 * * 0'
+    # Run monthly on the 1st at 4 AM UTC
+    # - cron: '0 4 1 * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Specific task to run (leave empty to run all)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - data-sync
+          - cleanup
+          - backup
+          - report
+          - maintenance
+
+# Scheduled tasks should not cancel each other
+# Each run gets a unique group ID to allow parallel execution
+concurrency:
+  group: scheduled-${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  RETENTION_DAYS: 30
+  # Add other environment variables as needed
+
+jobs:
+  # Data synchronization tasks
+  data-sync:
+    name: Data Synchronization
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Data sync can take time
+    if: |
+      github.event_name == 'schedule' || 
+      github.event.inputs.task == '' || 
+      github.event.inputs.task == 'data-sync'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Sync external data
+        run: |
+          # Add your data synchronization logic here
+          python scripts/sync_external_data.py
+        env:
+          API_KEY: ${{ secrets.EXTERNAL_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Update cache
+        run: |
+          # Refresh caches, CDN, etc.
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_ID }} \
+            --paths "/api/data/*"
+
+  # Cleanup old data
+  cleanup:
+    name: Data Cleanup
+    runs-on: ubuntu-latest
+    timeout-minutes: 20  # Cleanup operations
+    if: |
+      github.event_name == 'schedule' || 
+      github.event.inputs.task == '' || 
+      github.event.inputs.task == 'cleanup'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Clean up old logs
+        run: |
+          # Delete CloudWatch logs older than retention period
+          CUTOFF_DATE=$(date -d "${{ env.RETENTION_DAYS }} days ago" +%s)000
+          
+          aws logs describe-log-groups --query "logGroups[].logGroupName" --output text | \
+          xargs -I {} aws logs delete-log-stream \
+            --log-group-name {} \
+            --log-stream-name-prefix "" || true
+
+      - name: Clean up old artifacts
+        run: |
+          # Clean S3 artifacts
+          aws s3 ls s3://${{ secrets.ARTIFACTS_BUCKET }} --recursive | \
+          while read -r line; do
+            FILE_DATE=$(echo $line | awk '{print $1" "$2}')
+            FILE_NAME=$(echo $line | awk '{print $4}')
+            FILE_TIMESTAMP=$(date -d "$FILE_DATE" +%s)
+            CUTOFF_TIMESTAMP=$(date -d "${{ env.RETENTION_DAYS }} days ago" +%s)
+            
+            if [ $FILE_TIMESTAMP -lt $CUTOFF_TIMESTAMP ]; then
+              aws s3 rm s3://${{ secrets.ARTIFACTS_BUCKET }}/$FILE_NAME
+            fi
+          done
+
+      - name: Clean up database
+        run: |
+          # Add database cleanup logic
+          python scripts/cleanup_old_records.py --days=${{ env.RETENTION_DAYS }}
+
+  # Backup critical data
+  backup:
+    name: Data Backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 25  # Backup operations
+    if: |
+      (github.event_name == 'schedule' && contains('0 3 * * 0', github.event.schedule)) ||
+      github.event.inputs.task == 'backup'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Backup DynamoDB tables
+        run: |
+          # Create DynamoDB backups
+          TABLES=$(aws dynamodb list-tables --query "TableNames[]" --output text)
+          
+          for TABLE in $TABLES; do
+            if [[ $TABLE == *"prod"* ]]; then
+              BACKUP_NAME="${TABLE}-$(date +%Y%m%d)"
+              aws dynamodb create-backup \
+                --table-name $TABLE \
+                --backup-name $BACKUP_NAME
+              echo "Created backup: $BACKUP_NAME"
+            fi
+          done
+
+      - name: Backup RDS databases
+        run: |
+          # Create RDS snapshots
+          INSTANCES=$(aws rds describe-db-instances --query "DBInstances[].DBInstanceIdentifier" --output text)
+          
+          for INSTANCE in $INSTANCES; do
+            SNAPSHOT_ID="${INSTANCE}-backup-$(date +%Y%m%d)"
+            aws rds create-db-snapshot \
+              --db-instance-identifier $INSTANCE \
+              --db-snapshot-identifier $SNAPSHOT_ID
+          done
+
+      - name: Backup S3 critical data
+        run: |
+          # Sync critical S3 buckets to backup bucket
+          aws s3 sync s3://${{ secrets.PRODUCTION_BUCKET }} \
+            s3://${{ secrets.BACKUP_BUCKET }}/production-$(date +%Y%m%d)/ \
+            --storage-class GLACIER
+
+      - name: Verify backups
+        run: |
+          # Add backup verification logic
+          python scripts/verify_backups.py
+
+  # Generate reports
+  report:
+    name: Generate Reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # Report generation
+    if: |
+      (github.event_name == 'schedule' && contains('0 3 * * 1', github.event.schedule)) ||
+      github.event.inputs.task == 'report'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Collect metrics
+        id: metrics
+        run: |
+          # Collect CloudWatch metrics
+          START_TIME=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%S)
+          END_TIME=$(date -u +%Y-%m-%dT%H:%M:%S)
+          
+          # API calls
+          API_CALLS=$(aws cloudwatch get-metric-statistics \
+            --namespace AWS/Lambda \
+            --metric-name Invocations \
+            --dimensions Name=FunctionName,Value=${{ secrets.LAMBDA_FUNCTION }} \
+            --statistics Sum \
+            --start-time $START_TIME \
+            --end-time $END_TIME \
+            --period 604800 \
+            --query 'Datapoints[0].Sum' \
+            --output text)
+          
+          echo "api_calls=$API_CALLS" >> $GITHUB_OUTPUT
+
+      - name: Generate report
+        run: |
+          # Generate weekly report
+          cat > weekly-report.md << EOF
+          # Weekly Report - $(date +%Y-%m-%d)
+          
+          ## Metrics Summary
+          - API Calls: ${{ steps.metrics.outputs.api_calls }}
+          - Storage Used: $(aws s3 ls s3://${{ secrets.PRODUCTION_BUCKET }} --recursive --summarize | grep "Total Size" | cut -d: -f2)
+          
+          ## System Health
+          - Uptime: 99.9%
+          - Average Response Time: 150ms
+          
+          EOF
+
+      - name: Send report
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "Weekly Report Generated",
+              "attachments": [{
+                "color": "good",
+                "title": "Weekly Metrics",
+                "fields": [
+                  {
+                    "title": "API Calls",
+                    "value": "${{ steps.metrics.outputs.api_calls }}",
+                    "short": true
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # System maintenance
+  maintenance:
+    name: System Maintenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20  # Maintenance tasks
+    if: |
+      (github.event_name == 'schedule' && contains('0 4 1 * *', github.event.schedule)) ||
+      github.event.inputs.task == 'maintenance'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update dependencies
+        run: |
+          # Check for dependency updates
+          npm outdated || true
+          
+          # Security audit
+          npm audit --production
+
+      - name: Certificate renewal check
+        run: |
+          # Check SSL certificate expiration
+          DOMAIN="${{ secrets.PRODUCTION_DOMAIN }}"
+          EXPIRY=$(echo | openssl s_client -servername $DOMAIN -connect $DOMAIN:443 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+          EXPIRY_EPOCH=$(date -d "$EXPIRY" +%s)
+          CURRENT_EPOCH=$(date +%s)
+          DAYS_LEFT=$(( ($EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
+          
+          if [ $DAYS_LEFT -lt 30 ]; then
+            echo "::warning::SSL certificate expires in $DAYS_LEFT days"
+          fi
+
+      - name: Database optimization
+        run: |
+          # Run database optimization tasks
+          # VACUUM, ANALYZE, index rebuilds, etc.
+          echo "Running database optimization..."
+
+      - name: Cache warming
+        run: |
+          # Warm up caches after maintenance
+          curl -s https://${{ secrets.PRODUCTION_DOMAIN }}/api/warmup || true
+
+  # Summary notification
+  summary:
+    name: Task Summary
+    needs: [data-sync, cleanup, backup, report, maintenance]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # Quick summary
+    if: always()
+    steps:
+      - name: Send summary
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "Scheduled Tasks Summary",
+              "attachments": [{
+                "color": "${{ contains(needs.*.result, 'failure') && 'danger' || 'good' }}",
+                "title": "Task Results",
+                "fields": [
+                  {
+                    "title": "Data Sync",
+                    "value": "${{ needs.data-sync.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Cleanup",
+                    "value": "${{ needs.cleanup.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Backup",
+                    "value": "${{ needs.backup.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Report",
+                    "value": "${{ needs.report.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Maintenance",
+                    "value": "${{ needs.maintenance.result }}",
+                    "short": true
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

@@ -1,0 +1,84 @@
+# Example: How to use these templates
+# This file shows how to combine and customize the templates
+
+name: Example Workflow Using Templates
+
+# This example combines elements from multiple templates
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 1'  # Weekly on Mondays
+  workflow_dispatch:
+
+# Concurrency from ci-cd-template.yml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # From pr-checks-template.yml
+  quality-checks:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+  # From ci-cd-template.yml
+  build-and-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm run build
+      - run: echo "Deploy to staging here"
+
+  # From scheduled-template.yml
+  weekly-cleanup:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Perform weekly cleanup"
+
+  # Custom job combining multiple patterns
+  smart-deployment:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Using deployment-safe concurrency
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pre-flight checks
+        run: echo "Validating deployment"
+      - name: Deploy
+        run: echo "Deploying to production"
+      - name: Validate
+        run: echo "Post-deployment validation"
+
+# Example of how to customize templates:
+# 1. Copy the template you need
+# 2. Remove jobs you don't need
+# 3. Modify timeouts based on your needs
+# 4. Adjust concurrency groups
+# 5. Add your specific steps
+# 6. Update environment variables

@@ -1,0 +1,331 @@
+# Production Deployment Template
+# Use this template for manual or automated production deployments
+# Includes: pre-flight checks, deployment, validation, and rollback capabilities
+
+name: Production Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: production
+      version:
+        description: 'Version/tag to deploy (leave empty for latest)'
+        required: false
+        type: string
+      skip_tests:
+        description: 'Skip pre-deployment tests (use with caution)'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Perform a dry run without actual deployment'
+        required: false
+        type: boolean
+        default: false
+      force_cache_invalidation:
+        description: 'Force CDN cache invalidation'
+        required: false
+        type: boolean
+        default: true
+
+# Deployment-safe concurrency
+# Never cancel in-progress deployments to prevent partial deployments
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20.x'
+  AWS_REGION: us-east-1
+  # Add deployment-specific environment variables
+
+jobs:
+  # Pre-deployment validation
+  pre-flight:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # Quick validation checks
+    outputs:
+      should_deploy: ${{ steps.validation.outputs.should_deploy }}
+      deployment_id: ${{ steps.validation.outputs.deployment_id }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version || github.ref }}
+
+      - name: Validate deployment
+        id: validation
+        run: |
+          echo "Running pre-deployment validation..."
+          
+          # Generate unique deployment ID
+          DEPLOYMENT_ID="deploy-${{ github.event.inputs.environment }}-$(date +%Y%m%d%H%M%S)"
+          echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+          
+          # Check user permissions for production
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            # Add your permission checks here
+            echo "Validating production deployment permissions..."
+          fi
+          
+          # Validate version/tag if provided
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            if ! git rev-parse "${{ github.event.inputs.version }}" >/dev/null 2>&1; then
+              echo "::error::Invalid version/tag: ${{ github.event.inputs.version }}"
+              echo "should_deploy=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          fi
+          
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+
+      - name: Check deployment window
+        run: |
+          # Optional: Enforce deployment windows
+          HOUR=$(date +%H)
+          DAY=$(date +%u)
+          
+          # Example: No production deployments on weekends or after 6 PM
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            if [[ $DAY -ge 6 ]] || [[ $HOUR -ge 18 ]]; then
+              echo "::warning::Deploying outside recommended window"
+            fi
+          fi
+
+  # Run tests unless skipped
+  test:
+    name: Pre-deployment Tests
+    needs: pre-flight
+    if: |
+      needs.pre-flight.outputs.should_deploy == 'true' && 
+      github.event.inputs.skip_tests != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # Tests should be quick
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npm run lint
+          npm test
+          npm run test:e2e || echo "::warning::E2E tests failed"
+
+  # Build deployment artifacts
+  build:
+    name: Build Artifacts
+    needs: [pre-flight, test]
+    if: |
+      always() && 
+      needs.pre-flight.outputs.should_deploy == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20  # Build time with buffer
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: |
+          npm run build:${{ github.event.inputs.environment }}
+        env:
+          DEPLOYMENT_ID: ${{ needs.pre-flight.outputs.deployment_id }}
+          NEXT_PUBLIC_API_URL: ${{ secrets[format('{0}_API_URL', github.event.inputs.environment)] }}
+
+      - name: Create deployment package
+        run: |
+          # Package build artifacts
+          tar -czf deployment-${{ needs.pre-flight.outputs.deployment_id }}.tar.gz dist/
+          
+          # Generate deployment manifest
+          cat > deployment-manifest.json << EOF
+          {
+            "deployment_id": "${{ needs.pre-flight.outputs.deployment_id }}",
+            "environment": "${{ github.event.inputs.environment }}",
+            "version": "${{ github.event.inputs.version || github.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_sha": "${{ github.sha }}",
+            "deployed_by": "${{ github.actor }}"
+          }
+          EOF
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-package
+          path: |
+            deployment-*.tar.gz
+            deployment-manifest.json
+          retention-days: 30
+
+  # Deploy to target environment
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Deployment operations timeout
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-package
+
+      - name: Extract deployment package
+        run: tar -xzf deployment-*.tar.gz
+
+      - name: Deploy application
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          # Your deployment script here
+          echo "Deploying to ${{ github.event.inputs.environment }}..."
+          
+          # Example: Deploy to S3
+          aws s3 sync ./dist s3://${{ secrets[format('{0}_S3_BUCKET', github.event.inputs.environment)] }} \
+            --delete \
+            --cache-control "public, max-age=31536000" \
+            --exclude "*.html" \
+            --exclude "*.json"
+          
+          # Deploy HTML files with shorter cache
+          aws s3 sync ./dist s3://${{ secrets[format('{0}_S3_BUCKET', github.event.inputs.environment)] }} \
+            --delete \
+            --cache-control "public, max-age=3600" \
+            --exclude "*" \
+            --include "*.html" \
+            --include "*.json"
+
+      - name: Update infrastructure
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          # Update Lambda functions, API Gateway, etc.
+          echo "Updating infrastructure components..."
+
+      - name: Invalidate CDN cache
+        if: |
+          github.event.inputs.dry_run != 'true' && 
+          github.event.inputs.force_cache_invalidation == 'true'
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets[format('{0}_CLOUDFRONT_ID', github.event.inputs.environment)] }} \
+            --paths "/*"
+
+  # Post-deployment validation
+  validate:
+    name: Validate Deployment
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # Validation should be quick
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for deployment propagation
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 60
+
+      - name: Run health checks
+        run: |
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          URL="${{ secrets[format('{0}_URL', github.event.inputs.environment)] }}"
+          
+          # Health check
+          if ! curl -f "${URL}/health"; then
+            echo "::error::Health check failed"
+            exit 1
+          fi
+          
+          # Version check
+          DEPLOYED_VERSION=$(curl -s "${URL}/version" | jq -r '.version')
+          if [[ "$DEPLOYED_VERSION" != "${{ github.event.inputs.version || github.sha }}" ]]; then
+            echo "::warning::Version mismatch. Expected: ${{ github.event.inputs.version || github.sha }}, Got: $DEPLOYED_VERSION"
+          fi
+
+      - name: Run smoke tests
+        run: |
+          # Add your smoke tests here
+          npm run test:smoke -- --url=${{ secrets[format('{0}_URL', github.event.inputs.environment)] }}
+
+      - name: Monitor initial metrics
+        run: |
+          # Check error rates, response times, etc.
+          echo "Monitoring deployment metrics..."
+
+  # Deployment notification
+  notify:
+    name: Deployment Notification
+    needs: [deploy, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # Notifications are quick
+    if: always()
+    steps:
+      - name: Send notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ needs.validate.result || needs.deploy.result }}
+          text: |
+            Deployment to ${{ github.event.inputs.environment }} ${{ needs.validate.result || needs.deploy.result }}
+            Version: ${{ github.event.inputs.version || github.sha }}
+            Deployed by: ${{ github.actor }}
+            Dry run: ${{ github.event.inputs.dry_run }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Update deployment tracking
+        if: needs.validate.result == 'success'
+        run: |
+          # Update deployment database, create Jira ticket, etc.
+          echo "Recording successful deployment..."
+
+  # Optional: Rollback capability
+  rollback:
+    name: Rollback (if needed)
+    needs: validate
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # Rollback should be quick
+    steps:
+      - name: Initiate rollback
+        run: |
+          echo "::error::Deployment validation failed. Initiating rollback..."
+          # Add rollback logic here
