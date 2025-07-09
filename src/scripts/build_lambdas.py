@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lambda_utils.nodejs_builder import NodeJSLambdaBuilder
+from lambda_utils.nodejs_builder import NodeJSBuilder
 from lambda_utils.packager import LambdaPackager
 
 
@@ -66,8 +66,8 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Initialize builder
-    builder = NodeJSLambdaBuilder()
-    packager = LambdaPackager()
+    builder = NodeJSBuilder(project_root)
+    packager = LambdaPackager(project_root)
     
     # Find all TypeScript Lambda functions
     lambda_files = list(source_dir.glob("*.ts"))
@@ -105,9 +105,8 @@ def main():
                 print(f"  Compiling TypeScript...")
             
             result = builder.build(
-                source_dir=str(build_dir),
-                output_dir=str(build_dir / "dist"),
-                tsconfig_path=str(source_dir / "tsconfig.json") if (source_dir / "tsconfig.json").exists() else None
+                lambda_path=build_dir,
+                output_dir=build_dir / "dist"
             )
             
             if not result:
@@ -119,13 +118,13 @@ def main():
                 print(f"  Creating deployment package...")
             
             zip_path = output_dir / f"{function_name}.zip"
-            package_result = packager.create_package(
-                source_dir=str(build_dir),
-                output_path=str(zip_path),
-                include_dev_dependencies=False
+            package_result = packager.create_deployment_package(
+                source_dir=build_dir,
+                output_file=zip_path,
+                include_dependencies=False
             )
             
-            if package_result:
+            if package_result.exists():
                 print(f"  ✅ Built {function_name} -> {zip_path}")
                 success_count += 1
             else:
