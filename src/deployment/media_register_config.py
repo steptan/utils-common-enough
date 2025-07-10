@@ -24,14 +24,16 @@ class DeploymentConfig:
             # Domain configuration
             "domain_name": "media-register.com",
             "certificate_arn": os.environ.get("CERTIFICATE_ARN", ""),
-            # VPC configuration
-            "vpc_cidr": "10.0.0.0/16",
-            "enable_nat_gateway": False,
-            "max_azs": 2,
+            # VPC configuration - disabled for cost optimization
+            # Lambda functions run without VPC to save ~$45/month
+            "enable_vpc": False,
+            "vpc_cidr": None,  # Not used
+            "enable_nat_gateway": False,  # Not used
+            "max_azs": 0,  # Not used
             # Lambda configuration
             "lambda_memory": 512,
             "lambda_timeout": 30,
-            "lambda_runtime": "nodejs18.x",
+            "lambda_runtime": "nodejs20.x",
             # DynamoDB configuration
             "dynamodb_billing_mode": "PAY_PER_REQUEST",
             "enable_point_in_time_recovery": False,
@@ -58,6 +60,7 @@ class DeploymentConfig:
         env_configs = {
             "dev": {
                 "domain_name": "dev.media-register.com",
+                "enable_vpc": False,  # Cost optimization
                 "enable_nat_gateway": False,
                 "lambda_memory": 256,
                 "enable_detailed_monitoring": False,
@@ -67,7 +70,8 @@ class DeploymentConfig:
             },
             "staging": {
                 "domain_name": "staging.media-register.com",
-                "enable_nat_gateway": True,
+                "enable_vpc": False,  # Cost optimization
+                "enable_nat_gateway": False,
                 "lambda_memory": 512,
                 "enable_point_in_time_recovery": True,
                 "enable_detailed_monitoring": True,
@@ -77,8 +81,9 @@ class DeploymentConfig:
             },
             "prod": {
                 "domain_name": "media-register.com",
-                "enable_nat_gateway": True,
-                "max_azs": 3,
+                "enable_vpc": False,  # Cost optimization
+                "enable_nat_gateway": False,
+                "max_azs": 0,
                 "lambda_memory": 1024,
                 "lambda_timeout": 60,
                 "dynamodb_billing_mode": "PROVISIONED",
