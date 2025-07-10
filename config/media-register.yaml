@@ -45,3 +45,35 @@ custom_config:
     - document
   max_file_size_mb: 100
   enable_version_control: true
+
+# DynamoDB configuration
+dynamodb:
+  local_port: 8002
+  admin_port: 8003
+  table_name: media-register-dev
+  attributes:
+    - name: PK
+      type: S
+    - name: SK
+      type: S
+    - name: GSI1PK
+      type: S
+    - name: GSI1SK
+      type: S
+  key_schema:
+    - attribute_name: PK
+      key_type: HASH
+    - attribute_name: SK
+      key_type: RANGE
+  global_secondary_indexes:
+    - index_name: GSI1
+      keys:
+        - attribute_name: GSI1PK
+          key_type: HASH
+        - attribute_name: GSI1SK
+          key_type: RANGE
+      projection_type: ALL
+      read_capacity: 5
+      write_capacity: 5
+  read_capacity: 5
+  write_capacity: 5
