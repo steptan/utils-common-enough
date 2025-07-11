@@ -1,0 +1,8 @@
+Thu Jul 10 17:17:12 MDT 2025
+Backup created on:
+Thu Jul 10 17:17:12 MDT 2025
+
+Files backed up:
+-rw-r--r--@ 1 sj  staff  2704 Jul 10 17:16 /Users/sj/projects/utils/claude-settings-backup/fraud-or-not-settings.local.json.backup
+-rw-r--r--  1 sj  staff  2704 Jul 10 17:16 /Users/sj/projects/utils/claude-settings-backup/media-register-settings.local.json.backup
+-rw-r--r--  1 sj  staff  2704 Jul 10 17:16 /Users/sj/projects/utils/claude-settings-backup/people-cards-settings.local.json.backup

@@ -8,10 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 Project-utils provides shared utilities for multiple AWS-based applications:
 
-- fraud-or-not: Fraud detection application
-- media-register: Media registration system
-- people-cards: People cards management system
-- etc
+* fraud-or-not: Fraud detection application
+* media-register: Media registration system
+* people-cards: People cards management system
+* etc
 
 This consolidates common AWS infrastructure patterns, deployment automation, IAM management, operational utilities, CI/CD monitoring, security auditing, and cost optimization across all three projects.
 
