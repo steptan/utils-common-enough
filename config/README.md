@@ -28,12 +28,13 @@ Each configuration file contains:
 - `cicd_user_pattern`: IAM user naming for CI/CD
 - `cicd_policy_pattern`: IAM policy naming
 
-### Lambda Configuration
+### Lambda Configuration (No VPC - Cost Optimized)
 
 - `lambda_runtime`: Runtime version (e.g., nodejs20.x)
 - `lambda_timeout`: Function timeout in seconds
 - `lambda_memory`: Memory allocation in MB
 - `lambda_architecture`: CPU architecture (x86_64 or arm64)
+- **Note**: Lambda functions run outside VPC to save costs (~$45/month)
 
 ### Build Settings
 
@@ -79,5 +80,5 @@ config = get_project_config("media-register")
 # Access configuration values
 print(config.aws_region)
 print(config.lambda_runtime)
-print(config.custom_config["screenshot_processing"])
+print(config.environments)
 ```

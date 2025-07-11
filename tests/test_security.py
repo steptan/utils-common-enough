@@ -59,7 +59,7 @@ class TestSecurityAuditor:
     def auditor(self, basic_config, mock_aws_clients):
         """Create a SecurityAuditor instance."""
         return SecurityAuditor(
-            project_name="test-project", environment="prod", config=basic_config
+            project_name="test-project", environment="prod", region="us-east-1"
         )
 
     def test_initialization(self, auditor):
