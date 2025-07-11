@@ -18,7 +18,7 @@ Creates 5 separate policies per user, grouped by function:
 - **infrastructure-policy**: CloudFormation, IAM, SSM (≈1KB)
 - **compute-policy**: Lambda, API Gateway, Cognito (≈600B)
 - **storage-policy**: S3, DynamoDB (≈600B)
-- **networking-policy**: VPC, CloudFront, WAF (≈500B)
+- **networking-policy**: CloudFront, WAF, Route53 (≈500B)
 - **monitoring-policy**: CloudWatch, X-Ray (≈200B)
 
 Total: ≈3KB across 5 policies (well within AWS limits)
@@ -96,7 +96,7 @@ To migrate from the old permission scripts:
 ### Example 1: CI/CD user for single project
 
 ```bash
-python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
+python src/scripts/unified_user_permissions.py update --user people-cards-cicd
 ```
 
 ### Example 2: Shared CI/CD user for multiple projects
