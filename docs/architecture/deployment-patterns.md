@@ -1,6 +1,6 @@
 # Deployment Patterns
 
-This document describes the deployment patterns used by Project Utils across the three supported projects.
+This document describes the deployment patterns used by Project Utils for the media-register project.
 
 ## Blue-Green Deployment Pattern
 
@@ -103,15 +103,15 @@ canary_config = {
 
 ```bash
 # Deploy new version
-project-lambda deploy --project fraud-or-not --function api-handler
+project-lambda deploy --project media-register --function api-handler
 
 # Update alias weights
-project-lambda update-alias --project fraud-or-not \
+project-lambda update-alias --project media-register \
   --alias live \
   --version-weights "1:90,2:10"
 
 # Promote to 100%
-project-lambda promote --project fraud-or-not --alias live --version 2
+project-lambda promote --project media-register --alias live --version 2
 ```
 
 ## Multi-Region Deployment Pattern
@@ -253,7 +253,7 @@ project-cfn rollback --stack-name media-register-prod \
 
 ```bash
 # Restore from point-in-time backup
-project-db restore --project people-cards \
+project-db restore --project media-register \
   --environment prod \
   --restore-time "2024-01-20T10:00:00Z"
 ```

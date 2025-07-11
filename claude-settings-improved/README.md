@@ -1,17 +1,10 @@
 # Claude Settings - Improved Security
 
-This directory contains security-hardened Claude settings files for the three projects:
-
-- fraud-or-not
-- media-register
-- people-cards
+This directory contains security-hardened Claude settings files for the media-register project.
 
 ## Files
 
-- `fraud-or-not-settings.local.json` - Settings for the fraud-or-not project
 - `media-register-settings.local.json` - Settings for the media-register project
-- `people-cards-settings.local.json` - Settings for the people-cards project
-- `github-build-logs-settings.local.json` - Settings for the github-build-logs utility
 
 ## Key Security Improvements
 

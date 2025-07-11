@@ -2,13 +2,13 @@
 
 ## Overview
 
-This document analyzes the current Claude settings across the three projects (fraud-or-not, media-register, and people-cards) and provides recommendations for improving security by following the principle of least privilege.
+This document analyzes the current Claude settings for the media-register project and provides recommendations for improving security by following the principle of least privilege.
 
 ## Current Security Issues
 
 ### 1. Overly Broad Permissions
 
-All three main projects have nearly identical permission sets with several concerning patterns:
+The current permission set has several concerning patterns:
 
 #### Wildcard Command Permissions
 
@@ -37,19 +37,19 @@ All three main projects have nearly identical permission sets with several conce
 
 ### 2. Duplicate Permissions
 
-- `Bash(aws cloudformation:*)` appears twice in fraud-or-not and media-register
+- `Bash(aws cloudformation:*)` appears twice in media-register
 - Both `pip install` and `pip3 install` are allowed
 
 ### 3. No Deny Rules
 
-None of the projects have any deny rules to explicitly block dangerous operations.
+The project has no deny rules to explicitly block dangerous operations.
 
 ### 4. Hardcoded Specific Commands
 
 Some commands are hardcoded with specific arguments, which is good, but inconsistent:
 
 - `Bash(AWS_REGION=us-west-1 python scripts/deploy_staging_direct.py)`
-- Specific test commands in fraud-or-not
+- Specific test commands
 
 ## Recommendations
 
@@ -80,12 +80,10 @@ Some commands are hardcoded with specific arguments, which is good, but inconsis
 
 ### Common Base Settings
 
-All projects should start with these restricted base permissions and add project-specific needs.
+The project should start with these restricted base permissions and add specific needs as required.
 
 ### Project-Specific Additions
 
-- **fraud-or-not**: Needs test running permissions
 - **media-register**: Needs deployment script permissions
-- **people-cards**: Needs S3 bucket management for Lambda deployments
 
-See the individual improved settings files for each project.
+See the improved settings file for specific recommendations.

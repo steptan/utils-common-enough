@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `setup-git-submodules.sh` script provides centralized configuration for git submodules across all projects (fraud-or-not, media-register, people-cards). This replaces the individual `setup-git-submodules.sh` scripts in each project.
+The `setup-git-submodules.sh` script provides centralized configuration for git submodules for the media-register project.
 
 ## Features
 
@@ -16,7 +16,7 @@ The `setup-git-submodules.sh` script provides centralized configuration for git 
 
 ### From Project Root
 
-Run from your project root directory (e.g., fraud-or-not, media-register, or people-cards):
+Run from your project root directory:
 
 ```bash
 # From project root

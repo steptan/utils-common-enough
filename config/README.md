@@ -1,12 +1,10 @@
 # Project Configuration
 
-This directory contains configuration files for each project managed by the utils package.
+This directory contains the configuration file for the project managed by the utils package.
 
-## Configuration Files
+## Configuration File
 
-- `fraud-or-not.yaml` - Configuration for the Fraud or Not project
 - `media-register.yaml` - Configuration for the Media Register project
-- `people-cards.yaml` - Configuration for the People Cards project
 
 ## Configuration Structure
 
@@ -76,7 +74,7 @@ You can override configuration values using environment variables:
 from config import get_project_config
 
 # Load configuration for a specific project
-config = get_project_config("fraud-or-not")
+config = get_project_config("media-register")
 
 # Access configuration values
 print(config.aws_region)

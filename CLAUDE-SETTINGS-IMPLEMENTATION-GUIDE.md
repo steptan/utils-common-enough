@@ -17,7 +17,7 @@
    - Block AWS account-wide operations
 
 3. **Made Permissions Project-Specific**
-   - AWS stack names must match project prefix (fraud-or-not-_, media-register-_, people-cards-\*)
+   - AWS stack names must match project prefix (media-register-*)
    - S3 operations limited to project-specific buckets
    - Scripts limited to project's ./scripts directory
 
@@ -32,20 +32,14 @@
 
 ```bash
 # For each project, backup the current settings
-cp /Users/sj/projects/fraud-or-not/.claude/settings.local.json /Users/sj/projects/fraud-or-not/.claude/settings.local.json.backup
 cp /Users/sj/projects/media-register/.claude/settings.local.json /Users/sj/projects/media-register/.claude/settings.local.json.backup
-cp /Users/sj/projects/people-cards/.claude/settings.local.json /Users/sj/projects/people-cards/.claude/settings.local.json.backup
-cp /Users/sj/projects/people-cards/utils/github-build-logs/.claude/settings.local.json /Users/sj/projects/people-cards/utils/github-build-logs/.claude/settings.local.json.backup
 ```
 
 ### 2. Copy New Settings Files
 
 ```bash
 # Copy the improved settings to each project
-cp /Users/sj/projects/utils/claude-settings-improved/fraud-or-not-settings.local.json /Users/sj/projects/fraud-or-not/.claude/settings.local.json
 cp /Users/sj/projects/utils/claude-settings-improved/media-register-settings.local.json /Users/sj/projects/media-register/.claude/settings.local.json
-cp /Users/sj/projects/utils/claude-settings-improved/people-cards-settings.local.json /Users/sj/projects/people-cards/.claude/settings.local.json
-cp /Users/sj/projects/utils/claude-settings-improved/github-build-logs-settings.local.json /Users/sj/projects/people-cards/utils/github-build-logs/.claude/settings.local.json
 ```
 
 ### 3. Test Claude Functionality

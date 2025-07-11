@@ -2,15 +2,11 @@
 
 ## Overview
 
-This analysis compares the `.claude/settings.local.json` files across three projects:
+This analysis examines the `.claude/settings.local.json` file for the media-register project.
 
-- fraud-or-not
-- media-register
-- people-cards
+## Common Permissions
 
-## Common Permissions Across All Projects
-
-### Allow Permissions (Common to All)
+### Allow Permissions
 
 | Category              | Permission                                                           | Description                     |
 | --------------------- | -------------------------------------------------------------------- | ------------------------------- |
@@ -94,22 +90,7 @@ This analysis compares the `.claude/settings.local.json` files across three proj
 |                                | `Bash(aws iam create-*:*)`           | Prevent IAM creations         |
 |                                | `Bash(aws iam put-*:*)`              | Prevent IAM put operations    |
 
-## Unique Permissions by Project
-
-### fraud-or-not (Unique Permissions)
-
-| Permission                                                                                                           | Description               |
-| -------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `Bash(for lang in pt it nl sv no da)`                                                                                | Language loop command     |
-| `Bash(do cp messages/en.json messages/$lang.json)`                                                                   | Copy language files       |
-| `Bash(done)`                                                                                                         | Loop terminator           |
-| `Bash(NODE_ENV=test npm test -- --testPathPattern=Comments.test.tsx --no-coverage 2 >& 1)`                           | Specific test execution   |
-| `Bash(NODE_ENV=test npm test -- --testNamePattern=Comments --no-coverage 2 >& 1)`                                    | Test by name pattern      |
-| `Bash(NODE_ENV=development npm test -- --testNamePattern=\"Comments.*should render comments\" --no-coverage 2 >& 1)` | Development test pattern  |
-| `Bash(gh workflow view:*)`                                                                                           | GitHub workflow viewing   |
-| `Bash(npm update:*)`                                                                                                 | NPM update command        |
-| `Bash(gh secret set:*)`                                                                                              | GitHub secret management  |
-| `Bash(find:*)`                                                                                                       | Duplicate find permission |
+## Unique Permissions
 
 ### media-register (Unique Permissions)
 
@@ -117,31 +98,27 @@ This analysis compares the `.claude/settings.local.json` files across three proj
 | ----------------------------------- | --------------------- |
 | `Bash(./push-with-submodules.sh:*)` | Submodule push script |
 
-### people-cards (Unique Permissions)
-
-None - This project has the cleanest, most minimal permission set.
 
 ## Inconsistencies and Issues
 
 ### 1. Duplicate Permissions
 
-- **fraud-or-not** has `Bash(find:*)` listed twice (lines 47 and 72)
+- Some configurations may have duplicate `Bash(find:*)` entries
 
 ### 2. Project-Specific Test Commands
 
-- **fraud-or-not** has very specific test commands that should potentially be:
+- Very specific test commands should potentially be:
   - Moved to script files
   - Generalized as patterns
   - Or removed if they're one-time commands
 
 ### 3. Language-Specific Commands
 
-- **fraud-or-not** has hardcoded language copying commands that appear to be one-time setup
+- Hardcoded language copying commands that appear to be one-time setup should be removed
 
 ### 4. Formatting Differences
 
-- **people-cards** has better formatting with empty lines between sections
-- Other projects lack this visual separation
+- Better formatting with empty lines between sections improves readability
 
 ## Recommendations
 
@@ -153,16 +130,16 @@ Create a shared base configuration file that all projects can inherit from, cont
 
 Move these to documentation or setup scripts:
 
-- Language copying commands in fraud-or-not
+- Language copying commands
 - Specific test execution commands
 
 ### 3. Fix Duplicate Entries
 
-Remove the duplicate `find` permission in fraud-or-not.
+Remove any duplicate `find` permissions.
 
 ### 4. Standardize Formatting
 
-Apply the clean formatting from people-cards to all projects for better readability.
+Apply clean formatting with proper spacing for better readability.
 
 ### 5. Consider Additional Common Permissions
 
@@ -182,10 +159,10 @@ Consider tracking a base `.claude/settings.json` in version control and using `.
 
 ## Summary
 
-The three projects share 95% of their permissions, with fraud-or-not having the most customizations. The main inconsistencies are:
+The project permissions should be kept minimal and consistent. The main issues to address are:
 
 - Duplicate entries
 - One-time setup commands that shouldn't be permanent permissions
 - Formatting differences
 
-By consolidating to a shared base configuration and cleaning up project-specific anomalies, the team can maintain these settings more efficiently while ensuring consistent security policies across all projects.
+By maintaining a clean configuration and removing project-specific anomalies, the team can maintain these settings more efficiently while ensuring consistent security policies.

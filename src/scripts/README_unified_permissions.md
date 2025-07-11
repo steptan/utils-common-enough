@@ -70,8 +70,8 @@ python src/scripts/unified_user_permissions.py generate --user project-cicd --pr
 
 The script automatically detects project associations based on user naming:
 
-- `project-cicd`: Legacy user with access to all projects
-- `{project}-cicd`: Project-specific CI/CD user (e.g., `fraud-or-not-cicd`)
+- `project-cicd`: CI/CD user with project access
+- `{project}-cicd`: Project-specific CI/CD user (e.g., `media-register-cicd`)
 - Other users: Projects detected from existing policies
 
 ## Benefits Over Previous Scripts

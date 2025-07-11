@@ -1,10 +1,10 @@
 # Project Utils
 
-Shared utilities for fraud-or-not, media-register, and people-cards projects.
+Shared utilities for the media-register project.
 
 ## Overview
 
-This package consolidates common scripts and utilities used across all three projects, providing:
+This package consolidates common scripts and utilities used in this project, providing:
 
 - Consistent deployment automation
 - IAM permission management
@@ -20,7 +20,7 @@ This package consolidates common scripts and utilities used across all three pro
 
 ### As a Git Submodule
 
-For projects using utils as a submodule (fraud-or-not, media-register, people-cards):
+For using utils as a submodule:
 
 ```bash
 # From your project root
@@ -56,9 +56,7 @@ deactivate
 
 Project configurations are stored in the `config/` directory within the utils project:
 
-- `config/fraud-or-not.yaml` - Fraud or Not project settings
 - `config/media-register.yaml` - Media Register project settings
-- `config/people-cards.yaml` - People Cards project settings
 
 Each configuration file contains project-specific settings like AWS region, Lambda runtime, build commands, and custom features. See `config/README.md` for detailed documentation.
 
@@ -68,22 +66,22 @@ Each configuration file contains project-specific settings like AWS region, Lamb
 
 ```bash
 # Deploy infrastructure only
-project-deploy deploy --project fraud-or-not --environment staging
+project-deploy deploy --project media-register --environment staging
 
 # Deploy frontend only
 project-deploy frontend --project media-register --environment prod
 
 # Full deployment (infrastructure + frontend)
-project-deploy full --project people-cards --environment dev
+project-deploy full --project media-register --environment dev
 
 # Deploy with dry-run
-project-deploy deploy --project fraud-or-not --environment staging --dry-run
+project-deploy deploy --project media-register --environment staging --dry-run
 
 # Deploy with custom parameters
 project-deploy deploy --project media-register -e prod -P ApiThrottleRate=5000
 
 # Skip frontend build (use existing build)
-project-deploy frontend --project people-cards -e staging --skip-build
+project-deploy frontend --project media-register -e staging --skip-build
 ```
 
 ### IAM Management
@@ -92,13 +90,13 @@ Use the unified permissions script for managing IAM permissions with categorized
 
 ```bash
 # Update permissions for a specific user (creates 5 categorized policies)
-python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
+python src/scripts/unified_user_permissions.py update --user media-register-cicd
 
 # Update permissions for multiple projects
-python src/scripts/unified_user_permissions.py update --user project-cicd --projects fraud-or-not --projects media-register
+python src/scripts/unified_user_permissions.py update --user project-cicd --projects media-register --projects media-register
 
 # Show current permissions for a user
-python src/scripts/unified_user_permissions.py show --user fraud-or-not-cicd
+python src/scripts/unified_user_permissions.py show --user media-register-cicd
 
 # List all users with project permissions
 python src/scripts/unified_user_permissions.py list-users
@@ -107,7 +105,7 @@ python src/scripts/unified_user_permissions.py list-users
 python src/scripts/unified_user_permissions.py update-all
 
 # Generate policy JSON for a specific category
-python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --category infrastructure
+python src/scripts/unified_user_permissions.py generate --user project-cicd --projects media-register --category infrastructure
 ```
 
 The script creates 5 smaller policies per user (infrastructure, compute, storage, networking, monitoring), each well within AWS size limits.
@@ -118,13 +116,13 @@ See `src/scripts/README_unified_permissions.md` for detailed documentation.
 
 ```bash
 # Build Lambda functions
-project-lambda build --project fraud-or-not --runtime nodejs20.x
+project-lambda build --project media-register --runtime nodejs20.x
 
 # Package Lambda with dependencies
 project-lambda package --project media-register --function-name api-handler
 
 # Upload to S3
-project-lambda upload --project people-cards --environment staging
+project-lambda upload --project media-register --environment staging
 ```
 
 ### Testing
@@ -133,16 +131,16 @@ project-lambda upload --project people-cards --environment staging
 
 ```bash
 # Run smoke tests against deployed application
-project-test smoke --project fraud-or-not --environment prod
+project-test smoke --project media-register --environment prod
 
 # Quick health check
 project-test health --project media-register --environment staging
 
 # Validate deployment readiness
-project-test validate --project people-cards --environment dev
+project-test validate --project media-register --environment dev
 
 # Smoke tests with custom URLs
-project-test smoke --project fraud-or-not -e prod \
+project-test smoke --project media-register -e prod \
   --base-url https://example.com \
   --api-url https://api.example.com
 
@@ -169,17 +167,17 @@ pytest -k "test_deployment" -v
 pytest -n auto
 
 # Infrastructure validation tests
-project-test validate --project fraud-or-not -e dev --comprehensive
+project-test validate --project media-register -e dev --comprehensive
 
 # API endpoint testing with retries
 project-test smoke --project media-register -e staging \
   --retries 3 --timeout 30
 
 # Test with debug output
-project-test smoke --project people-cards -e dev --debug
+project-test smoke --project media-register -e dev --debug
 
 # Test specific endpoints only
-project-test smoke --project fraud-or-not -e prod \
+project-test smoke --project media-register -e prod \
   --endpoints "/api/health,/api/status"
 
 # Generate test report
@@ -196,22 +194,22 @@ The `project-utils` command provides enhanced functionality for project manageme
 project-utils setup
 
 # Pre-deployment validation
-project-utils validate --project fraud-or-not --environment dev
+project-utils validate --project media-register --environment dev
 
 # Security audit
-project-utils audit-security --project fraud-or-not --environment prod
+project-utils audit-security --project media-register --environment prod
 
 # AWS Well-Architected compliance check
 project-utils check-compliance --project media-register --environment staging
 
 # Cost estimation (pre-deployment)
-project-utils estimate-cost --project people-cards --environment prod
+project-utils estimate-cost --project media-register --environment prod
 
 # Cost analysis (actual costs)
-project-utils analyze-cost --project fraud-or-not --days 30
+project-utils analyze-cost --project media-register --days 30
 
 # Generate reports in different formats
-project-utils validate --project fraud-or-not -e dev --output json
+project-utils validate --project media-register -e dev --output json
 project-utils audit-security --project media-register -e prod --output html
 ```
 
@@ -236,14 +234,14 @@ Features:
 Validate your environment before deployment:
 
 ```bash
-project-utils validate --project fraud-or-not --environment dev
+project-utils validate --project media-register --environment dev
 
 # Skip specific checks
-project-utils validate -p fraud-or-not -e dev --skip AWS --skip Security
+project-utils validate -p media-register -e dev --skip AWS --skip Security
 
 # Output formats
-project-utils validate -p fraud-or-not -e dev --output json > validation.json
-project-utils validate -p fraud-or-not -e dev --output html
+project-utils validate -p media-register -e dev --output json > validation.json
+project-utils validate -p media-register -e dev --output html
 ```
 
 Validation categories:
@@ -259,10 +257,10 @@ Validation categories:
 Comprehensive security audit of deployed resources:
 
 ```bash
-project-utils audit-security --project fraud-or-not --environment prod
+project-utils audit-security --project media-register --environment prod
 
 # Generate HTML report
-project-utils audit-security -p fraud-or-not -e prod --output html
+project-utils audit-security -p media-register -e prod --output html
 ```
 
 Security checks include:
@@ -280,7 +278,7 @@ Security checks include:
 Check compliance with AWS Well-Architected Framework:
 
 ```bash
-project-utils check-compliance --project fraud-or-not --environment prod
+project-utils check-compliance --project media-register --environment prod
 ```
 
 Pillars checked:
@@ -298,13 +296,13 @@ Estimate costs before deployment:
 
 ```bash
 # Estimate from CloudFormation template
-project-utils estimate-cost --project fraud-or-not --template template.yaml
+project-utils estimate-cost --project media-register --template template.yaml
 
 # Estimate from usage profile
-project-utils estimate-cost --project fraud-or-not --usage-profile usage.json
+project-utils estimate-cost --project media-register --usage-profile usage.json
 
 # Generate budget alerts
-project-utils estimate-cost --project fraud-or-not --monthly-budget 1000
+project-utils estimate-cost --project media-register --monthly-budget 1000
 ```
 
 Example usage profile (usage.json):
@@ -331,13 +329,13 @@ Analyze actual AWS costs:
 
 ```bash
 # Last 30 days
-project-utils analyze-cost --project fraud-or-not
+project-utils analyze-cost --project media-register
 
 # Custom time period
-project-utils analyze-cost --project fraud-or-not --days 90
+project-utils analyze-cost --project media-register --days 90
 
 # With specific AWS profile
-project-utils analyze-cost --project fraud-or-not --profile prod-account
+project-utils analyze-cost --project media-register --profile prod-account
 ```
 
 Features:
@@ -351,18 +349,18 @@ Features:
 
 ```bash
 # Basic cost analysis for last 30 days
-project-utils analyze-cost --project fraud-or-not
+project-utils analyze-cost --project media-register
 
 # Detailed breakdown by service and resource
 project-utils analyze-cost --project media-register --days 30 \
   --breakdown service,resource --output json
 
 # Compare costs between environments
-project-utils analyze-cost --project people-cards \
+project-utils analyze-cost --project media-register \
   --compare dev,staging,prod --days 7
 
 # Cost trend analysis with forecasting
-project-utils analyze-cost --project fraud-or-not \
+project-utils analyze-cost --project media-register \
   --days 90 --forecast 30
 
 # Set up cost anomaly alerts
@@ -370,11 +368,11 @@ project-utils monitor-cost --project media-register \
   --threshold-percent 20 --email alerts@example.com
 
 # Generate cost optimization recommendations
-project-utils optimize-cost --project people-cards -e prod \
+project-utils optimize-cost --project media-register -e prod \
   --include-reserved-instances --include-savings-plans
 
 # Cost allocation by tags
-project-utils analyze-cost --project fraud-or-not \
+project-utils analyze-cost --project media-register \
   --group-by "Environment,Team,Feature" --days 30
 
 # Export cost data for further analysis
@@ -382,15 +380,15 @@ project-utils analyze-cost --project media-register \
   --days 365 --export csv --output costs-2024.csv
 
 # Real-time cost monitoring dashboard
-project-utils monitor-cost --project fraud-or-not \
+project-utils monitor-cost --project media-register \
   --dashboard --refresh-interval 300
 
 # Budget tracking and alerts
-project-utils track-budget --project people-cards \
+project-utils track-budget --project media-register \
   --monthly-budget 5000 --alert-threshold 80
 
 # Cost comparison before and after optimization
-project-utils analyze-cost --project fraud-or-not \
+project-utils analyze-cost --project media-register \
   --before "2024-01-01" --after "2024-02-01" \
   --compare-periods
 
@@ -399,7 +397,7 @@ project-utils analyze-cost --project media-register \
   --top-resources 10 --sort-by cost-desc
 
 # Generate executive cost report
-project-utils report-cost --project fraud-or-not \
+project-utils report-cost --project media-register \
   --format pdf --include-graphs --email cfo@example.com
 ```
 
@@ -418,72 +416,72 @@ project-lambda compile --function src/lambda/api-handler --watch
 project-lambda package --function dist/api-handler --output api-handler.zip
 
 # Build all functions
-project-lambda build-all --project fraud-or-not --parallel
+project-lambda build-all --project media-register --parallel
 
 # Test locally
 project-lambda local-test --function src/lambda/api-handler --event test-event.json
 
 # Validate configuration
-project-lambda validate-config --project fraud-or-not --runtime nodejs18.x
+project-lambda validate-config --project media-register --runtime nodejs18.x
 ```
 
 ### CloudFormation
 
 ```bash
 # Check stack status
-project-cfn status --stack-name fraud-or-not-staging
+project-cfn status --stack-name media-register-staging
 
 # List all stacks (optionally filtered by project)
-project-cfn status --project fraud-or-not
+project-cfn status --project media-register
 
 # Watch stack status (updates every 30s)
 project-cfn status --stack-name media-register-prod --watch
 
 # Diagnose stack failure
-project-cfn diagnose --stack-name fraud-or-not-staging
+project-cfn diagnose --stack-name media-register-staging
 
 # Fix rollback state
 project-cfn fix-rollback --stack-name media-register-dev
 
 # Fix rollback with resource skip
-project-cfn fix-rollback --stack-name people-cards-dev --skip-resources NetworkInterface1,NetworkInterface2
+project-cfn fix-rollback --stack-name media-register-dev --skip-resources NetworkInterface1,NetworkInterface2
 
 # Delete stack
-project-cfn delete --stack-name people-cards-staging
+project-cfn delete --stack-name media-register-staging
 
 # Force delete (cleans up S3 buckets, ENIs)
-project-cfn delete --stack-name fraud-or-not-dev --force
+project-cfn delete --stack-name media-register-dev --force
 
 # Check for drift
 project-cfn drift --stack-name media-register-prod
 
 # Get specific stack output
-project-cfn get-output --project people-cards -e prod -o ApiGatewayUrl
+project-cfn get-output --project media-register -e prod -o ApiGatewayUrl
 ```
 
 ### Database Management
 
 ```bash
 # Seed database with sample data
-project-db seed --project people-cards --environment staging
+project-db seed --project media-register --environment staging
 
 # Clear tables before seeding
-project-db seed --project fraud-or-not -e dev --clear-first
+project-db seed --project media-register -e dev --clear-first
 
 # Seed from JSON file
 project-db seed --project media-register -e prod --file seed-data.json
 
 # Generate sample data without seeding
-project-db generate --project people-cards -e dev --output sample-data.json
+project-db generate --project media-register -e dev --output sample-data.json
 
 # Clear specific tables
-project-db clear --project people-cards -e staging -t politicians -t actions
+project-db clear --project media-register -e staging -t politicians -t actions
 
 # Verify tables exist
-project-db verify --project people-cards -e prod
+project-db verify --project media-register -e prod
 
 # List items from a table
-project-db list-items --project people-cards -e dev -t politicians --limit 20
+project-db list-items --project media-register -e dev -t politicians --limit 20
 ```
 
 ## Python API
@@ -496,14 +494,14 @@ from config import get_project_config
 
 # Deploy infrastructure
 infra_deployer = InfrastructureDeployer(
-    project_name="fraud-or-not",
+    project_name="media-register",
     environment="staging"
 )
 result = infra_deployer.deploy()
 
 # Deploy frontend
 frontend_deployer = FrontendDeployer(
-    project_name="fraud-or-not",
+    project_name="media-register",
     environment="staging"
 )
 result = frontend_deployer.deploy()
@@ -535,15 +533,15 @@ stack_manager = StackManager()
 
 # Deploy stack
 stack_manager.deploy_stack(
-    stack_name="fraud-or-not-prod",
+    stack_name="media-register-prod",
     template_file="template.json",
     parameters={"Environment": "prod"}
 )
 
 # Get stack outputs
-outputs = stack_manager.get_stack_outputs("fraud-or-not-prod")
-cognito_config = stack_manager.get_cognito_config("fraud-or-not-prod")
-api_endpoints = stack_manager.get_api_endpoints("fraud-or-not-prod")
+outputs = stack_manager.get_stack_outputs("media-register-prod")
+cognito_config = stack_manager.get_cognito_config("media-register-prod")
+api_endpoints = stack_manager.get_api_endpoints("media-register-prod")
 ```
 
 ### Enhanced Utilities
@@ -552,7 +550,7 @@ api_endpoints = stack_manager.get_api_endpoints("fraud-or-not-prod")
 # Pre-deployment validation
 from deployment.validation import PreDeploymentValidator
 
-validator = PreDeploymentValidator("fraud-or-not", "prod")
+validator = PreDeploymentValidator("media-register", "prod")
 checks = validator.validate_all()
 report = validator.generate_report(checks)
 validator.print_report(report)
@@ -560,14 +558,14 @@ validator.print_report(report)
 # Security auditing
 from security.audit import SecurityAuditor
 
-auditor = SecurityAuditor("fraud-or-not", "prod")
+auditor = SecurityAuditor("media-register", "prod")
 issues = auditor.audit_all()
 report = auditor.generate_report(issues)
 
 # Cost estimation
 from cost.estimator import CostEstimator
 
-estimator = CostEstimator("fraud-or-not", "prod")
+estimator = CostEstimator("media-register", "prod")
 report = estimator.estimate_application_cost({
     'api_requests_per_month': 1_000_000,
     'monthly_active_users': 10_000
@@ -646,9 +644,9 @@ utils/
 ├── tests/                         # Unit tests
 ├── config/                        # Project configurations
 │   ├── README.md                  # Configuration documentation
-│   ├── fraud-or-not.yaml          # Fraud or Not project config
+│   ├── media-register.yaml          # Fraud or Not project config
 │   ├── media-register.yaml        # Media Register project config
-│   └── people-cards.yaml          # People Cards project config
+│   └── media-register.yaml          # People Cards project config
 ├── docs/                          # Documentation
 │   ├── architecture/              # Architecture documentation
 │   │   ├── deployment-patterns.md

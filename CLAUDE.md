@@ -6,14 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ### Purpose
 
-Project-utils provides shared utilities for multiple AWS-based applications:
+Project-utils provides shared utilities for the media-register AWS-based application.
 
-- fraud-or-not: Fraud detection application
-- media-register: Media registration system
-- people-cards: People cards management system
-- etc
-
-This consolidates common AWS infrastructure patterns, deployment automation, IAM management, operational utilities, CI/CD monitoring, security auditing, and cost optimization across all three projects.
+This consolidates common AWS infrastructure patterns, deployment automation, IAM management, operational utilities, CI/CD monitoring, security auditing, and cost optimization for the project.
 
 ### Architecture
 
@@ -103,7 +98,7 @@ templates/
 ### Configuration Management
 
 - Project configs are in `config/` directory (YAML files)
-- Each project has its own config: `fraud-or-not.yaml`, `media-register.yaml`, `people-cards.yaml`, etc
+- Project config: `media-register.yaml`
 - Environment-specific settings are passed via CLI parameters
 
 ### CLI Commands Pattern
@@ -120,10 +115,10 @@ project-<tool> <action> --project <project-name> --environment <env> [options]
 
 ```bash
 # Validate environment
-project-utils validate --project fraud-or-not --environment dev
+project-utils validate --project media-register --environment dev
 
 # Estimate costs
-project-utils estimate-cost --project fraud-or-not --template template.yaml
+project-utils estimate-cost --project media-register --template template.yaml
 ```
 
 #### Testing Changes
@@ -144,10 +139,10 @@ mypy src
 
 ```bash
 # Run smoke tests
-project-test smoke --project fraud-or-not --environment prod
+project-test smoke --project media-register --environment prod
 
 # Security audit
-project-utils audit-security --project fraud-or-not --environment prod
+project-utils audit-security --project media-register --environment prod
 ```
 
 ### Import Patterns
@@ -193,7 +188,7 @@ from cli import common  # for shared CLI utilities
 
 ### Overview
 
-The utils project provides centralized IAM role and policy management for all projects, eliminating the need for inline IAM definitions in CloudFormation templates. The system uses a **5-category policy approach** to work within AWS policy size limits while maintaining comprehensive permissions.
+The utils project provides centralized IAM role and policy management for the media-register project, eliminating the need for inline IAM definitions in CloudFormation templates. The system uses a **5-category policy approach** to work within AWS policy size limits while maintaining comprehensive permissions.
 
 ### Policy Categories
 
@@ -209,16 +204,16 @@ The utils project provides centralized IAM role and policy management for all pr
 
    ```bash
    # Show user permissions
-   python src/scripts/unified_user_permissions.py show --user fraud-or-not-cicd
+   python src/scripts/unified_user_permissions.py show --user media-register-cicd
 
    # Update user permissions (creates 5 categorized policies)
-   python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
+   python src/scripts/unified_user_permissions.py update --user media-register-cicd
 
    # Apply permissions from root scripts directory
-   python scripts/apply_unified_permissions.py --user-name fraud-or-not-cicd
+   python scripts/apply_unified_permissions.py --user-name media-register-cicd
    ```
 
-2. **create_centralized_roles.py** - Creates Lambda execution roles for all projects
+2. **create_centralized_roles.py** - Creates Lambda execution roles for the project
 
    ```bash
    python src/scripts/create_centralized_roles.py --environment dev --output roles-dev.json
@@ -228,10 +223,10 @@ The utils project provides centralized IAM role and policy management for all pr
 
    ```bash
    # Check missing permissions
-   python src/scripts/update_iam_permissions.py check --user-name fraud-or-not-cicd --project fraud-or-not
+   python src/scripts/update_iam_permissions.py check --user-name media-register-cicd --project media-register
 
    # Update permissions
-   python src/scripts/update_iam_permissions.py update --user-name fraud-or-not-cicd --project fraud-or-not
+   python src/scripts/update_iam_permissions.py update --user-name media-register-cicd --project media-register
    ```
 
 ### IAM Module Structure
@@ -280,11 +275,11 @@ project-lambda validate \
 
 # Package all Lambda functions for a project
 project-lambda package-all \
-  --project fraud-or-not \
+  --project media-register \
   --environment dev
 
 # Build Lambda functions using scripts
-python src/scripts/build_lambdas.py --project fraud-or-not
+python src/scripts/build_lambdas.py --project media-register
 ```
 
 ### Features
@@ -332,10 +327,10 @@ Advanced security auditing system with severity-based issue classification and c
 
 ```bash
 # Run security audit
-project-utils audit-security --project fraud-or-not --environment prod
+project-utils audit-security --project media-register --environment prod
 
 # Check specific service
-python -m security.audit --service s3 --project fraud-or-not
+python -m security.audit --service s3 --project media-register
 ```
 
 ## Cost Management
@@ -365,13 +360,13 @@ Comprehensive cost analysis and optimization system with specialized modules for
 
 ```bash
 # Estimate deployment costs
-project-utils estimate-cost --project fraud-or-not --template template.yaml
+project-utils estimate-cost --project media-register --template template.yaml
 
 # Analyze current costs
-project-utils analyze-cost --project fraud-or-not --period 30d
+project-utils analyze-cost --project media-register --period 30d
 
 # Check costs using scripts
-python src/cost/check_costs.py --project fraud-or-not --environment prod
+python src/cost/check_costs.py --project media-register --environment prod
 ```
 
 ## CI/CD Monitoring and Automation
@@ -387,7 +382,7 @@ Located in `github-build-logs/`, this sophisticated script:
 1. **Monitors GitHub Actions**: Continuously checks CI/CD status
 2. **Auto-fixes Failures**: Sends failure logs to Claude for analysis
 3. **Handles Large Logs**: Automatically chunks logs over 50KB
-4. **Multi-project Support**: Works across all projects
+4. **Project Support**: Works with the media-register project
 
 ### Usage
 
@@ -459,5 +454,5 @@ The `src/config_validation/` system ensures:
 
 ```bash
 # Validate project configuration
-python -m config_validation.validator --project fraud-or-not --config config/fraud-or-not.yaml
+python -m config_validation.validator --project media-register --config config/media-register.yaml
 ```

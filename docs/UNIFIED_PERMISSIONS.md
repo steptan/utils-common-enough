@@ -2,17 +2,17 @@
 
 ## Overview
 
-This document describes the unified IAM permission system that provides a superset of all permissions required by the three projects: fraud-or-not, media-register, and people-cards.
+This document describes the unified IAM permission system that provides all permissions required by the media-register project.
 
 ## Key Features
 
 ### 1. Comprehensive Permission Set
 
-The unified permissions include all unique permissions discovered across all three projects, ensuring that:
+The unified permissions include all necessary permissions, ensuring that:
 
-- Each project has access to all tools and operations available in any other project
-- Project-specific resources are properly scoped using project name prefixes
-- No project is limited by missing permissions that another project has
+- The project has access to all required tools and operations
+- Resources are properly scoped using project name prefixes
+- No operations are limited by missing permissions
 
 ### 2. Permission Categories
 
@@ -75,7 +75,7 @@ arn:aws:service:region:account:resource/{project-name}-*
 
 ### 4. Cross-Project Permissions
 
-Common permissions that all projects need:
+Common permissions that the project needs:
 
 - `sts:GetCallerIdentity`
 - `iam:GetUser`
@@ -147,9 +147,9 @@ Key methods:
 
 The unified permissions were created by:
 
-1. Analyzing the existing permissions in all three projects
-2. Identifying unique permissions in each project
-3. Including additional permissions discovered during troubleshooting (e.g., from people-cards)
+1. Analyzing the existing permissions in the project
+2. Identifying required permissions
+3. Including additional permissions discovered during troubleshooting
 4. Adding commonly needed permissions that were missing
 
 ### Key Differences from Individual Project Policies

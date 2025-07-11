@@ -39,9 +39,7 @@ This document provides an architectural overview of the Project Utils package an
 
 ```yaml
 config/
-├── fraud-or-not.yaml     # Project-specific settings
-├── media-register.yaml    # Project-specific settings
-└── people-cards.yaml      # Project-specific settings
+└── media-register.yaml    # Project-specific settings
 ```
 
 - **Purpose**: Centralize project configurations
@@ -147,9 +145,9 @@ cost/
 {project-name}-{environment}-{resource-type}
 
 Examples:
-- fraud-or-not-prod-lambda-api
+- media-register-prod-lambda-api
 - media-register-staging-dynamodb-table
-- people-cards-dev-s3-assets
+- media-register-dev-s3-assets
 ```
 
 ### IAM Architecture

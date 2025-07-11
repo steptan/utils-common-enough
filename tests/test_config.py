@@ -116,8 +116,8 @@ class TestConfigManager:
     def test_load_from_yaml_file(self):
         """Test loading configuration from YAML file."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create a test YAML config for an existing project (fraud-or-not)
-            config_file = Path(tmpdir) / "fraud-or-not.yaml"
+            # Create a test YAML config for an existing project (media-register)
+            config_file = Path(tmpdir) / "media-register.yaml"
             config_data = {
                 "aws_region": "eu-west-1",
                 "custom_config": {"feature": "enabled"},
