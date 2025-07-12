@@ -3,12 +3,13 @@
 Validate Media Register deployment by running health checks and basic tests.
 """
 
-import sys
 import json
+import sys
 import time
-import requests
-from typing import Dict, List, Tuple, Optional
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import requests
 
 
 class DeploymentValidator:

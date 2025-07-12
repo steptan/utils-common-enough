@@ -2,7 +2,7 @@
 CloudFormation stack management utilities.
 """
 
-from .stack_manager import StackManager
 from .diagnostics import StackDiagnostics
+from .stack_manager import StackManager
 
 __all__ = ["StackManager", "StackDiagnostics"]

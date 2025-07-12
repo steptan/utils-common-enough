@@ -9,7 +9,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 
 class GitSubmoduleManager:
@@ -39,56 +39,56 @@ NC = '\\033[0m'  # No Color
 def check_submodules():
     """Check if submodules have uncommitted or unpushed changes."""
     print("Checking submodules...")
-    
+
     # Check if there are any submodules
     if not os.path.exists('.gitmodules'):
         return True
-        
+
     # Get list of submodules
     result = subprocess.run(
         ['git', 'config', '--file', '.gitmodules', '--get-regexp', 'path'],
         capture_output=True, text=True
     )
-    
+
     if result.returncode != 0:
         return True
-        
+
     submodules = [line.split()[1] for line in result.stdout.strip().split('\\n') if line]
-    
+
     for submodule in submodules:
         print(f"Checking submodule: {submodule}")
-        
+
         if not os.path.exists(submodule):
             continue
-            
+
         # Save current directory
         original_dir = os.getcwd()
         os.chdir(submodule)
-        
+
         try:
             # Check for uncommitted changes
             result = subprocess.run(
                 ['git', 'diff-index', '--quiet', 'HEAD', '--'],
                 capture_output=True
             )
-            
+
             if result.returncode != 0:
                 print(f"{RED}Error: Submodule '{submodule}' has uncommitted changes{NC}")
                 print("Please commit changes in the submodule first:")
                 print(f"  cd {submodule}")
                 print("  git add -A && git commit -m 'Your commit message'")
                 return False
-                
+
             # Check for unpushed commits
             result = subprocess.run(
                 ['git', 'log', '@{u}..'],
                 capture_output=True, text=True
             )
-            
+
             if result.stdout.strip():
                 print(f"{YELLOW}Warning: Submodule '{submodule}' has unpushed commits{NC}")
                 print("Attempting to push submodule changes...")
-                
+
                 # Try to push submodule
                 result = subprocess.run(['git', 'push'])
                 if result.returncode != 0:
@@ -97,12 +97,12 @@ def check_submodules():
                     print(f"  cd {submodule}")
                     print("  git push")
                     return False
-                    
+
                 print(f"{GREEN}Successfully pushed submodule '{submodule}'{NC}")
-                
+
         finally:
             os.chdir(original_dir)
-            
+
     print(f"{GREEN}Submodule check complete{NC}")
     return True
 

@@ -3,12 +3,13 @@
 CloudFormation management CLI commands.
 """
 
-import click
-import sys
 import json
+import sys
 from pathlib import Path
 
-from cloudformation import StackManager, StackDiagnostics
+import click
+
+from cloudformation import StackDiagnostics, StackManager
 from config import get_project_config
 
 

@@ -1,11 +1,12 @@
 """AWS Security audit functionality."""
 
-import boto3
 import json
-from typing import Dict, List, Any, Optional, Tuple
+import logging
 from dataclasses import dataclass
 from enum import Enum
-import logging
+from typing import Any, Dict, List, Optional, Tuple
+
+import boto3
 
 logger = logging.getLogger(__name__)
 

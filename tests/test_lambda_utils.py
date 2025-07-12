@@ -2,19 +2,20 @@
 Comprehensive tests for Lambda utilities including building and packaging.
 """
 
-import pytest
-import os
 import json
-import zipfile
+import os
 import tempfile
+import zipfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, mock_open
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
+import pytest
+
+from config import ProjectConfig
 from lambda_utils.builder import LambdaBuilder
 from lambda_utils.nodejs_builder import NodeJSBuilder
 from lambda_utils.packager import LambdaPackager
 from lambda_utils.typescript_compiler import TypeScriptCompiler
-from config import ProjectConfig
 
 
 class TestLambdaBuilder:

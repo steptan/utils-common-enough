@@ -1,10 +1,11 @@
 """AWS Well-Architected Framework compliance checking."""
 
-import boto3
-from typing import Dict, List, Any, Optional
+import logging
 from dataclasses import dataclass
 from enum import Enum
-import logging
+from typing import Any, Dict, List, Optional
+
+import boto3
 
 logger = logging.getLogger(__name__)
 

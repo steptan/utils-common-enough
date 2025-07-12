@@ -2,13 +2,14 @@
 Tests for Lambda packaging functionality.
 """
 
-import pytest
+import json
+import subprocess
 import tempfile
 import zipfile
-import json
 from pathlib import Path
-from unittest.mock import Mock, patch, call
-import subprocess
+from unittest.mock import Mock, call, patch
+
+import pytest
 
 from lambda_utils.packager import LambdaPackager
 

@@ -2,13 +2,13 @@
 Lambda function packaging utilities.
 """
 
-import os
-import sys
 import json
+import os
 import shutil
-import zipfile
-import tempfile
 import subprocess
+import sys
+import tempfile
+import zipfile
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -328,5 +328,5 @@ class LambdaPackager:
                 print(f"   Available files: {', '.join(sorted(files)[:10])}...")
                 return False
 
-        print(f"✅ Package validation passed")
+        print("✅ Package validation passed")
         return True

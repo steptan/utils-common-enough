@@ -5,14 +5,15 @@ Validates that applications are functioning correctly after deployment.
 """
 
 import time
-import requests
-from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin
 
-from config import ProjectConfig, get_project_config
+import requests
+
 from cloudformation import StackManager
+from config import ProjectConfig, get_project_config
 
 
 class TestStatus(Enum):
@@ -262,7 +263,7 @@ class SmokeTestRunner:
                 )
                 if response.status_code < 400:
                     return TestStatus.PASSED, f"Static assets accessible at {path}"
-            except:
+            except Exception:
                 continue
 
         return TestStatus.WARNING, "No standard static assets found"
@@ -288,7 +289,7 @@ class SmokeTestRunner:
                         TestStatus.PASSED,
                         f"API responded at {endpoint} ({response.status_code})",
                     )
-            except:
+            except Exception:
                 continue
 
         return TestStatus.FAILED, "API health check failed - no endpoints responding"
@@ -315,7 +316,7 @@ class SmokeTestRunner:
                 # Accept various status codes as "working"
                 if response.status_code in [200, 201, 401, 403, 404]:
                     return TestStatus.PASSED, f"API endpoint {endpoint} is responding"
-            except:
+            except Exception:
                 continue
 
         return TestStatus.WARNING, "No project-specific endpoints tested"
@@ -391,7 +392,7 @@ class SmokeTestRunner:
             )
             if response.status_code == 200:
                 return TestStatus.PASSED, "Media types endpoint working"
-        except:
+        except Exception:
             pass
 
         return TestStatus.SKIPPED, "Media Register specific endpoints not tested"

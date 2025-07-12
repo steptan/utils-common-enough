@@ -4,12 +4,13 @@ Configuration management for project utilities.
 Handles project-specific variables and settings for fraud-or-not, media-register, and people-cards.
 """
 
-import os
-import yaml
-from pathlib import Path
-from typing import Dict, Any, Optional, Union
-from dataclasses import dataclass, field
 import json
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+import yaml
 
 
 @dataclass

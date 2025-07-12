@@ -3,7 +3,7 @@ Deployment configuration for Media Register application.
 """
 
 import os
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
 
 class DeploymentConfig:

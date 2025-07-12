@@ -4,8 +4,9 @@ CloudFormation stack diagnostics and troubleshooting.
 
 import json
 import time
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
 import boto3
 from botocore.exceptions import ClientError
 
@@ -23,7 +24,7 @@ class StackDiagnostics:
     def generate_report(self, stack_name: str) -> str:
         """Generate a comprehensive diagnostic report for a stack."""
         report = []
-        report.append(f"🔍 CloudFormation Stack Diagnostic Report")
+        report.append("🔍 CloudFormation Stack Diagnostic Report")
         report.append(f"Stack: {stack_name}")
         report.append(f"Time: {datetime.now().isoformat()}")
         report.append("=" * 80)
@@ -45,7 +46,7 @@ class StackDiagnostics:
                 stack = stack_info["Stacks"][0]
 
                 # Basic info
-                report.append(f"\nStack Information:")
+                report.append("\nStack Information:")
                 report.append(f"  Created: {stack['CreationTime']}")
                 if "LastUpdatedTime" in stack:
                     report.append(f"  Last Updated: {stack['LastUpdatedTime']}")
@@ -54,7 +55,7 @@ class StackDiagnostics:
 
                 # Parameters
                 if stack.get("Parameters"):
-                    report.append(f"\nParameters:")
+                    report.append("\nParameters:")
                     for param in stack["Parameters"]:
                         report.append(
                             f"  {param['ParameterKey']}: {param['ParameterValue']}"
@@ -62,7 +63,7 @@ class StackDiagnostics:
 
                 # Tags
                 if stack.get("Tags"):
-                    report.append(f"\nTags:")
+                    report.append("\nTags:")
                     for tag in stack["Tags"]:
                         report.append(f"  {tag['Key']}: {tag['Value']}")
         except Exception as e:
@@ -82,7 +83,7 @@ class StackDiagnostics:
 
         # Resources preventing deletion
         if diagnosis["rollback_triggers"]:
-            report.append(f"\n🚫 Resources Preventing Deletion:")
+            report.append("\n🚫 Resources Preventing Deletion:")
             for trigger in diagnosis["rollback_triggers"]:
                 report.append(f"\n  Resource: {trigger['logical_id']}")
                 report.append(f"  Type: {trigger['resource_type']}")
@@ -102,7 +103,7 @@ class StackDiagnostics:
 
         # Recommendations
         if diagnosis["recommendations"]:
-            report.append(f"\n💡 Recommendations:")
+            report.append("\n💡 Recommendations:")
             for i, rec in enumerate(diagnosis["recommendations"], 1):
                 report.append(f"  {i}. {rec}")
 

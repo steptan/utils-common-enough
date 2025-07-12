@@ -2,13 +2,13 @@
 Frontend deployment to S3 and CloudFront.
 """
 
+import json
+import mimetypes
 import os
 import subprocess
-import mimetypes
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
-import json
+from typing import Any, Dict, List, Optional, Tuple
 
 from .base_deployer import BaseDeployer, DeploymentResult, DeploymentStatus
 

@@ -2,21 +2,25 @@
 Base deployment class with common functionality.
 """
 
+import json
 import os
+import subprocess
 import sys
 import time
-import json
-import subprocess
-from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
 from botocore.exceptions import ClientError
 
-from config import ProjectConfig, get_project_config
+try:
+    from config import ProjectConfig, get_project_config
+except ImportError:
+    ProjectConfig = None
+    get_project_config = None
 
 
 class DeploymentStatus(Enum):
@@ -36,9 +40,9 @@ class DeploymentResult:
     status: DeploymentStatus
     message: str
     duration: float
-    outputs: Dict[str, Any] = None
-    errors: List[str] = None
-    warnings: List[str] = None
+    outputs: Optional[Dict[str, Any]] = None
+    errors: Optional[List[str]] = None
+    warnings: Optional[List[str]] = None
 
     @property
     def success(self) -> bool:
@@ -57,7 +61,7 @@ class BaseDeployer(ABC):
         region: Optional[str] = None,
         profile: Optional[str] = None,
         dry_run: bool = False,
-    ):
+    ) -> None:
         """
         Initialize base deployer.
 
@@ -78,13 +82,13 @@ class BaseDeployer(ABC):
 
         # Initialize AWS clients
         self._session = self._create_session()
-        self._clients = {}
+        self._clients: Dict[str, Any] = {}
 
         # Deployment state
-        self.start_time = None
-        self.outputs = {}
-        self.errors = []
-        self.warnings = []
+        self.start_time: Optional[float] = None
+        self.outputs: Dict[str, Any] = {}
+        self.errors: List[str] = []
+        self.warnings: List[str] = []
 
     def _create_session(self) -> boto3.Session:
         """Create AWS session with appropriate credentials."""
@@ -100,27 +104,27 @@ class BaseDeployer(ABC):
         return self._clients[service]
 
     @property
-    def cloudformation(self):
+    def cloudformation(self) -> Any:
         """Get CloudFormation client."""
         return self._get_client("cloudformation")
 
     @property
-    def s3(self):
+    def s3(self) -> Any:
         """Get S3 client."""
         return self._get_client("s3")
 
     @property
-    def lambda_client(self):
+    def lambda_client(self) -> Any:
         """Get Lambda client."""
         return self._get_client("lambda")
 
     @property
-    def iam(self):
+    def iam(self) -> Any:
         """Get IAM client."""
         return self._get_client("iam")
 
     @property
-    def sts(self):
+    def sts(self) -> Any:
         """Get STS client."""
         return self._get_client("sts")
 
@@ -133,11 +137,11 @@ class BaseDeployer(ABC):
             except Exception as e:
                 self.add_error(f"Failed to get AWS account ID: {e}")
                 return "unknown"
-        return self.config.aws_account_id
+        return str(self.config.aws_account_id)
 
     def get_stack_name(self) -> str:
         """Get CloudFormation stack name."""
-        return self.config.get_stack_name(self.environment)
+        return str(self.config.get_stack_name(self.environment))
 
     def add_output(self, key: str, value: Any) -> None:
         """Add an output value."""
@@ -214,7 +218,7 @@ class BaseDeployer(ABC):
         try:
             response = self.cloudformation.describe_stacks(StackName=stack_name)
             if response["Stacks"]:
-                return response["Stacks"][0]["StackStatus"]
+                return str(response["Stacks"][0]["StackStatus"])
         except ClientError as e:
             if "does not exist" in str(e):
                 return None
@@ -291,14 +295,14 @@ class BaseDeployer(ABC):
 
                         self.log(f"Created S3 bucket {bucket_name}", "SUCCESS")
                         return True
-                    except Exception as e:
-                        self.add_error(f"Failed to create bucket {bucket_name}: {e}")
+                    except Exception as create_error:
+                        self.add_error(f"Failed to create bucket {bucket_name}: {create_error}")
                         return False
                 else:
                     self.log(f"DRY RUN: Would create bucket {bucket_name}", "INFO")
                     return True
             else:
-                self.add_error(f"Error checking bucket {bucket_name}: {e}")
+                self.add_error(f"Error checking bucket {bucket_name}: {str(e)}")
                 return False
 
     def get_stack_outputs(self, stack_name: Optional[str] = None) -> Dict[str, str]:
@@ -430,11 +434,11 @@ class BaseDeployer(ABC):
                 errors=self.errors,
             )
 
-    def __enter__(self):
+    def __enter__(self) -> "BaseDeployer":
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         # Cleanup if needed
         pass

@@ -2,13 +2,14 @@
 Tests for configuration management.
 """
 
-import pytest
-from pathlib import Path
 import tempfile
-import yaml
+from pathlib import Path
 from unittest.mock import Mock, patch
 
-from config import ProjectConfig, ConfigManager, get_project_config
+import pytest
+import yaml
+
+from config import ConfigManager, ProjectConfig, get_project_config
 
 
 class TestProjectConfig:

@@ -3,12 +3,13 @@
 Database management CLI commands.
 """
 
-import click
 import sys
 from pathlib import Path
 
-from database import DataSeeder, SeedData, PeopleCardsSeeder
+import click
+
 from config import get_project_config
+from database import DataSeeder, PeopleCardsSeeder, SeedData
 
 
 @click.group()

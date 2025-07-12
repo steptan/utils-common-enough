@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """Lambda management CLI commands."""
 
-import click
-import sys
-from pathlib import Path
 import json
 import subprocess
+import sys
+from pathlib import Path
 
+import click
+
+from config import get_project_config
 from lambda_utils.builder import LambdaBuilder
 from lambda_utils.nodejs_builder import NodeJSBuilder
-from lambda_utils.typescript_compiler import TypeScriptCompiler
 from lambda_utils.packager import LambdaPackager
-from config import get_project_config
+from lambda_utils.typescript_compiler import TypeScriptCompiler
 
 
 @click.group()
@@ -201,7 +202,7 @@ def build_all(project, output, parallel):
         click.echo(f"Built: {len(functions) - len(failed)}/{len(functions)}")
 
         if failed:
-            click.echo(f"\nFailed functions:")
+            click.echo("\nFailed functions:")
             for name in failed:
                 click.echo(f"  - {name}")
             sys.exit(1)

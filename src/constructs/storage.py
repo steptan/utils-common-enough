@@ -2,22 +2,25 @@
 Storage constructs for DynamoDB, S3, and data storage resources.
 """
 
+from typing import Any, Dict, List, Optional
+
 from troposphere import (
-    Template,
-    Output,
-    Ref,
-    GetAtt,
-    Tags,
-    Sub,
-    Parameter,
+    Equals,
     Export,
+    GetAtt,
+    If,
     ImportValue,
     Join,
-    If,
-    Equals,
+    Output,
+    Parameter,
+    Ref,
+    Sub,
+    Tags,
+    Template,
+    dynamodb,
+    iam,
+    s3,
 )
-from troposphere import dynamodb, s3, iam
-from typing import Dict, List, Any, Optional
 
 
 class StorageConstruct:
@@ -38,16 +41,16 @@ class StorageConstruct:
         self.template = template
         self.config = config
         self.environment = environment
-        self.resources = {}
-        self.tables = {}
-        self.buckets = {}
+        self.resources: Dict[str, Any] = {}
+        self.tables: Dict[str, Any] = {}
+        self.buckets: Dict[str, Any] = {}
 
         # Create storage resources
         self._create_dynamodb_tables()
         self._create_s3_buckets()
         self._create_outputs()
 
-    def _create_dynamodb_tables(self):
+    def _create_dynamodb_tables(self) -> None:
         """Create DynamoDB tables based on configuration."""
         dynamodb_config = self.config.get("dynamodb", {})
         tables_config = dynamodb_config.get("tables", [])
@@ -202,7 +205,7 @@ class StorageConstruct:
             self.tables[table_name] = table_resource
             self.resources[f"table_{table_name}"] = table_resource
 
-    def _create_s3_buckets(self):
+    def _create_s3_buckets(self) -> None:
         """Create S3 buckets based on configuration."""
         s3_config = self.config.get("s3", {})
         buckets_config = s3_config.get("buckets", [])
@@ -341,7 +344,7 @@ class StorageConstruct:
                     )
                 )
 
-    def _create_outputs(self):
+    def _create_outputs(self) -> None:
         """Create CloudFormation outputs."""
         # DynamoDB table outputs
         for table_name, table_resource in self.tables.items():
@@ -383,18 +386,18 @@ class StorageConstruct:
                 )
             )
 
-    def get_table_names(self):
+    def get_table_names(self) -> Dict[str, str]:
         """Get dictionary of table names."""
         return {name: Ref(table) for name, table in self.tables.items()}
 
-    def get_table_arns(self):
+    def get_table_arns(self) -> Dict[str, Dict[str, Any]]:
         """Get dictionary of table ARNs."""
         return {name: GetAtt(table, "Arn") for name, table in self.tables.items()}
 
-    def get_bucket_names(self):
+    def get_bucket_names(self) -> Dict[str, str]:
         """Get dictionary of bucket names."""
         return {name: Ref(bucket) for name, bucket in self.buckets.items()}
 
-    def get_bucket_arns(self):
+    def get_bucket_arns(self) -> Dict[str, Dict[str, Any]]:
         """Get dictionary of bucket ARNs."""
         return {name: GetAtt(bucket, "Arn") for name, bucket in self.buckets.items()}
