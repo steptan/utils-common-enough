@@ -1,4 +1,3 @@
-from typing import List, Any
 #!/usr/bin/env python3
 """
 CloudFormation management CLI commands.
@@ -7,6 +6,7 @@ CloudFormation management CLI commands.
 import json
 import sys
 from pathlib import Path
+from typing import List, Any
 
 import click
 

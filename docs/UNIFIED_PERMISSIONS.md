@@ -90,11 +90,7 @@ people-cards-*  # For most resources
 arn:aws:service:region:account:resource/people-cards-*
 ```
 
-<<<<<<< HEAD
-### 4. Core Permissions
-=======
 ### 5. Cross-Project Permissions
->>>>>>> refs/remotes/origin/master
 
 Common permissions that the project needs:
 
@@ -216,12 +212,13 @@ To work within AWS policy size limits, permissions are split into 5 categories:
 
 ## Best Practices
 
-<<<<<<< HEAD
 1. **Least Privilege**: Only grant permissions that are actually needed
 2. **Resource Scoping**: Always scope resources by project name
 3. **Regular Audits**: Review permissions quarterly
 4. **Version Control**: Track all permission changes in git
-=======
+
+### UnifiedPolicyGenerator Class
+
 Located in `/Users/sj/projects/utils/src/iam/unified_permissions.py`
 
 Key methods:
@@ -296,7 +293,6 @@ To migrate from project-specific policies to unified permissions:
 3. **Remove old policies** (the script will prompt you):
    - The script automatically detects old policies
    - You'll be asked to confirm removal
->>>>>>> refs/remotes/origin/master
 
 ## Troubleshooting
 
@@ -306,19 +302,8 @@ To migrate from project-specific policies to unified permissions:
 2. **Missing Permissions**: Check CloudTrail logs to identify required permissions
 3. **Resource Not Found**: Ensure proper project name prefix in resource ARNs
 
-<<<<<<< HEAD
-### Debugging Commands
+### Policy Size Management
 
-```bash
-# Check effective permissions
-aws iam simulate-principal-policy \
-  --policy-source-arn arn:aws:iam::123456789012:user/people-cards-cicd \
-  --action-names s3:GetObject \
-  --resource-arns arn:aws:s3:::people-cards-*/*
-
-# List attached policies
-aws iam list-attached-user-policies --user-name people-cards-cicd
-=======
 - Using wildcards where appropriate
 - Grouping related permissions
 - Avoiding redundant statements
@@ -334,7 +319,18 @@ If you still encounter size issues:
 1. Review the categorization to ensure proper distribution
 2. Consider using managed policies for very large permission sets
 3. Use more specific resource ARNs to reduce statement count
->>>>>>> refs/remotes/origin/master
+
+### Debugging Commands
+
+```bash
+# Check effective permissions
+aws iam simulate-principal-policy \
+  --policy-source-arn arn:aws:iam::123456789012:user/people-cards-cicd \
+  --action-names s3:GetObject \
+  --resource-arns arn:aws:s3:::people-cards-*/*
+
+# List attached policies
+aws iam list-attached-user-policies --user-name people-cards-cicd
 
 # Get policy details
 aws iam get-policy-version \
@@ -353,12 +349,13 @@ aws iam get-policy-version \
 
 If migrating from project-specific permissions:
 
-<<<<<<< HEAD
 1. Back up existing policies
 2. Apply unified permissions
 3. Test all CI/CD workflows
 4. Remove old policies after validation
-=======
+
+### Regional Considerations
+
 - CloudFront resources use `us-east-1` for global resources
 - Other resources use the appropriate regional ARNs
 
@@ -374,7 +371,7 @@ If migrating from project-specific permissions:
 ### Example 1: CI/CD user for single project
 
 ```bash
-python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
+python src/scripts/unified_user_permissions.py update --user people-cards-cicd
 ```
 
 ### Example 2: Shared CI/CD user for multiple projects
@@ -399,4 +396,3 @@ python src/scripts/unified_user_permissions.py show --user project-cicd
 2. **Policy Validation**: Automated testing of policies against actual usage
 3. **Granular Permission Sets**: Role-based permissions (dev, staging, prod)
 4. **Policy Templates**: Reusable templates for common scenarios
->>>>>>> refs/remotes/origin/master

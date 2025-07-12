@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "project-utils"
 version = "1.0.0"
-description = "Shared utilities for the media-register project"
+description = "Shared utilities for the people-cards project"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
