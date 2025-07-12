@@ -112,7 +112,7 @@ def check_config_files():
     print("\n📋 Checking configuration files...")
 
     config_dir = Path(__file__).parent / "config"
-    expected_configs = ["fraud-or-not.yaml", "media-register.yaml", "people-cards.yaml"]
+    expected_configs = ["media-register.yaml"]
 
     for config_file in expected_configs:
         config_path = config_dir / config_file

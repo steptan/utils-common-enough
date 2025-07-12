@@ -8,28 +8,22 @@ This guide helps you migrate from the old bash scripts to the new Python-based u
 
 | Old Script                                  | New Command                                                                        |
 | ------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `fraud-or-not/scripts/setup-iam.sh`         | `python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd`   |
 | `media-register/scripts/setup-iam.sh`       | `python src/scripts/unified_user_permissions.py update --user media-register-cicd` |
-| `people-cards/.github/scripts/setup-iam.sh` | `python src/scripts/unified_user_permissions.py update --user people-cards-cicd`   |
 
 ### Deployment Scripts
 
 | Old Script                                | New Command                                               |
 | ----------------------------------------- | --------------------------------------------------------- |
-| `fraud-or-not/deploy.py`                  | `project-deploy deploy --project fraud-or-not -e <env>`   |
 | `media-register/scripts/deploy.sh`        | `project-deploy deploy --project media-register -e <env>` |
-| `people-cards/scripts/deploy_full.py`     | `project-deploy full --project people-cards -e <env>`     |
-| `people-cards/scripts/deploy_frontend.py` | `project-deploy frontend --project people-cards -e <env>` |
-| `people-cards/scripts/deploy_staging.sh`  | `project-deploy full --project people-cards -e staging`   |
 
 ### CloudFormation Management Scripts
 
 | Old Script                                       | New Command                                      |
 | ------------------------------------------------ | ------------------------------------------------ |
-| `people-cards/scripts/diagnose-stack-failure.sh` | `project-cfn diagnose --stack-name <name>`       |
-| `people-cards/scripts/fix-rollback-stack.sh`     | `project-cfn fix-rollback --stack-name <name>`   |
-| `people-cards/scripts/force-delete-stack.sh`     | `project-cfn delete --stack-name <name> --force` |
-| `people-cards/scripts/ensure-lambda-bucket.sh`   | Automatic in deployment commands                 |
+| `scripts/diagnose-stack-failure.sh`              | `project-cfn diagnose --stack-name <name>`       |
+| `scripts/fix-rollback-stack.sh`                  | `project-cfn fix-rollback --stack-name <name>`   |
+| `scripts/force-delete-stack.sh`                  | `project-cfn delete --stack-name <name> --force` |
+| `scripts/ensure-lambda-bucket.sh`                | Automatic in deployment commands                 |
 
 ### Health Check Scripts
 
@@ -45,8 +39,8 @@ Old approach:
 
 ```bash
 # Hard-coded values in scripts
-IAM_USER_NAME="fraud-or-not-cicd"
-AWS_REGION="us-east-1"
+IAM_USER_NAME="media-register-cicd"
+AWS_REGION="us-west-1"
 ```
 
 New approach:
@@ -81,7 +75,7 @@ New approach:
 Instead of different scripts in each project, use consistent commands:
 
 ```bash
-# Works for all projects
+# Standard commands
 python src/scripts/unified_user_permissions.py update --user <name>-cicd
 project-deploy deploy --project <name> -e <env>
 ```

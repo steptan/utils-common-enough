@@ -1,5 +1,12 @@
 # Claude Settings Improved - Hybrid Security Approach
 
+<<<<<<< HEAD
+This directory contains security-hardened Claude settings files for the media-register project.
+
+## Files
+
+- `media-register-settings.local.json` - Settings for the media-register project
+=======
 This directory contains improved Claude settings that balance security with usability using a hybrid approach.
 
 ## Philosophy
@@ -26,6 +33,7 @@ Instead of removing all wildcards (which makes files very long), we use a **hybr
 - `fraud-or-not-settings.local.json` - Fully explicit permissions (no wildcards)
 - `media-register-settings.local.json` - Fully explicit permissions
 - `people-cards-settings.local.json` - Fully explicit permissions
+>>>>>>> 489ac89c83ce8b93df96fa009f6c582146ba8a05
 
 ## Key Security Improvements
 
