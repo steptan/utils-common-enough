@@ -1,15 +1,16 @@
 """Interactive setup wizard for AWS credentials and project configuration."""
 
-import os
+import configparser
+import getpass
 import json
+import os
 import sys
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
+
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
-import getpass
-import configparser
-from datetime import datetime
 
 from config import ProjectConfig, get_project_config
 
@@ -369,8 +370,8 @@ AWS_SESSION_TOKEN=optional_session_token
     def _validate_dependencies(self) -> bool:
         """Validate required dependencies are installed."""
         try:
-            import yaml
             import boto3
+            import yaml
 
             return True
         except ImportError:

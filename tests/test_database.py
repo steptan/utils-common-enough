@@ -2,15 +2,16 @@
 Comprehensive tests for database utilities.
 """
 
-import pytest
 import json
 from datetime import datetime
 from decimal import Decimal
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import MagicMock, Mock, call, patch
+
+import pytest
 from botocore.exceptions import ClientError
 
-from database.seeder import DataSeeder, SeedData
 from config import ProjectConfig
+from database.seeder import DataSeeder, SeedData
 
 
 class TestSeedData:

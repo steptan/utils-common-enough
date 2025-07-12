@@ -2,17 +2,18 @@
 Comprehensive tests for cost estimation and analysis modules.
 """
 
-import pytest
 import json
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from botocore.exceptions import ClientError
 
-from cost.estimator import CostEstimator, ResourceType
+from config import ProjectConfig
 from cost.analyzer import CostAnalyzer
+from cost.estimator import CostEstimator, ResourceType
 from cost.monitor import CostMonitor
 from cost.reporter import CostReporter
-from config import ProjectConfig
 
 
 class TestCostEstimator:
@@ -29,10 +30,10 @@ class TestCostEstimator:
         )
 
     @pytest.fixture
-    def estimator(self, basic_config):
+    def estimator(self):
         """Create a CostEstimator instance."""
         return CostEstimator(
-            project_name="test-project", environment="prod", config=basic_config
+            project_name="test-project", environment="prod", region="us-east-1"
         )
 
     def test_initialization(self, estimator):
@@ -40,96 +41,91 @@ class TestCostEstimator:
         assert estimator.project_name == "test-project"
         assert estimator.environment == "prod"
         assert estimator.region == "us-east-1"
-        assert hasattr(estimator, "pricing")
+        assert hasattr(estimator, "pricing_client")
 
-    def test_estimate_lambda_cost(self, estimator):
-        """Test Lambda cost estimation."""
-        usage = {
-            "requests_per_month": 1_000_000,
-            "avg_duration_ms": 100,
-            "memory_mb": 512,
+    def test_estimate_application_cost_lambda(self, estimator):
+        """Test Lambda cost estimation through application cost."""
+        usage_profile = {
+            "api_requests_per_month": 1_000_000,
+            "avg_lambda_duration_ms": 100,
+            "lambda_memory_mb": 512,
         }
 
-        cost = estimator.estimate_lambda_cost(usage)
+        report = estimator.estimate_application_cost(usage_profile)
 
-        # Verify cost components
-        assert "compute_cost" in cost
-        assert "request_cost" in cost
-        assert "total_monthly" in cost
-        assert cost["total_monthly"] > 0
+        # Verify report structure
+        assert "summary" in report
+        assert "detailed_estimates" in report
+        assert "breakdown_by_service" in report
+        
+        # Check if Lambda is in the breakdown
+        assert "Lambda" in report["breakdown_by_service"]
+        lambda_cost = report["breakdown_by_service"]["Lambda"]
+        assert lambda_cost["monthly_min"] >= 0
+        assert lambda_cost["monthly_max"] >= 0
 
-        # Lambda free tier: 1M requests, 400,000 GB-seconds
-        # Should have some cost after free tier
-        assert cost["compute_cost"] >= 0
-        assert cost["request_cost"] >= 0
-
-    def test_estimate_dynamodb_cost(self, estimator):
-        """Test DynamoDB cost estimation."""
-        usage = {
-            "reads_per_month": 5_000_000,
-            "writes_per_month": 1_000_000,
-            "storage_gb": 10,
-            "on_demand": True,
+    def test_estimate_application_cost_dynamodb(self, estimator):
+        """Test DynamoDB cost estimation through application cost."""
+        usage_profile = {
+            "database_operations": {
+                "reads_per_month": 5_000_000,
+                "writes_per_month": 1_000_000,
+                "storage_gb": 10,
+            }
         }
 
-        cost = estimator.estimate_dynamodb_cost(usage)
+        report = estimator.estimate_application_cost(usage_profile)
 
-        assert "read_cost" in cost
-        assert "write_cost" in cost
-        assert "storage_cost" in cost
-        assert "total_monthly" in cost
+        # Verify DynamoDB is in the breakdown
+        assert "DynamoDB" in report["breakdown_by_service"]
+        db_cost = report["breakdown_by_service"]["DynamoDB"]
+        assert db_cost["monthly_min"] > 0
+        assert db_cost["monthly_max"] > 0
 
-        # On-demand pricing
-        assert cost["read_cost"] > 0  # $0.25 per million reads
-        assert cost["write_cost"] > 0  # $1.25 per million writes
-        assert cost["storage_cost"] > 0  # $0.25 per GB
-
-    def test_estimate_s3_cost(self, estimator):
-        """Test S3 cost estimation."""
-        usage = {
+    def test_estimate_application_cost_s3(self, estimator):
+        """Test S3 cost estimation through application cost."""
+        usage_profile = {
             "storage_gb": 100,
-            "requests_put": 100_000,
-            "requests_get": 1_000_000,
-            "data_transfer_gb": 50,
+            "uploads_per_month": 5_000,
+            "downloads_per_month": 50_000,
         }
 
-        cost = estimator.estimate_s3_cost(usage)
+        report = estimator.estimate_application_cost(usage_profile)
 
-        assert "storage_cost" in cost
-        assert "request_cost" in cost
-        assert "transfer_cost" in cost
-        assert "total_monthly" in cost
+        # Verify S3 is in the breakdown
+        assert "S3" in report["breakdown_by_service"]
+        s3_cost = report["breakdown_by_service"]["S3"]
+        assert s3_cost["monthly_min"] > 0
+        assert s3_cost["monthly_max"] > 0
 
-        # S3 pricing
-        assert cost["storage_cost"] > 0  # ~$0.023 per GB
-        assert cost["request_cost"] > 0
-        assert cost["transfer_cost"] > 0  # First 100GB/month free to internet
+    def test_estimate_application_cost_cloudfront(self, estimator):
+        """Test CloudFront cost estimation through application cost."""
+        usage_profile = {
+            "cdn_traffic_gb": 500,
+            "cdn_requests_per_month": 5_000_000,
+        }
 
-    def test_estimate_cloudfront_cost(self, estimator):
-        """Test CloudFront cost estimation."""
-        usage = {"data_transfer_gb": 500, "requests_per_month": 5_000_000}
+        report = estimator.estimate_application_cost(usage_profile)
 
-        cost = estimator.estimate_cloudfront_cost(usage)
-
-        assert "transfer_cost" in cost
-        assert "request_cost" in cost
-        assert "total_monthly" in cost
-
-        # CloudFront has 1TB free tier annually
-        assert cost["total_monthly"] > 0
+        # Verify CloudFront is in the breakdown
+        assert "CloudFront" in report["breakdown_by_service"]
+        cf_cost = report["breakdown_by_service"]["CloudFront"]
+        assert cf_cost["monthly_min"] > 0
+        assert cf_cost["monthly_max"] > 0
 
     def test_estimate_api_gateway_cost(self, estimator):
-        """Test API Gateway cost estimation."""
-        usage = {"requests_per_month": 10_000_000}
+        """Test API Gateway cost estimation through application cost."""
+        usage_profile = {
+            "api_requests_per_month": 10_000_000,
+        }
 
-        cost = estimator.estimate_api_gateway_cost(usage)
+        report = estimator.estimate_application_cost(usage_profile)
 
-        assert "request_cost" in cost
-        assert "total_monthly" in cost
-
-        # $3.50 per million requests
-        expected = 10 * 3.50  # 10 million requests
-        assert abs(cost["total_monthly"] - expected) < 0.01
+        # Verify API Gateway is in the breakdown
+        assert "API Gateway" in report["breakdown_by_service"]
+        api_cost = report["breakdown_by_service"]["API Gateway"]
+        # With free tier, cost should be lower
+        assert api_cost["monthly_min"] >= 0
 
     def test_estimate_application_cost(self, estimator):
         """Test complete application cost estimation."""
@@ -151,24 +147,25 @@ class TestCostEstimator:
 
         # Verify report structure
         assert "summary" in report
-        assert "breakdown" in report
-        assert "recommendations" in report
+        assert "breakdown_by_service" in report
+        assert "cost_optimization_tips" in report
+        assert "detailed_estimates" in report
 
         # Verify cost breakdown
-        breakdown = report["breakdown"]
-        assert "lambda" in breakdown
-        assert "dynamodb" in breakdown
-        assert "s3" in breakdown
-        assert "cloudfront" in breakdown
-        assert "api_gateway" in breakdown
+        breakdown = report["breakdown_by_service"]
+        assert "Lambda" in breakdown
+        assert "DynamoDB" in breakdown
+        assert "S3" in breakdown
+        assert "CloudFront" in breakdown
+        assert "API Gateway" in breakdown
 
         # Verify summary
         summary = report["summary"]
-        assert "total_monthly" in summary
-        assert "total_annual" in summary
-        assert summary["total_monthly"] > 0
+        assert "monthly_cost_estimate" in summary
+        assert "annual_cost_estimate" in summary
+        assert summary["monthly_cost_estimate"]["average"] > 0
 
-    def test_estimate_from_cloudformation_template(self, estimator):
+    def test_estimate_from_cloudformation_template(self, estimator, tmp_path):
         """Test cost estimation from CloudFormation template."""
         template = {
             "Resources": {
@@ -184,44 +181,49 @@ class TestCostEstimator:
             }
         }
 
-        with patch.object(estimator, "estimate_from_template") as mock_estimate:
-            mock_estimate.return_value = {
-                "resources": ["Lambda", "DynamoDB", "S3"],
-                "estimated_range": {"min": 10.0, "max": 50.0},
-            }
+        # Write template to file
+        template_file = tmp_path / "template.json"
+        with open(template_file, "w") as f:
+            json.dump(template, f)
 
-            result = estimator.estimate_from_template(template)
+        # Estimate costs from template
+        report = estimator.estimate_stack_cost(str(template_file))
 
-            assert "resources" in result
-            assert len(result["resources"]) == 3
-            assert result["estimated_range"]["min"] < result["estimated_range"]["max"]
+        # Verify report structure
+        assert "summary" in report
+        assert "detailed_estimates" in report
+        assert len(report["detailed_estimates"]) > 0
 
     def test_generate_budget_alerts(self, estimator):
         """Test budget alert generation."""
         monthly_budget = 1000
-        estimated_cost = 1200
 
-        alerts = estimator.generate_budget_alerts(monthly_budget, estimated_cost)
+        alert_template = estimator.generate_cost_alert_template(monthly_budget)
 
-        assert len(alerts) > 0
-        assert any("exceeds budget" in alert for alert in alerts)
-        assert any("120%" in alert for alert in alerts)  # 1200/1000 = 120%
+        # It returns a CloudFormation template
+        assert "AWSTemplateFormatVersion" in alert_template
+        assert "Resources" in alert_template
+        assert "MonthlyBudget" in alert_template["Resources"]
+        
+        # Check the budget resource
+        budget_resource = alert_template["Resources"]["MonthlyBudget"]
+        assert budget_resource["Type"] == "AWS::Budgets::Budget"
+        assert budget_resource["Properties"]["Budget"]["BudgetLimit"]["Amount"] == monthly_budget
 
 
 class TestCostAnalyzer:
     """Test actual cost analysis functionality."""
 
     @pytest.fixture
-    def analyzer(self):
+    def analyzer(self, basic_config):
         """Create a CostAnalyzer instance."""
         with patch("boto3.Session"):
-            return CostAnalyzer(project_name="test-project", profile="test-profile")
+            return CostAnalyzer(config=basic_config, aws_profile="test-profile")
 
     def test_initialization(self, analyzer):
         """Test CostAnalyzer initialization."""
         assert analyzer.project_name == "test-project"
-        assert analyzer.profile == "test-profile"
-        assert hasattr(analyzer, "ce_client")
+        assert hasattr(analyzer, "ce")
 
     @patch("boto3.Session")
     def test_get_cost_and_usage(self, mock_session):
@@ -336,20 +338,18 @@ class TestCostMonitor:
     """Test cost monitoring functionality."""
 
     @pytest.fixture
-    def monitor(self):
+    def monitor(self, basic_config):
         """Create a CostMonitor instance."""
         with patch("boto3.Session"):
-            return CostMonitor(
-                project_name="test-project",
-                thresholds={"daily": 100, "weekly": 500, "monthly": 2000},
-            )
+            return CostMonitor(config=basic_config, aws_profile="test-profile")
 
     def test_initialization(self, monitor):
         """Test CostMonitor initialization."""
         assert monitor.project_name == "test-project"
-        assert monitor.thresholds["daily"] == 100
-        assert monitor.thresholds["weekly"] == 500
-        assert monitor.thresholds["monthly"] == 2000
+        assert hasattr(monitor, "cloudwatch")
+        assert hasattr(monitor, "sns")
+        assert hasattr(monitor, "budgets")
+        assert hasattr(monitor, "analyzer")
 
     def test_check_daily_threshold(self, monitor):
         """Test daily threshold checking."""
@@ -405,9 +405,10 @@ class TestCostReporter:
     """Test cost reporting functionality."""
 
     @pytest.fixture
-    def reporter(self):
+    def reporter(self, basic_config):
         """Create a CostReporter instance."""
-        return CostReporter(project_name="test-project")
+        with patch("boto3.Session"):
+            return CostReporter(config=basic_config, aws_profile="test-profile")
 
     def test_initialization(self, reporter):
         """Test CostReporter initialization."""

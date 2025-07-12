@@ -2,15 +2,16 @@
 Comprehensive tests for security auditing and compliance modules.
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from botocore.exceptions import ClientError
 
-from security.audit import SecurityAuditor
-from security.compliance import ComplianceChecker
-from security.aws_security import AWSSecurityValidator
 from config import ProjectConfig
+from security.audit import SecurityAuditor
+from security.aws_security import AWSSecurityValidator
+from security.compliance import ComplianceChecker
 
 
 class TestSecurityAuditor:

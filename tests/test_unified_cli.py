@@ -3,8 +3,8 @@
 CLI tests for unified permissions script.
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 # Script path

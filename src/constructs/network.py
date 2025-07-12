@@ -2,20 +2,21 @@
 Network constructs for VPC, subnets, and networking resources.
 """
 
+from typing import Any, Dict, List, Optional
+
 from troposphere import (
-    Template,
-    Output,
-    Ref,
-    GetAtt,
-    Tags,
-    Sub,
-    Parameter,
     Export,
+    GetAtt,
     ImportValue,
     Join,
+    Output,
+    Parameter,
+    Ref,
+    Sub,
+    Tags,
+    Template,
+    ec2,
 )
-from troposphere import ec2
-from typing import Dict, List, Any, Optional
 
 
 class NetworkConstruct:

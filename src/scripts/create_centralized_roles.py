@@ -4,12 +4,13 @@ Create centralized IAM roles for all projects.
 This replaces the inline IAM roles in CloudFormation templates.
 """
 
-import json
 import argparse
-import boto3
+import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
-import sys
+
+import boto3
 
 # Add parent directory to path to import from src
 sys.path.insert(0, str(Path(__file__).parent.parent))

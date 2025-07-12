@@ -2,10 +2,11 @@
 
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from config import ProjectConfig
+
 from .analyzer import CostAnalyzer
 from .monitor import CostMonitor
 
@@ -354,9 +355,9 @@ SERVICE BREAKDOWN:
 <body>
     <h1>Monthly Cost Report - {self.project_name}</h1>
     <p>{month}/{year}</p>
-    
+
     <div class="total">Total Cost: ${cost_data['total_cost']:,.2f}</div>
-    
+
     <h2>Service Breakdown</h2>
     <table>
         <tr><th>Service</th><th>Cost</th><th>Percentage</th></tr>
@@ -373,7 +374,7 @@ SERVICE BREAKDOWN:
             html += f"        <tr><td>{service}</td><td>${cost:,.2f}</td><td>{percentage:.1f}%</td></tr>\n"
 
         html += """    </table>
-    
+
     <h2>Budget Status</h2>
     <table>
         <tr><th>Environment</th><th>Current Spend</th><th>Budget</th><th>Usage</th><th>Status</th></tr>

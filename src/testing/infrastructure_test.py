@@ -5,10 +5,10 @@ Infrastructure test script - consolidated from test_deploy.py
 Simple test script to validate infrastructure setup without heavy dependencies
 """
 
-import os
 import json
+import os
 from pathlib import Path
-from typing import List, Tuple, Callable
+from typing import Callable, List, Tuple
 
 
 class InfrastructureValidator:

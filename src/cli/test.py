@@ -3,13 +3,14 @@
 Testing CLI commands.
 """
 
-import click
-import sys
 import json
+import sys
 from pathlib import Path
 
-from testing import SmokeTestRunner, TestResult
+import click
+
 from config import get_project_config
+from testing import SmokeTestRunner, TestResult
 
 
 @click.group()
@@ -184,7 +185,7 @@ def validate(project, environment):
                     f"  ⚠️  Node.js: {node_version} (expected {config.node_version})"
                 )
                 validation_passed = False
-        except:
+        except Exception:
             click.echo(f"  ❌ Node.js: Not found")
             validation_passed = False
 
@@ -201,11 +202,11 @@ def validate(project, environment):
 
         # AWS CLI
         try:
-            result = subprocess.run(
-                ["aws", "--version"], capture_output=True, text=True
+            subprocess.run(
+                ["aws", "--version"], capture_output=True, text=True, check=True
             )
             click.echo(f"  ✅ AWS CLI: Installed")
-        except:
+        except Exception:
             click.echo(f"  ⚠️  AWS CLI: Not found (optional)")
 
         # Check AWS credentials

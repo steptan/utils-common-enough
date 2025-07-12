@@ -5,8 +5,12 @@ from fraud-or-not, media-register, and people-cards projects.
 """
 
 import json
-from typing import Dict, Any, List, Optional
-from config import ProjectConfig
+from typing import Any, Dict, List, Optional
+
+try:
+    from config import ProjectConfig
+except ImportError:
+    ProjectConfig = None
 
 
 class UnifiedPolicyGenerator:
@@ -29,10 +33,10 @@ class UnifiedPolicyGenerator:
         Returns:
             Complete IAM policy document
         """
-        policy = {"Version": "2012-10-17", "Statement": []}
+        policy: Dict[str, Any] = {"Version": "2012-10-17", "Statement": []}
 
         # CloudFormation permissions - comprehensive set
-        cf_resources = []
+        cf_resources: List[str] = []
         for project in projects:
             cf_resources.extend(
                 [
@@ -74,7 +78,7 @@ class UnifiedPolicyGenerator:
         )
 
         # S3 permissions - comprehensive set including all discovered permissions
-        s3_resources = []
+        s3_resources: List[str] = []
         for project in projects:
             s3_resources.extend(
                 [f"arn:aws:s3:::{project}-*", f"arn:aws:s3:::{project}-*/*"]
@@ -157,7 +161,7 @@ class UnifiedPolicyGenerator:
         )
 
         # Lambda permissions - comprehensive set
-        lambda_resources = []
+        lambda_resources: List[str] = []
         for project in projects:
             lambda_resources.append(
                 f"arn:aws:lambda:{self.config.aws_region}:{account_id}:function:{project}-*"
@@ -206,7 +210,7 @@ class UnifiedPolicyGenerator:
         )
 
         # IAM permissions
-        iam_resources = []
+        iam_resources: List[str] = []
         for project in projects:
             iam_resources.extend(
                 [
@@ -249,7 +253,7 @@ class UnifiedPolicyGenerator:
         )
 
         # DynamoDB permissions - comprehensive set
-        dynamodb_resources = []
+        dynamodb_resources: List[str] = []
         for project in projects:
             dynamodb_resources.extend(
                 [
@@ -511,7 +515,7 @@ class UnifiedPolicyGenerator:
         )
 
         # SSM Parameter Store permissions
-        ssm_resources = []
+        ssm_resources: List[str] = []
         for project in projects:
             ssm_resources.append(
                 f"arn:aws:ssm:{self.config.aws_region}:{account_id}:parameter/{project}/*"
@@ -624,7 +628,7 @@ class UnifiedPolicyGenerator:
 
     def generate_lambda_execution_policy(self, projects: List[str]) -> Dict[str, Any]:
         """Generate Lambda execution role policy for all projects."""
-        policy = {
+        policy: Dict[str, Any] = {
             "Version": "2012-10-17",
             "Statement": [
                 {
@@ -656,7 +660,7 @@ class UnifiedPolicyGenerator:
             )
 
         # Add DynamoDB permissions for all projects
-        dynamodb_resources = []
+        dynamodb_resources: List[str] = []
         for project in projects:
             dynamodb_resources.append(
                 f"arn:aws:dynamodb:{self.config.aws_region}:*:table/{project}-*"
@@ -680,7 +684,7 @@ class UnifiedPolicyGenerator:
         )
 
         # Add S3 permissions for all projects
-        s3_resources = []
+        s3_resources: List[str] = []
         for project in projects:
             s3_resources.extend(
                 [f"arn:aws:s3:::{project}-*", f"arn:aws:s3:::{project}-*/*"]

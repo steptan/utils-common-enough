@@ -2,8 +2,9 @@
 Tests for CloudFormation stack management functionality.
 """
 
+from unittest.mock import MagicMock, Mock, call, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock, call
 from botocore.exceptions import ClientError
 
 from cloudformation.stack_manager import StackManager

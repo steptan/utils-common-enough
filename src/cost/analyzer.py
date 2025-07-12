@@ -1,9 +1,9 @@
 """Cost analysis for AWS resources."""
 
 import json
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
 from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
 from botocore.exceptions import ClientError

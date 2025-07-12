@@ -10,12 +10,14 @@ This L3 pattern creates a complete serverless API infrastructure with:
 """
 
 import json
-from troposphere import Template, Output, Ref, GetAtt, Sub, Export
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from troposphere import Export, GetAtt, Output, Ref, Sub, Template
+
 from constructs import (
-    NetworkConstruct,
-    CostOptimizedNetworkConstruct,
     ComputeConstruct,
+    CostOptimizedNetworkConstruct,
+    NetworkConstruct,
     StorageConstruct,
 )
 

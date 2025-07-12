@@ -2,12 +2,13 @@
 
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 import boto3
 from botocore.exceptions import ClientError
 
 from config import ProjectConfig
+
 from .analyzer import CostAnalyzer
 
 
@@ -113,7 +114,7 @@ class CostMonitor:
                 ],
             )
 
-            print(f"✅ Budget alert created successfully")
+            print("✅ Budget alert created successfully")
             return {
                 "budget_name": budget_name,
                 "amount": budget_amount,
@@ -176,7 +177,7 @@ class CostMonitor:
                 TreatMissingData="notBreaching",
             )
 
-            print(f"✅ Anomaly detector created")
+            print("✅ Anomaly detector created")
             return {
                 "alarm_name": alarm_name,
                 "threshold": threshold_percentage,
@@ -186,7 +187,7 @@ class CostMonitor:
 
         except ClientError as e:
             if e.response["Error"]["Code"] == "ResourceAlreadyExists":
-                print(f"⚠️  Anomaly detector already exists")
+                print("⚠️  Anomaly detector already exists")
                 return {
                     "alarm_name": alarm_name,
                     "threshold": threshold_percentage,

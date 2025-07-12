@@ -2,15 +2,19 @@
 CloudFormation stack management operations.
 """
 
-import time
 import sys
-from typing import Dict, Any, Optional, List
+import time
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import boto3
 from botocore.exceptions import ClientError
 
-from config import ProjectConfig, get_project_config
+try:
+    from config import ProjectConfig, get_project_config
+except ImportError:
+    ProjectConfig = None
+    get_project_config = None
 
 
 class StackManager:
@@ -42,7 +46,7 @@ class StackManager:
         try:
             response = self.cloudformation.describe_stacks(StackName=stack_name)
             if response["Stacks"]:
-                return response["Stacks"][0]["StackStatus"]
+                return str(response["Stacks"][0]["StackStatus"])
         except ClientError as e:
             if "does not exist" in str(e):
                 return None
@@ -51,7 +55,7 @@ class StackManager:
 
     def diagnose_stack_failure(self, stack_name: str) -> Dict[str, Any]:
         """Diagnose stack failure and return detailed information."""
-        diagnosis = {
+        diagnosis: Dict[str, Any] = {
             "stack_name": stack_name,
             "status": None,
             "failed_resources": [],
@@ -201,7 +205,7 @@ class StackManager:
                 # For ROLLBACK_FAILED, we can continue the rollback
                 print("Attempting to continue rollback...")
 
-                params = {"StackName": stack_name}
+                params: Dict[str, Any] = {"StackName": stack_name}
                 if skip_resources:
                     params["ResourcesToSkip"] = skip_resources
 
@@ -642,7 +646,7 @@ class StackManager:
             "Other": [],
         }
 
-        categorized = {cat: {} for cat in categories}
+        categorized: Dict[str, Dict[str, Any]] = {cat: {} for cat in categories}
 
         # Categorize outputs
         for key, value in outputs.items():
@@ -721,7 +725,7 @@ class StackManager:
             if "StackPolicyBody" in response:
                 import json
 
-                return json.loads(response["StackPolicyBody"])
+                return dict(json.loads(response["StackPolicyBody"]))
         except Exception:
             pass
 

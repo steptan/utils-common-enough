@@ -9,21 +9,25 @@ This L3 pattern creates a complete static website infrastructure with:
 """
 
 import json
+from typing import Any, Dict, List, Optional
+
 from troposphere import (
-    Template,
+    Condition,
+    Equals,
+    Export,
+    GetAtt,
+    If,
+    Join,
+    Not,
     Output,
     Ref,
-    GetAtt,
     Sub,
-    Export,
-    Join,
-    If,
-    Equals,
-    Not,
-    Condition,
+    Template,
+    cloudfront,
+    iam,
+    route53,
+    s3,
 )
-from troposphere import s3, cloudfront, route53, iam
-from typing import Dict, List, Any, Optional
 
 
 class StaticWebsitePattern:

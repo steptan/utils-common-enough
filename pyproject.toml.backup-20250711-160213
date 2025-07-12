@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-utils"
+version = "1.0.0"
+description = "Shared utilities for fraud-or-not, media-register, and people-cards projects"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Project Team", email = "team@example.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "boto3>=1.28.0",
+    "botocore>=1.31.0",
+    "pyyaml>=6.0",
+    "click>=8.1.0",
+    "troposphere>=4.4.0",
+    "requests>=2.31.0",
+    "colorama>=0.2.5,<0.4.4",  # Match sceptre requirement
+    "tabulate>=0.9.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+project-utils = "cli.__main__:cli"
+project-deploy = "cli.deploy:main"
+project-lambda = "cli.lambda_cmd:main"
+project-test = "cli.test:main"
+project-cfn = "cli.cloudformation:main"
+project-db = "cli.database:main"
+project-dynamodb = "cli.dynamodb:dynamodb"
+project-git = "cli.git:main"
+media-register-deploy = "cli.deploy_media_register:main"
+git-submodule-setup = "scripts.git_submodules:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "black>=23.7.0",
+    "isort>=5.12.0",
+    "mypy>=1.5.0",
+    "flake8>=6.1.0",
+    "moto>=4.2.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+project_utils = ["templates/*.yaml", "templates/*.json"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "--cov=project_utils --cov-report=html --cov-report=term"

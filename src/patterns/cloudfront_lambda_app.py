@@ -1,16 +1,16 @@
 """CloudFront + Lambda application pattern."""
 
-from typing import Dict, Any, Optional
-from troposphere import Template, Ref, GetAtt, Output, Export, Sub, Join
-from troposphere import cloudformation
 import json
 import os
+from typing import Any, Dict, Optional
+
+from troposphere import Export, GetAtt, Join, Output, Ref, Sub, Template, cloudformation
 
 from config import ProjectConfig
-from constructs.network import NetworkConstruct
 from constructs.compute import ComputeConstruct
-from constructs.storage import StorageConstruct
 from constructs.distribution import DistributionConstruct
+from constructs.network import NetworkConstruct
+from constructs.storage import StorageConstruct
 
 
 class CloudFrontLambdaAppPattern:

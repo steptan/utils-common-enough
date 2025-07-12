@@ -5,16 +5,17 @@ Consolidates permission management into a single, user-centric approach.
 """
 
 import json
-import boto3
-import click
-from typing import Dict, Any, Optional, List
 import sys
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import boto3
+import click
 
 # Add parent directory to path to import from src
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import get_project_config, ConfigManager, ProjectConfig
+from config import ConfigManager, ProjectConfig, get_project_config
 
 
 class PolicyGenerator:

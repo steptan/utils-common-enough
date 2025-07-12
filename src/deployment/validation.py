@@ -1,15 +1,16 @@
 """Pre-deployment validation checks."""
 
-import os
 import json
+import logging
+import os
 import subprocess
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 import boto3
 from botocore.exceptions import ClientError
-import logging
 
 logger = logging.getLogger(__name__)
 

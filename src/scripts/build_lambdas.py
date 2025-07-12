@@ -5,11 +5,11 @@ Build Lambda functions - Python replacement for scripts/build-lambdas.sh
 Builds TypeScript Lambda functions and creates deployment packages.
 """
 
-import sys
+import argparse
 import os
 import shutil
+import sys
 import zipfile
-import argparse
 from pathlib import Path
 
 # Add parent directory to path
