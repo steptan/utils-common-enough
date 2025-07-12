@@ -2,9 +2,20 @@
 
 ## Overview
 
+<<<<<<< HEAD
 This document describes the unified IAM permission system that provides all permissions required by the media-register project.
+=======
+This document describes the unified IAM permission system that provides a superset of all permissions required by the three projects: fraud-or-not, media-register, and people-cards. The system consolidates all IAM permission management into a single, user-centric approach, replacing the need for multiple scripts and providing a cleaner interface for managing permissions across projects.
+>>>>>>> 489ac89c83ce8b93df96fa009f6c582146ba8a05
 
 ## Key Features
+
+- **Single script per user**: Manage all permissions for a user in one place
+- **Multi-project support**: A single user can have permissions for multiple projects
+- **Automatic project detection**: Detects which projects a user needs based on naming conventions
+- **Categorized policies**: Split permissions into smaller, focused policies by function
+- **Policy size optimization**: Uses wildcards and categories to stay within AWS limits
+- **Cleanup capabilities**: Removes old project-specific policies when updating
 
 ### 1. Comprehensive Permission Set
 
@@ -14,7 +25,19 @@ The unified permissions include all necessary permissions, ensuring that:
 - Resources are properly scoped using project name prefixes
 - No operations are limited by missing permissions
 
-### 2. Permission Categories
+### 2. Categorized Policy Structure
+
+The system creates 5 separate policies per user, grouped by function to stay within AWS policy size limits:
+
+- **infrastructure-policy**: CloudFormation, IAM, SSM (≈1KB)
+- **compute-policy**: Lambda, API Gateway, Cognito (≈600B)
+- **storage-policy**: S3, DynamoDB (≈600B)
+- **networking-policy**: VPC, CloudFront, WAF (≈500B)
+- **monitoring-policy**: CloudWatch, X-Ray (≈200B)
+
+Total: ≈3KB across 5 policies (well within AWS limits)
+
+### 3. Permission Categories
 
 #### CloudFormation
 
@@ -64,7 +87,7 @@ The unified permissions include all necessary permissions, ensuring that:
 - **SSM**: Parameter Store access
 - **ElasticTranscoder**: Media processing (for media-register)
 
-### 3. Project-Specific Resources
+### 4. Project-Specific Resources
 
 Resources are scoped by project name to maintain isolation:
 
@@ -73,7 +96,7 @@ Resources are scoped by project name to maintain isolation:
 arn:aws:service:region:account:resource/{project-name}-*
 ```
 
-### 4. Cross-Project Permissions
+### 5. Cross-Project Permissions
 
 Common permissions that the project needs:
 
@@ -83,9 +106,65 @@ Common permissions that the project needs:
 - `s3:ListAllMyBuckets`
 - `tag:*` operations
 
+## User Naming Conventions
+
+The script automatically detects project associations based on user naming:
+
+- `project-cicd`: Legacy user with access to all projects
+- `{project}-cicd`: Project-specific CI/CD user (e.g., `fraud-or-not-cicd`)
+- Other users: Projects detected from existing policies
+
 ## Usage
 
-### Apply Unified Permissions
+### Using the unified_user_permissions.py Script
+
+#### Update permissions for a specific user
+
+```bash
+# Auto-detect projects based on user naming
+python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
+
+# Explicitly specify projects
+python src/scripts/unified_user_permissions.py update --user project-cicd --projects fraud-or-not --projects media-register
+```
+
+#### Show current permissions for a user
+
+```bash
+python src/scripts/unified_user_permissions.py show --user fraud-or-not-cicd
+```
+
+This will display:
+- All inline policies
+- Projects covered by each policy
+- Permission categories (S3, Lambda, DynamoDB, etc.)
+
+#### List all users with project permissions
+
+```bash
+python src/scripts/unified_user_permissions.py list-users
+```
+
+#### Update all users at once
+
+```bash
+python src/scripts/unified_user_permissions.py update-all
+```
+
+#### Generate policy JSON without applying
+
+```bash
+# Generate policy for a specific category (required)
+python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --category infrastructure
+
+# Save to file
+python src/scripts/unified_user_permissions.py generate --user project-cicd --projects fraud-or-not --category storage --output policy.json
+
+# Available categories: infrastructure, compute, storage, networking, monitoring
+# Note: The --category parameter is required
+```
+
+### Apply Unified Permissions (Alternative Script)
 
 ```bash
 # Apply to a specific user for specific projects
@@ -161,9 +240,38 @@ The unified permissions were created by:
 5. **CloudWatch Logs tagging**: `logs:TagResource` permission
 6. **Media-specific permissions**: ElasticTranscoder for media-register
 
+## Benefits of the Unified Approach
+
+1. **Simplification**: One script to manage all user permissions instead of multiple scripts
+2. **Consistency**: All users managed the same way regardless of project
+3. **Efficiency**: Categorized policies per user instead of multiple project-specific policies
+4. **Maintainability**: Easier to update permissions as requirements change
+5. **Visibility**: Clear commands to see what permissions each user has
+
 ## Migration Guide
 
 To migrate from project-specific policies to unified permissions:
+
+### Using unified_user_permissions.py (Recommended)
+
+1. **Run list-users to see current state**:
+   ```bash
+   python src/scripts/unified_user_permissions.py list-users
+   ```
+
+2. **Run update-all to migrate all users to unified policies**:
+   ```bash
+   python src/scripts/unified_user_permissions.py update-all
+   ```
+
+3. **Verify with show for each critical user**:
+   ```bash
+   python src/scripts/unified_user_permissions.py show --user <username>
+   ```
+
+4. **Remove old scripts once migration is verified**
+
+### Using apply_unified_permissions.py (Alternative)
 
 1. **Backup current policies** (optional):
 
@@ -190,11 +298,17 @@ AWS has a 6KB limit for inline policies. The unified policy is optimized to stay
 - Using wildcards where appropriate
 - Grouping related permissions
 - Avoiding redundant statements
+- **Splitting into 5 categorized policies** (infrastructure, compute, storage, networking, monitoring)
 
-If you encounter size issues:
+The categorized approach ensures each policy stays well under the 6KB limit:
+- Total size across all 5 policies: ≈3KB
+- Each category is focused and manageable
+- Easier to debug and maintain
 
-1. Consider using managed policies instead
-2. Split permissions across multiple policies
+If you still encounter size issues:
+
+1. Review the categorization to ensure proper distribution
+2. Consider using managed policies for very large permission sets
 3. Use more specific resource ARNs to reduce statement count
 
 ### Missing Permissions
@@ -218,6 +332,30 @@ The policy supports different regions through the `--region` parameter. Ensure:
 2. **Regular Reviews**: Periodically review and audit permissions
 3. **Resource Scoping**: Always use project name prefixes in resource ARNs
 4. **Avoid Wildcards**: Use specific resource ARNs where possible
+
+## Examples
+
+### Example 1: CI/CD user for single project
+
+```bash
+python src/scripts/unified_user_permissions.py update --user fraud-or-not-cicd
+```
+
+### Example 2: Shared CI/CD user for multiple projects
+
+```bash
+python src/scripts/unified_user_permissions.py update \
+  --user project-cicd \
+  --projects fraud-or-not \
+  --projects media-register \
+  --projects people-cards
+```
+
+### Example 3: Check what a user can access
+
+```bash
+python src/scripts/unified_user_permissions.py show --user project-cicd
+```
 
 ## Future Enhancements
 

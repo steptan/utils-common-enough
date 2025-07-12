@@ -8,7 +8,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 Project-utils provides shared utilities for the media-register AWS-based application.
 
+<<<<<<< HEAD
 This consolidates common AWS infrastructure patterns, deployment automation, IAM management, operational utilities, CI/CD monitoring, security auditing, and cost optimization for the project.
+=======
+* fraud-or-not: Fraud detection application
+* media-register: Media registration system
+* people-cards: People cards management system
+* etc
+
+This consolidates common AWS infrastructure patterns, deployment automation, IAM management, operational utilities, CI/CD monitoring, security auditing, and cost optimization across all three projects.
+>>>>>>> 489ac89c83ce8b93df96fa009f6c582146ba8a05
 
 ### Architecture
 

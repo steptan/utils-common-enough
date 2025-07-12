@@ -64,8 +64,8 @@ class MediaRegisterDeployment:
             return False
 
         # Check TypeScript Lambda build
-        lambda_ts_path = self.project_root / "src" / "lambda-ts"
-        if not lambda_ts_path.exists():
+        lambda_path = self.project_root / "src" / "lambda"
+        if not lambda_path.exists():
             print("❌ TypeScript Lambda functions not found")
             return False
 
@@ -77,13 +77,13 @@ class MediaRegisterDeployment:
         """Build TypeScript Lambda functions."""
         print("\n🔨 Building Lambda functions...")
 
-        lambda_ts_path = self.project_root / "src" / "lambda-ts"
+        lambda_path = self.project_root / "src" / "lambda"
 
         try:
             # Install dependencies
             print("📦 Installing Lambda dependencies...")
             result = subprocess.run(
-                ["npm", "install"], cwd=lambda_ts_path, capture_output=True, text=True
+                ["npm", "install"], cwd=lambda_path, capture_output=True, text=True
             )
             if result.returncode != 0:
                 print(f"❌ Failed to install dependencies: {result.stderr}")
@@ -93,7 +93,7 @@ class MediaRegisterDeployment:
             print("🏗️ Compiling TypeScript...")
             result = subprocess.run(
                 ["npm", "run", "build:lambdas"],
-                cwd=lambda_ts_path,
+                cwd=lambda_path,
                 capture_output=True,
                 text=True,
             )
@@ -298,7 +298,7 @@ class MediaRegisterDeployment:
         """Deploy Lambda function code."""
         print("\n📦 Deploying Lambda function code...")
 
-        packages_dir = self.project_root / "src" / "lambda-ts" / "packages"
+        packages_dir = self.project_root / "src" / "lambda" / "packages"
 
         if not packages_dir.exists():
             print("❌ Lambda packages directory not found")
