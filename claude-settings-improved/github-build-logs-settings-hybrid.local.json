@@ -1,0 +1,105 @@
+{
+  "permissions": {
+    "allow": [
+      "// GitHub CLI - Essential for CI/CD monitoring",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh run download:*)",
+      "Bash(gh workflow:*)",
+      "Bash(gh api:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh issue:*)",
+      
+      "// Git Operations - Limited to necessary operations",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git config --get:*)",
+      "Bash(git remote:*)",
+      
+      "// Claude CLI - For auto-fix functionality",
+      "Bash(claude code:*)",
+      
+      "// JSON Processing",
+      "Bash(jq:*)",
+      
+      "// File Operations - Read-only focus",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(find ./logs:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      
+      "// File Write - Limited to logs directory",
+      "Bash(mkdir -p ./logs/*)",
+      "Bash(touch ./logs/*)",
+      "Bash(tee ./logs/*)",
+      "Bash(rm ./logs/*.log)",
+      "Bash(rm ./claude-response.txt)",
+      
+      "// Script execution",
+      "Bash(./github-actions-output-claude-auto-fix.sh:*)",
+      "Bash(bash ./github-actions-output-claude-auto-fix.sh:*)",
+      
+      "// Environment and process info",
+      "Bash(env | grep REPO)",
+      "Bash(env | grep SLEEP_BETWEEN)",
+      "Bash(env | grep NO_DANGEROUS)",
+      "Bash(which:*)",
+      "Bash(type:*)",
+      
+      "// Sleep for monitoring loops",
+      "Bash(sleep:*)",
+      
+      "// Split for log chunking",
+      "Bash(split -b * ./logs/*)"
+    ],
+    "deny": [
+      "// System modifications",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~/*)",
+      "Bash(rm -rf ../*)",
+      "Bash(sudo:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      
+      "// Package managers",
+      "Bash(brew:*)",
+      "Bash(apt-get:*)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)",
+      
+      "// Sensitive files",
+      "Bash(*:~/.aws/*)",
+      "Bash(*:~/.ssh/*)",
+      "Bash(*:.env)",
+      "Bash(*:*/.git/config)",
+      
+      "// Git write operations",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(git clean:*)",
+      
+      "// Network operations",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      
+      "// Code execution",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      
+      "// AWS operations",
+      "Bash(aws:*)"
+    ]
+  }
+}
