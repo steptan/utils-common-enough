@@ -1,12 +1,12 @@
 """Node.js Lambda function builder."""
 
-import os
-import subprocess
-import shutil
 import json
-from pathlib import Path
-from typing import List, Optional, Dict, Any
 import logging
+import os
+import shutil
+import subprocess
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -229,12 +229,12 @@ class NodeJSBuilder:
         for ext in [".js", ".mjs", ".ts"]:
             handler_file = lambda_path / f"index{ext}"
             if handler_file.exists():
-                info["handler"] = f"index.handler"
+                info["handler"] = "index.handler"
                 break
 
             handler_file = lambda_path / f"handler{ext}"
             if handler_file.exists():
-                info["handler"] = f"handler.handler"
+                info["handler"] = "handler.handler"
                 break
 
         return info

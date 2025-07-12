@@ -6,10 +6,10 @@ Validates configuration files against the JSON schema and performs
 additional logical validations.
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from .config_manager import ConfigManager
 

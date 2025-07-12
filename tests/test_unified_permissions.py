@@ -4,21 +4,22 @@ Tests for unified user permissions management script.
 """
 
 import json
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from click.testing import CliRunner
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+from click.testing import CliRunner
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from config import ProjectConfig
 from scripts.unified_user_permissions import (
-    UnifiedPermissionManager,
     PolicyGenerator,
+    UnifiedPermissionManager,
     cli,
 )
-from config import ProjectConfig
 
 
 class TestPolicyGenerator:

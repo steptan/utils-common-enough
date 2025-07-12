@@ -2,11 +2,12 @@
 """Git submodule management commands."""
 
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
+
 import click
-from colorama import init, Fore, Style
+from colorama import Fore, Style, init
 
 # Initialize colorama for cross-platform colored output
 init()
@@ -27,10 +28,10 @@ echo "Checking submodules..."
 if [ -f .gitmodules ]; then
     # Get list of submodules
     submodules=$(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
-    
+
     for submodule in $submodules; do
         echo "Checking submodule: $submodule"
-        
+
         # Check if submodule has uncommitted changes
         cd "$submodule" 2>/dev/null
         if [ $? -eq 0 ]; then
@@ -42,12 +43,12 @@ if [ -f .gitmodules ]; then
                 cd - > /dev/null
                 exit 1
             fi
-            
+
             # Check if submodule has unpushed commits
             if [ -n "$(git log @{u}.. 2>/dev/null)" ]; then
                 echo -e "${YELLOW}Warning: Submodule '$submodule' has unpushed commits${NC}"
                 echo "Attempting to push submodule changes..."
-                
+
                 # Try to push submodule
                 git push
                 if [ $? -ne 0 ]; then
@@ -60,11 +61,11 @@ if [ -f .gitmodules ]; then
                 fi
                 echo -e "${GREEN}Successfully pushed submodule '$submodule'${NC}"
             fi
-            
+
             cd - > /dev/null
         fi
     done
-    
+
     # Update submodule references in parent repo if needed
     if ! git diff-index --quiet HEAD -- $submodules; then
         echo -e "${YELLOW}Submodule references have changed, updating parent repository${NC}"

@@ -1,12 +1,13 @@
 """Configuration file validation."""
 
+import logging
 import os
 import sys
-import yaml
-import jsonschema
-import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
+import jsonschema
+import yaml
 
 logger = logging.getLogger(__name__)
 

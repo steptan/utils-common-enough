@@ -2,11 +2,12 @@
 Infrastructure deployment using CloudFormation.
 """
 
-import os
 import json
-import yaml
+import os
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
+from typing import Any, Dict, Optional, Union
+
+import yaml
 
 from .base_deployer import BaseDeployer, DeploymentResult, DeploymentStatus
 

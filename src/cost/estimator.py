@@ -1,9 +1,10 @@
 """Pre-deployment cost estimation for AWS resources."""
 
-from typing import Dict, List, Any, Optional, Tuple
+import json
 from dataclasses import dataclass
 from enum import Enum
-import json
+from typing import Any, Dict, List, Optional, Tuple
+
 import boto3
 from botocore.exceptions import ClientError
 
@@ -120,7 +121,7 @@ class CostEstimator:
         # Initialize pricing client if available
         try:
             self.pricing_client = boto3.client("pricing", region_name="us-east-1")
-        except:
+        except Exception:
             self.pricing_client = None
 
     def estimate_stack_cost(

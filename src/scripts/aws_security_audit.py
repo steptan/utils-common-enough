@@ -5,19 +5,21 @@ AWS Security Audit Script - Python replacement for scripts/aws-security-audit.sh
 Performs comprehensive security audit of AWS environment and credentials.
 """
 
-import sys
-import os
-import json
 import argparse
-from pathlib import Path
+import json
+import os
+import sys
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from security.aws_security import AWSSecurityValidator, CredentialRotationChecker
 import boto3
 from botocore.exceptions import ClientError
+
+from security.aws_security import AWSSecurityValidator, CredentialRotationChecker
 
 
 class AWSSecurityAuditor:
@@ -26,7 +28,7 @@ class AWSSecurityAuditor:
     def __init__(self, region: str = "us-west-1"):
         self.region = region
         self.validator = AWSSecurityValidator()
-        self.results = {
+        self.results: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "passed": [],
             "warnings": [],
@@ -442,7 +444,7 @@ class AWSSecurityAuditor:
         return "\n".join(report)
 
 
-def main():
+def main() -> None:
     """Main audit function"""
     parser = argparse.ArgumentParser(description="Comprehensive AWS security audit")
     parser.add_argument(

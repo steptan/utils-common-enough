@@ -4,13 +4,13 @@ Deploy Media Register application stack to AWS.
 This script orchestrates the deployment of all infrastructure and application components.
 """
 
-import os
-import sys
-import json
-import subprocess
 import argparse
-from typing import Dict, List, Optional
+import json
+import os
+import subprocess
+import sys
 from pathlib import Path
+from typing import Dict, List, Optional
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

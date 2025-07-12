@@ -2,20 +2,24 @@
 Compute constructs for Lambda, API Gateway, and compute resources.
 """
 
+from typing import Any, Dict, List, Optional
+
 from troposphere import (
-    Template,
-    Output,
-    Ref,
-    GetAtt,
-    Tags,
-    Sub,
-    Parameter,
     Export,
+    GetAtt,
     ImportValue,
     Join,
+    Output,
+    Parameter,
+    Ref,
+    Sub,
+    Tags,
+    Template,
+    apigateway,
+    awslambda,
+    iam,
+    logs,
 )
-from troposphere import awslambda, apigateway, iam, logs
-from typing import Dict, List, Any, Optional
 
 
 class ComputeConstruct:

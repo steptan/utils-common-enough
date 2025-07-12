@@ -3,16 +3,17 @@
 Deployment CLI commands.
 """
 
-import click
 import sys
 from pathlib import Path
 
+import click
+
+from config import get_project_config
 from deployment import (
-    InfrastructureDeployer,
     CDKInfrastructureDeployer,
     FrontendDeployer,
+    InfrastructureDeployer,
 )
-from config import get_project_config
 
 
 @click.group()

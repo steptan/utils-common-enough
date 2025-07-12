@@ -5,9 +5,9 @@ Get Cognito configuration - Python replacement for scripts/get-cognito-config.sh
 Retrieves Cognito configuration from CloudFormation outputs.
 """
 
-import sys
-import json
 import argparse
+import json
+import sys
 from pathlib import Path
 
 # Add parent directory to path

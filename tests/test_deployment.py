@@ -2,16 +2,17 @@
 Comprehensive tests for deployment commands and infrastructure deployment.
 """
 
-import pytest
 import json
-import yaml
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call, mock_open
+from unittest.mock import MagicMock, Mock, call, mock_open, patch
+
+import pytest
+import yaml
 from botocore.exceptions import ClientError
 
-from deployment.infrastructure import InfrastructureDeployer
-from deployment.base_deployer import BaseDeployer, DeploymentResult, DeploymentStatus
 from config import ProjectConfig
+from deployment.base_deployer import BaseDeployer, DeploymentResult, DeploymentStatus
+from deployment.infrastructure import InfrastructureDeployer
 
 
 class TestInfrastructureDeployer:

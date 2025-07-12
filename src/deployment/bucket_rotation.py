@@ -3,11 +3,12 @@ S3 bucket rotation management for Lambda deployments.
 Implements a rotating bucket pattern to avoid deletion conflicts.
 """
 
-import re
-import boto3
-from typing import Optional, Tuple, List, Dict
-from botocore.exceptions import ClientError
 import logging
+import re
+from typing import Dict, List, Optional, Tuple
+
+import boto3
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 

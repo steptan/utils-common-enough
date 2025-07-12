@@ -1,12 +1,12 @@
 """TypeScript compiler for Lambda functions."""
 
-import os
-import subprocess
 import json
-import shutil
-from pathlib import Path
-from typing import Optional, Dict, Any, List
 import logging
+import os
+import shutil
+import subprocess
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

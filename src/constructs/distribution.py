@@ -3,20 +3,23 @@ L2 Distribution Construct for People Cards Infrastructure
 Provides CloudFront distribution with S3 origin and API Gateway integration
 """
 
+from typing import Any, Dict, List
+
 from troposphere import (
-    Template,
-    Output,
-    Ref,
-    GetAtt,
-    Tags,
-    Sub,
-    Parameter,
     Export,
+    GetAtt,
     ImportValue,
     Join,
+    Output,
+    Parameter,
+    Ref,
+    Sub,
+    Tags,
+    Template,
+    cloudfront,
+    iam,
+    s3,
 )
-from troposphere import cloudfront, s3, iam
-from typing import Dict, List, Any
 
 
 class DistributionConstruct:

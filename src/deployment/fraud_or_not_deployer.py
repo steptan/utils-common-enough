@@ -4,23 +4,25 @@ Fraud-or-Not specific deployment implementation.
 This consolidates the deployment logic from the main project's deploy.py
 """
 
+import json
 import os
 import sys
-import json
-import yaml
-from pathlib import Path
-from typing import Dict, Any, Optional
-import boto3
 import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import boto3
+import yaml
+
+from cloudformation.stack_manager import StackManager
 
 from .infrastructure import InfrastructureDeployer
-from cloudformation.stack_manager import StackManager
 
 
 class FraudOrNotDeployer(InfrastructureDeployer):
     """Deploy Fraud-or-Not infrastructure with L2 constructs."""
 
-    def __init__(self, environment: str = "dev", **kwargs):
+    def __init__(self, environment: str = "dev", **kwargs: Any) -> None:
         """Initialize Fraud-or-Not deployer."""
         # Get project root (3 levels up from this file)
         project_root = Path(__file__).parent.parent.parent.parent
@@ -41,7 +43,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
             )
 
         with open(base_config_path, "r") as f:
-            config = yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
 
         # Load environment-specific config
         env_config_path = (
@@ -49,7 +51,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
         )
         if env_config_path.exists():
             with open(env_config_path, "r") as f:
-                env_config = yaml.safe_load(f)
+                env_config = yaml.safe_load(f) or {}
 
             # Deep merge configs
             config = self.deep_merge(config, env_config)
@@ -79,7 +81,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
         """Apply environment-specific configuration."""
 
         # Replace {env} placeholders
-        def replace_env(obj):
+        def replace_env(obj: Any) -> Any:
             if isinstance(obj, str):
                 return obj.replace("{env}", self.environment)
             elif isinstance(obj, dict):
@@ -91,19 +93,19 @@ class FraudOrNotDeployer(InfrastructureDeployer):
         for key in config:
             config[key] = replace_env(config[key])
 
-    def generate_template(self) -> Dict[str, Any]:
+    def generate_template(self) -> str:
         """Generate CloudFormation template using L2 constructs."""
         # Import constructs
         sys.path.insert(0, str(self.project_root))
 
-        from constructs.storage import StorageConstruct
-        from constructs.network import NetworkConstruct
-        from constructs.compute import ComputeConstruct
         from constructs.api_gateway import APIGatewayConstruct
+        from constructs.compute import ComputeConstruct
         from constructs.distribution import DistributionConstruct
+        from constructs.network import NetworkConstruct
+        from constructs.storage import StorageConstruct
 
         # Initialize template
-        template = {
+        template: Dict[str, Any] = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Description": f"Fraud-or-Not Infrastructure - {self.environment}",
             "Parameters": {},
@@ -151,7 +153,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
             self.logger.error(f"Error generating template: {e}")
             raise
 
-        return template
+        return json.dumps(template, indent=2)
 
     def deploy(self, dry_run: bool = False, auto_approve: bool = False) -> bool:
         """Deploy the infrastructure."""
@@ -169,7 +171,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
         template_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(template_path, "w") as f:
-            json.dump(template, f, indent=2)
+            f.write(template)
         self.logger.info(f"Template saved to {template_path}")
 
         if dry_run:

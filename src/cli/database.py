@@ -3,7 +3,6 @@
 Database management CLI commands.
 """
 
-import click
 import sys
 import json
 import boto3
@@ -11,8 +10,10 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from database import DataSeeder, SeedData, PeopleCardsSeeder
+import click
+
 from config import get_project_config
+from database import DataSeeder, PeopleCardsSeeder, SeedData
 
 
 @click.group()
