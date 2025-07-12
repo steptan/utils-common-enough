@@ -4,8 +4,6 @@ This directory contains configuration files for each project managed by the util
 
 ## Configuration Files
 
-- `fraud-or-not.yaml` - Configuration for the Fraud or Not project
-- `media-register.yaml` - Configuration for the Media Register project
 - `people-cards.yaml` - Configuration for the People Cards project
 
 ## Configuration Structure

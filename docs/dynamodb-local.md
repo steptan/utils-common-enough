@@ -1,6 +1,6 @@
 # DynamoDB Local Setup Guide
 
-This guide explains how to use the unified DynamoDB local setup for all projects.
+This guide explains how to use the unified DynamoDB local setup for the project.
 
 ## Overview
 
@@ -18,12 +18,6 @@ pip install -e .
 ### 2. Start DynamoDB Local for a project
 
 ```bash
-# Start DynamoDB for fraud-or-not
-project-dynamodb start --project fraud-or-not
-
-# Start DynamoDB for media-register
-project-dynamodb start --project media-register
-
 # Start DynamoDB for people-cards
 project-dynamodb start --project people-cards
 ```
@@ -116,10 +110,10 @@ When running tests with ACT, ensure DynamoDB Local is running:
 
 ```bash
 # Terminal 1: Start DynamoDB
-project-dynamodb start --project fraud-or-not
+project-dynamodb start --project people-cards
 
 # Terminal 2: Run tests with ACT
-cd fraud-or-not
+cd people-cards
 act -j test
 ```
 
@@ -160,7 +154,7 @@ If port 8000 is already in use:
 
 ```bash
 # Use a different port
-project-dynamodb start --project fraud-or-not --port 8002
+project-dynamodb start --project people-cards --port 8002
 
 # Or find and kill the process using port 8000
 lsof -i :8000
@@ -181,7 +175,7 @@ sudo systemctl start docker
 
 ```bash
 # Clean start (removes existing containers)
-project-dynamodb start --project fraud-or-not --clean
+project-dynamodb start --project people-cards --clean
 ```
 
 ### Table Already Exists
@@ -203,9 +197,7 @@ To add a new table or modify existing configuration:
 Each project uses its own container names, so you can run multiple projects:
 
 ```bash
-# Start all projects (use different terminals or background mode)
-project-dynamodb start --project fraud-or-not
-project-dynamodb start --project media-register --port 8002 --admin-port 8003
+# Start the project
 project-dynamodb start --project people-cards --port 8004 --admin-port 8005
 ```
 

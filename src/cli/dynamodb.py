@@ -293,6 +293,120 @@ networks:
     click.echo(f"✅ Generated {compose_file}")
 
 
+@dynamodb.command()
+@click.option("--project", required=True, help="Project name")
+@click.option("--environment", "-e", default="dev", help="Environment (dev/staging/prod)")
+@click.option("--local/--aws", default=False, help="Create on local DynamoDB or AWS")
+@click.option("--port", help="Override DynamoDB port for local")
+@click.option("--profile", help="AWS profile to use for AWS deployment")
+def ensure_tables(project: str, environment: str, local: bool, port: Optional[int], profile: Optional[str]):
+    """Ensure DynamoDB tables exist for a project."""
+    config = get_project_config(project)
+    
+    # Table definitions for people-cards project
+    if project == "people-cards":
+        tables = {
+            f'people-cards-poi-{environment}': {
+                'AttributeDefinitions': [
+                    {'AttributeName': 'id', 'AttributeType': 'S'}
+                ],
+                'KeySchema': [
+                    {'AttributeName': 'id', 'KeyType': 'HASH'}
+                ],
+                'BillingMode': 'PAY_PER_REQUEST'
+            },
+            f'people-cards-actions-{environment}': {
+                'AttributeDefinitions': [
+                    {'AttributeName': 'id', 'AttributeType': 'S'},
+                    {'AttributeName': 'poiId', 'AttributeType': 'S'}
+                ],
+                'KeySchema': [
+                    {'AttributeName': 'id', 'KeyType': 'HASH'}
+                ],
+                'GlobalSecondaryIndexes': [
+                    {
+                        'IndexName': 'poiId-index',
+                        'KeySchema': [
+                            {'AttributeName': 'poiId', 'KeyType': 'HASH'}
+                        ],
+                        'Projection': {'ProjectionType': 'ALL'}
+                    }
+                ],
+                'BillingMode': 'PAY_PER_REQUEST'
+            },
+            f'people-cards-vote-comments-{environment}': {
+                'AttributeDefinitions': [
+                    {'AttributeName': 'id', 'AttributeType': 'S'},
+                    {'AttributeName': 'actionId', 'AttributeType': 'S'}
+                ],
+                'KeySchema': [
+                    {'AttributeName': 'id', 'KeyType': 'HASH'}
+                ],
+                'GlobalSecondaryIndexes': [
+                    {
+                        'IndexName': 'actionId-index',
+                        'KeySchema': [
+                            {'AttributeName': 'actionId', 'KeyType': 'HASH'}
+                        ],
+                        'Projection': {'ProjectionType': 'ALL'}
+                    }
+                ],
+                'BillingMode': 'PAY_PER_REQUEST'
+            }
+        }
+    else:
+        click.echo(f"❌ Table definitions not found for project: {project}")
+        click.echo("   Please add table definitions in utils or project config")
+        return
+    
+    # Setup DynamoDB client
+    if local:
+        port = port or config.get("dynamodb", {}).get("local_port", 8000)
+        dynamodb = boto3.client(
+            "dynamodb",
+            endpoint_url=f"http://localhost:{port}",
+            region_name="us-west-1",
+            aws_access_key_id="local",
+            aws_secret_access_key="local"
+        )
+        click.echo(f"🔧 Creating tables on local DynamoDB (port {port})...")
+    else:
+        # Use AWS
+        session_args = {"region_name": config.get("aws_region", "us-west-1")}
+        if profile:
+            session_args["profile_name"] = profile
+        
+        session = boto3.Session(**session_args)
+        dynamodb = session.client("dynamodb")
+        click.echo(f"☁️  Creating tables on AWS ({environment} environment)...")
+    
+    # Create each table
+    for table_name, table_config in tables.items():
+        try:
+            # Check if table exists
+            dynamodb.describe_table(TableName=table_name)
+            click.echo(f"✓ Table {table_name} already exists")
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                # Create table
+                click.echo(f"📋 Creating table {table_name}...")
+                try:
+                    dynamodb.create_table(TableName=table_name, **table_config)
+                    
+                    # Wait for table to be created
+                    if not local:
+                        waiter = dynamodb.get_waiter('table_exists')
+                        waiter.wait(TableName=table_name)
+                    
+                    click.echo(f"✅ Created table {table_name}")
+                except ClientError as create_error:
+                    click.echo(f"❌ Failed to create table {table_name}: {create_error}")
+            else:
+                click.echo(f"❌ Error checking table {table_name}: {e}")
+    
+    click.echo("✨ All tables ensured successfully!")
+
+
 def wait_for_dynamodb(port: int, timeout: int = 30) -> bool:
     """Wait for DynamoDB to be ready."""
     dynamodb = boto3.client(

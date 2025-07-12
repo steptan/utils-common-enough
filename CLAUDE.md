@@ -6,14 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ### Purpose
 
-Project-utils provides shared utilities for multiple AWS-based applications:
+Project-utils provides shared utilities for the people-cards AWS-based application.
 
-- fraud-or-not: Fraud detection application
-- media-register: Media registration system
-- people-cards: People cards management system
-- etc
-
-This consolidates common AWS infrastructure patterns, deployment automation, IAM management, operational utilities, CI/CD monitoring, security auditing, and cost optimization across all three projects.
+This consolidates common AWS infrastructure patterns, deployment automation, IAM management, operational utilities, CI/CD monitoring, security auditing, and cost optimization for the project.
 
 ### Architecture
 

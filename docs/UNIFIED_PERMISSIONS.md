@@ -2,17 +2,17 @@
 
 ## Overview
 
-This document describes the unified IAM permission system that provides a superset of all permissions required by the three projects: fraud-or-not, media-register, and people-cards.
+This document describes the unified IAM permission system that provides comprehensive permissions required by the people-cards project.
 
 ## Key Features
 
 ### 1. Comprehensive Permission Set
 
-The unified permissions include all unique permissions discovered across all three projects, ensuring that:
+The unified permissions include all necessary permissions for the project, ensuring that:
 
-- Each project has access to all tools and operations available in any other project
-- Project-specific resources are properly scoped using project name prefixes
-- No project is limited by missing permissions that another project has
+- The project has access to all required tools and operations
+- Resources are properly scoped using project name prefixes
+- No operations are limited by missing permissions
 
 ### 2. Permission Categories
 
@@ -28,7 +28,6 @@ The unified permissions include all unique permissions discovered across all thr
 - Advanced features:
   - Lifecycle configuration management
   - Ownership controls
-  - Legal hold and retention (for media-register)
   - Logging and notifications
   - Encryption and versioning
   - CORS and website configuration
@@ -62,20 +61,19 @@ The unified permissions include all unique permissions discovered across all thr
 - **CloudWatch**: Logs and alarms with tagging support
 - **WAF**: Web ACL management (when enabled)
 - **SSM**: Parameter Store access
-- **ElasticTranscoder**: Media processing (for media-register)
 
 ### 3. Project-Specific Resources
 
 Resources are scoped by project name to maintain isolation:
 
 ```
-{project-name}-*  # For most resources
-arn:aws:service:region:account:resource/{project-name}-*
+people-cards-*  # For most resources
+arn:aws:service:region:account:resource/people-cards-*
 ```
 
-### 4. Cross-Project Permissions
+### 4. Core Permissions
 
-Common permissions that all projects need:
+Common permissions that the project needs:
 
 - `sts:GetCallerIdentity`
 - `iam:GetUser`
@@ -88,140 +86,100 @@ Common permissions that all projects need:
 ### Apply Unified Permissions
 
 ```bash
-# Apply to a specific user for specific projects
+# Apply to the project CI/CD user
 python /Users/sj/projects/utils/scripts/apply_unified_permissions.py apply \
-  --user fraud-or-not-cicd \
-  --projects fraud-or-not \
+  --user people-cards-cicd \
+  --projects people-cards \
   --region us-east-1
 
-# Apply to a user with access to multiple projects
-python /Users/sj/projects/utils/scripts/apply_unified_permissions.py apply \
-  --user project-cicd \
-  --projects fraud-or-not media-register people-cards \
-  --region us-east-1
+# Generate permission policy as JSON
+python /Users/sj/projects/utils/scripts/apply_unified_permissions.py generate \
+  --user people-cards-cicd \
+  --projects people-cards \
+  --output people-cards-policy.json
 
-# Dry run to see what would be applied
-python /Users/sj/projects/utils/scripts/apply_unified_permissions.py apply \
-  --user media-register-cicd \
-  --projects media-register \
+# Validate permissions after applying
+python /Users/sj/projects/utils/scripts/apply_unified_permissions.py validate \
+  --user people-cards-cicd \
   --dry-run
-
-# Apply to all common CI/CD users
-python /Users/sj/projects/utils/scripts/apply_unified_permissions.py apply-common
 ```
 
-### View Unified Policy
+### Use Unified User Permissions Script
+
+The newer unified user permissions script creates categorized policies:
 
 ```bash
-# Show the policy that would be generated
-python /Users/sj/projects/utils/scripts/apply_unified_permissions.py show \
-  --projects fraud-or-not media-register people-cards
+# Update permissions (creates 5 categorized policies)
+python src/scripts/unified_user_permissions.py update \
+  --user people-cards-cicd \
+  --projects people-cards
 
-# Export policy to a file
-python /Users/sj/projects/utils/scripts/apply_unified_permissions.py export \
-  --projects fraud-or-not \
-  --output fraud-or-not-policy.json
+# Show current permissions
+python src/scripts/unified_user_permissions.py show \
+  --user people-cards-cicd
+
+# Generate specific category policy
+python src/scripts/unified_user_permissions.py generate \
+  --user people-cards-cicd \
+  --projects people-cards \
+  --category infrastructure
 ```
 
-### Check Current Permissions
+## Permission Categories (5-Policy Approach)
 
-```bash
-# Check what permissions a user currently has
-python /Users/sj/projects/utils/scripts/apply_unified_permissions.py check \
-  --user fraud-or-not-cicd
-```
+To work within AWS policy size limits, permissions are split into 5 categories:
 
-## Implementation Details
+1. **Infrastructure**: CloudFormation, VPC, networking
+2. **Compute**: Lambda, API Gateway, Step Functions
+3. **Storage**: S3, DynamoDB, EFS
+4. **Networking**: CloudFront, Route53, WAF
+5. **Monitoring**: CloudWatch, X-Ray, SNS, SQS
 
-### UnifiedPolicyGenerator Class
+## Best Practices
 
-Located in `/Users/sj/projects/utils/src/iam/unified_permissions.py`
-
-Key methods:
-
-- `generate_unified_cicd_policy()`: Creates the complete policy with all permissions
-- `generate_project_specific_resources()`: Generates resource ARNs for a specific project
-- `generate_lambda_execution_policy()`: Creates Lambda execution role policy
-
-### Permission Discovery Process
-
-The unified permissions were created by:
-
-1. Analyzing the existing permissions in all three projects
-2. Identifying unique permissions in each project
-3. Including additional permissions discovered during troubleshooting (e.g., from people-cards)
-4. Adding commonly needed permissions that were missing
-
-### Key Differences from Individual Project Policies
-
-1. **Comprehensive S3 permissions**: Includes lifecycle, ownership controls, legal hold
-2. **Extended Lambda permissions**: Includes layer management
-3. **Full DynamoDB backup support**: On-demand and continuous backups
-4. **Complete VPC permissions**: All networking operations for Lambda in VPC
-5. **CloudWatch Logs tagging**: `logs:TagResource` permission
-6. **Media-specific permissions**: ElasticTranscoder for media-register
-
-## Migration Guide
-
-To migrate from project-specific policies to unified permissions:
-
-1. **Backup current policies** (optional):
-
-   ```bash
-   aws iam get-user-policy --user-name YOUR-USER --policy-name CURRENT-POLICY > backup-policy.json
-   ```
-
-2. **Apply unified permissions**:
-
-   ```bash
-   python apply_unified_permissions.py apply --user YOUR-USER --projects YOUR-PROJECTS
-   ```
-
-3. **Remove old policies** (the script will prompt you):
-   - The script automatically detects old policies
-   - You'll be asked to confirm removal
+1. **Least Privilege**: Only grant permissions that are actually needed
+2. **Resource Scoping**: Always scope resources by project name
+3. **Regular Audits**: Review permissions quarterly
+4. **Version Control**: Track all permission changes in git
 
 ## Troubleshooting
 
-### Policy Size Limits
+### Common Issues
 
-AWS has a 6KB limit for inline policies. The unified policy is optimized to stay under this limit by:
+1. **Policy Size Limit**: Use the 5-policy approach to stay within AWS limits
+2. **Missing Permissions**: Check CloudTrail logs to identify required permissions
+3. **Resource Not Found**: Ensure proper project name prefix in resource ARNs
 
-- Using wildcards where appropriate
-- Grouping related permissions
-- Avoiding redundant statements
+### Debugging Commands
 
-If you encounter size issues:
+```bash
+# Check effective permissions
+aws iam simulate-principal-policy \
+  --policy-source-arn arn:aws:iam::123456789012:user/people-cards-cicd \
+  --action-names s3:GetObject \
+  --resource-arns arn:aws:s3:::people-cards-*/*
 
-1. Consider using managed policies instead
-2. Split permissions across multiple policies
-3. Use more specific resource ARNs to reduce statement count
+# List attached policies
+aws iam list-attached-user-policies --user-name people-cards-cicd
 
-### Missing Permissions
+# Get policy details
+aws iam get-policy-version \
+  --policy-arn arn:aws:iam::123456789012:policy/people-cards-cicd-infrastructure \
+  --version-id v1
+```
 
-If you discover a missing permission:
+## Security Considerations
 
-1. Add it to the `UnifiedPolicyGenerator` class
-2. Document why it's needed
-3. Test with all affected projects
+1. **MFA**: Enable MFA for all CI/CD users
+2. **Key Rotation**: Rotate access keys every 90 days
+3. **Audit Logs**: Enable CloudTrail for all API calls
+4. **Policy Reviews**: Regular reviews of granted permissions
 
-### Regional Considerations
+## Migration from Legacy Permissions
 
-The policy supports different regions through the `--region` parameter. Ensure:
+If migrating from project-specific permissions:
 
-- CloudFront resources use `us-east-1` for global resources
-- Other resources use the appropriate regional ARNs
-
-## Security Best Practices
-
-1. **Principle of Least Privilege**: While this is a superset, users should only get projects they need
-2. **Regular Reviews**: Periodically review and audit permissions
-3. **Resource Scoping**: Always use project name prefixes in resource ARNs
-4. **Avoid Wildcards**: Use specific resource ARNs where possible
-
-## Future Enhancements
-
-1. **Automated Permission Discovery**: Tool to analyze CloudTrail and suggest needed permissions
-2. **Policy Validation**: Automated testing of policies against actual usage
-3. **Granular Permission Sets**: Role-based permissions (dev, staging, prod)
-4. **Policy Templates**: Reusable templates for common scenarios
+1. Back up existing policies
+2. Apply unified permissions
+3. Test all CI/CD workflows
+4. Remove old policies after validation

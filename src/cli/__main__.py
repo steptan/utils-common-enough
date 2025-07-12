@@ -41,6 +41,12 @@ try:
     from .setup import SetupWizard
 except ImportError:
     SetupWizard = None
+
+# Import dynamodb commands
+try:
+    from .dynamodb import dynamodb as dynamodb_commands
+except ImportError:
+    dynamodb_commands = None
     
 try:
     from deployment.validation import PreDeploymentValidator
@@ -90,6 +96,8 @@ if db_commands:
     cli.add_command(db_commands, name='database')
 if test_commands:
     cli.add_command(test_commands, name='test')
+if dynamodb_commands:
+    cli.add_command(dynamodb_commands, name='dynamodb')
 
 
 # New commands
@@ -518,6 +526,117 @@ def generate_security_html_report(report):
     </body>
     </html>
     """
+
+
+@cli.group()
+def people_cards():
+    """People Cards project specific commands."""
+    pass
+
+
+@people_cards.command()
+@click.option('--venv/--no-venv', default=True, help='Create virtual environment')
+@click.option('--git-submodules/--no-git-submodules', default=True, help='Setup git submodules')
+@click.option('--npm/--no-npm', default=True, help='Install npm dependencies')
+@click.option('--python-version', default='3.11', help='Python version to use')
+def setup_dev(venv, git_submodules, npm, python_version):
+    """Set up development environment for people-cards project."""
+    import subprocess
+    import platform
+    from pathlib import Path
+    
+    project_root = Path.cwd()
+    
+    click.echo("🚀 People Cards Development Environment Setup")
+    click.echo("=" * 50)
+    
+    # Check Python version
+    import sys
+    version = sys.version_info
+    click.echo(f"Python version: {version.major}.{version.minor}.{version.micro}")
+    
+    if version.major < 3 or (version.major == 3 and version.minor < 11):
+        click.echo("❌ Python 3.11 or higher is required")
+        sys.exit(1)
+    
+    click.echo("✅ Python version is compatible")
+    
+    # Setup git submodules
+    if git_submodules:
+        click.echo("\n📦 Setting up git submodules...")
+        try:
+            subprocess.run(["git", "submodule", "update", "--init", "--recursive"], check=True)
+            click.echo("✅ Git submodules initialized")
+        except subprocess.CalledProcessError:
+            click.echo("⚠️  Git submodules setup failed, continuing anyway...")
+    
+    # Create virtual environment
+    if venv:
+        venv_path = project_root / "venv"
+        
+        if venv_path.exists():
+            response = click.confirm("Virtual environment already exists. Recreate it?", default=False)
+            if response:
+                click.echo("Removing existing virtual environment...")
+                if platform.system() == "Windows":
+                    subprocess.run("rmdir /s /q venv", shell=True, check=False)
+                else:
+                    subprocess.run("rm -rf venv", shell=True, check=False)
+            else:
+                click.echo("Using existing virtual environment")
+                venv = False
+        
+        if venv:
+            click.echo("\n📦 Creating virtual environment...")
+            subprocess.run([sys.executable, "-m", "venv", "venv"], check=True)
+            click.echo("✅ Virtual environment created")
+            
+            # Install Python dependencies
+            click.echo("\n📦 Installing Python dependencies...")
+            if platform.system() == "Windows":
+                pip = "venv\\Scripts\\pip"
+            else:
+                pip = "venv/bin/pip"
+            
+            subprocess.run([pip, "install", "--upgrade", "pip"], check=True)
+            
+            if (project_root / "requirements.txt").exists():
+                subprocess.run([pip, "install", "-r", "requirements.txt"], check=True)
+                click.echo("✅ Python dependencies installed")
+            
+            # Install utils package
+            if (project_root / "utils" / "setup.py").exists():
+                subprocess.run([pip, "install", "-e", "utils/"], check=True)
+                click.echo("✅ Utils package installed")
+    
+    # Install npm dependencies
+    if npm and (project_root / "package.json").exists():
+        click.echo("\n📦 Installing npm dependencies...")
+        try:
+            subprocess.run(["npm", "install"], check=True)
+            click.echo("✅ npm dependencies installed")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            click.echo("⚠️  npm install failed - make sure Node.js is installed")
+    
+    # Success message
+    click.echo("\n" + "=" * 50)
+    click.echo("✨ Development environment setup complete!")
+    click.echo("\nNext steps:")
+    
+    if venv:
+        if platform.system() == "Windows":
+            click.echo("1. Activate the virtual environment:")
+            click.echo("   venv\\Scripts\\activate")
+        else:
+            click.echo("1. Activate the virtual environment:")
+            click.echo("   source venv/bin/activate")
+    
+    click.echo("\n2. Configure AWS credentials:")
+    click.echo("   utils-cli iam setup-credentials --project people-cards")
+    click.echo("\n3. Create DynamoDB tables:")
+    click.echo("   utils-cli dynamodb ensure-tables --project people-cards --environment dev")
+    click.echo("\n4. Start development:")
+    click.echo("   npm run dev")
 
 
 if __name__ == '__main__':
