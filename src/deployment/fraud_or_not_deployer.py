@@ -29,8 +29,8 @@ class FraudOrNotDeployer(InfrastructureDeployer):
 
         super().__init__(project_name="fraud-or-not", environment=environment, **kwargs)
 
-        self.project_root = project_root
-        self.config = self.load_config()
+        self.project_root: Path = project_root
+        self.config: Dict[str, Any] = self.load_config()
 
     def load_config(self) -> Dict[str, Any]:
         """Load and merge configuration for the specified environment."""
@@ -43,7 +43,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
             )
 
         with open(base_config_path, "r") as f:
-            config = yaml.safe_load(f) or {}
+            config: Dict[str, Any] = yaml.safe_load(f) or {}
 
         # Load environment-specific config
         env_config_path = (
@@ -51,7 +51,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
         )
         if env_config_path.exists():
             with open(env_config_path, "r") as f:
-                env_config = yaml.safe_load(f) or {}
+                env_config: Dict[str, Any] = yaml.safe_load(f) or {}
 
             # Deep merge configs
             config = self.deep_merge(config, env_config)
@@ -61,9 +61,9 @@ class FraudOrNotDeployer(InfrastructureDeployer):
 
         return config
 
-    def deep_merge(self, base: Dict, override: Dict) -> Dict:
+    def deep_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """Deep merge two dictionaries."""
-        result = base.copy()
+        result: Dict[str, Any] = base.copy()
         for key, value in override.items():
             if key == "extends":
                 continue
@@ -184,7 +184,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
 
         try:
             # Check if stack exists
-            existing_stack = stack_manager.describe_stack(stack_name)
+            existing_stack: Optional[Dict[str, Any]] = stack_manager.describe_stack(stack_name)
 
             if existing_stack:
                 if not auto_approve:
@@ -199,7 +199,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
                 self.logger.info(f"Updating stack {stack_name}")
                 stack_manager.update_stack(
                     stack_name=stack_name,
-                    template_body=json.dumps(template),
+                    template_body=template,
                     tags=self.tags,
                     capabilities=["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"],
                 )
@@ -208,7 +208,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
                 self.logger.info(f"Creating stack {stack_name}")
                 stack_manager.create_stack(
                     stack_name=stack_name,
-                    template_body=json.dumps(template),
+                    template_body=template,
                     tags=self.tags,
                     capabilities=["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"],
                 )
@@ -218,7 +218,7 @@ class FraudOrNotDeployer(InfrastructureDeployer):
             stack_manager.wait_for_stack(stack_name)
 
             # Get outputs
-            final_stack = stack_manager.describe_stack(stack_name)
+            final_stack: Optional[Dict[str, Any]] = stack_manager.describe_stack(stack_name)
             if final_stack and "Outputs" in final_stack:
                 self.logger.info("\nStack Outputs:")
                 for output in final_stack["Outputs"]:

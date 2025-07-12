@@ -37,7 +37,7 @@ class SecurityIssue:
 class SecurityAuditor:
     """Perform security audits on AWS resources."""
 
-    def __init__(self, project_name: str, environment: str, region: str = "us-east-1"):
+    def __init__(self, project_name: str, environment: str, region: str = "us-east-1") -> None:
         """Initialize the security auditor.
 
         Args:
@@ -67,7 +67,7 @@ class SecurityAuditor:
         Returns:
             List of security issues found
         """
-        issues = []
+        issues: List[SecurityIssue] = []
 
         logger.info(f"Starting security audit for {self.stack_name}")
 
@@ -106,7 +106,7 @@ class SecurityAuditor:
         Returns:
             Dictionary of resources grouped by type
         """
-        resources = {}
+        resources: Dict[str, List[Dict[str, Any]]] = {}
 
         try:
             paginator = self.cf_client.get_paginator("list_stack_resources")
@@ -134,7 +134,7 @@ class SecurityAuditor:
         Returns:
             List of S3 security issues
         """
-        issues = []
+        issues: List[SecurityIssue] = []
         buckets = resources.get("AWS::S3::Bucket", [])
 
         for bucket_resource in buckets:
@@ -142,7 +142,7 @@ class SecurityAuditor:
 
             # Check bucket encryption
             try:
-                encryption = self.s3_client.get_bucket_encryption(Bucket=bucket_name)
+                encryption: Dict[str, Any] = self.s3_client.get_bucket_encryption(Bucket=bucket_name)
             except (
                 self.s3_client.exceptions.ServerSideEncryptionConfigurationNotFoundError
             ):
@@ -159,7 +159,7 @@ class SecurityAuditor:
 
             # Check bucket versioning
             try:
-                versioning = self.s3_client.get_bucket_versioning(Bucket=bucket_name)
+                versioning: Dict[str, Any] = self.s3_client.get_bucket_versioning(Bucket=bucket_name)
                 if versioning.get("Status") != "Enabled":
                     issues.append(
                         SecurityIssue(
@@ -176,7 +176,7 @@ class SecurityAuditor:
 
             # Check public access block
             try:
-                public_block = self.s3_client.get_public_access_block(
+                public_block: Dict[str, Any] = self.s3_client.get_public_access_block(
                     Bucket=bucket_name
                 )
                 config = public_block["PublicAccessBlockConfiguration"]
@@ -213,7 +213,7 @@ class SecurityAuditor:
 
             # Check bucket logging
             try:
-                logging_config = self.s3_client.get_bucket_logging(Bucket=bucket_name)
+                logging_config: Dict[str, Any] = self.s3_client.get_bucket_logging(Bucket=bucket_name)
                 if "LoggingEnabled" not in logging_config:
                     issues.append(
                         SecurityIssue(
@@ -241,15 +241,15 @@ class SecurityAuditor:
         Returns:
             List of Lambda security issues
         """
-        issues = []
-        functions = resources.get("AWS::Lambda::Function", [])
+        issues: List[SecurityIssue] = []
+        functions: List[Dict[str, Any]] = resources.get("AWS::Lambda::Function", [])
 
         for func_resource in functions:
             func_name = func_resource["PhysicalResourceId"]
 
             try:
                 # Get function configuration
-                func_config = self.lambda_client.get_function_configuration(
+                func_config: Dict[str, Any] = self.lambda_client.get_function_configuration(
                     FunctionName=func_name
                 )
 
@@ -328,8 +328,8 @@ class SecurityAuditor:
         Returns:
             List of IAM security issues
         """
-        issues = []
-        roles = resources.get("AWS::IAM::Role", [])
+        issues: List[SecurityIssue] = []
+        roles: List[Dict[str, Any]] = resources.get("AWS::IAM::Role", [])
 
         for role_resource in roles:
             role_name = role_resource["PhysicalResourceId"]
@@ -339,7 +339,7 @@ class SecurityAuditor:
                 role = self.iam_client.get_role(RoleName=role_name)["Role"]
 
                 # Check trust policy
-                trust_policy = json.loads(role["AssumeRolePolicyDocument"])
+                trust_policy: Dict[str, Any] = json.loads(role["AssumeRolePolicyDocument"])
                 for statement in trust_policy.get("Statement", []):
                     # Check for overly permissive trust
                     principal = statement.get("Principal", {})
@@ -356,7 +356,7 @@ class SecurityAuditor:
                         )
 
                 # Get attached policies
-                attached_policies = self.iam_client.list_attached_role_policies(
+                attached_policies: List[Dict[str, Any]] = self.iam_client.list_attached_role_policies(
                     RoleName=role_name
                 )["AttachedPolicies"]
 
@@ -375,12 +375,12 @@ class SecurityAuditor:
                         )
 
                 # Get inline policies
-                inline_policies = self.iam_client.list_role_policies(
+                inline_policies: List[str] = self.iam_client.list_role_policies(
                     RoleName=role_name
                 )["PolicyNames"]
 
                 for policy_name in inline_policies:
-                    policy_doc = self.iam_client.get_role_policy(
+                    policy_doc: Dict[str, Any] = self.iam_client.get_role_policy(
                         RoleName=role_name, PolicyName=policy_name
                     )["PolicyDocument"]
 
@@ -420,15 +420,15 @@ class SecurityAuditor:
         Returns:
             List of API Gateway security issues
         """
-        issues = []
-        apis = resources.get("AWS::ApiGateway::RestApi", [])
+        issues: List[SecurityIssue] = []
+        apis: List[Dict[str, Any]] = resources.get("AWS::ApiGateway::RestApi", [])
 
         for api_resource in apis:
             api_id = api_resource["PhysicalResourceId"]
 
             try:
                 # Get API details
-                api = self.apigateway_client.get_rest_api(restApiId=api_id)
+                api: Dict[str, Any] = self.apigateway_client.get_rest_api(restApiId=api_id)
 
                 # Check if API requires API key
                 if not api.get("apiKeySource"):
@@ -444,7 +444,7 @@ class SecurityAuditor:
                     )
 
                 # Check for request validation
-                validators = self.apigateway_client.get_request_validators(
+                validators: List[Dict[str, Any]] = self.apigateway_client.get_request_validators(
                     restApiId=api_id
                 ).get("items", [])
 
@@ -461,7 +461,7 @@ class SecurityAuditor:
                     )
 
                 # Check for throttling
-                stages = self.apigateway_client.get_stages(restApiId=api_id).get(
+                stages: List[Dict[str, Any]] = self.apigateway_client.get_stages(restApiId=api_id).get(
                     "item", []
                 )
                 for stage in stages:
@@ -493,15 +493,15 @@ class SecurityAuditor:
         Returns:
             List of DynamoDB security issues
         """
-        issues = []
-        tables = resources.get("AWS::DynamoDB::Table", [])
+        issues: List[SecurityIssue] = []
+        tables: List[Dict[str, Any]] = resources.get("AWS::DynamoDB::Table", [])
 
         for table_resource in tables:
             table_name = table_resource["PhysicalResourceId"]
 
             try:
                 # Get table details
-                table = self.dynamodb_client.describe_table(TableName=table_name)[
+                table: Dict[str, Any] = self.dynamodb_client.describe_table(TableName=table_name)[
                     "Table"
                 ]
 
@@ -521,7 +521,7 @@ class SecurityAuditor:
 
                 # Check point-in-time recovery
                 try:
-                    pitr = self.dynamodb_client.describe_continuous_backups(
+                    pitr: Dict[str, Any] = self.dynamodb_client.describe_continuous_backups(
                         TableName=table_name
                     )["ContinuousBackupsDescription"]
 
@@ -560,19 +560,19 @@ class SecurityAuditor:
         Returns:
             List of CloudFront security issues
         """
-        issues = []
-        distributions = resources.get("AWS::CloudFront::Distribution", [])
+        issues: List[SecurityIssue] = []
+        distributions: List[Dict[str, Any]] = resources.get("AWS::CloudFront::Distribution", [])
 
         for dist_resource in distributions:
             dist_id = dist_resource["PhysicalResourceId"]
 
             try:
                 # Get distribution config
-                dist = self.cloudfront_client.get_distribution(Id=dist_id)
-                config = dist["Distribution"]["DistributionConfig"]
+                dist: Dict[str, Any] = self.cloudfront_client.get_distribution(Id=dist_id)
+                config: Dict[str, Any] = dist["Distribution"]["DistributionConfig"]
 
                 # Check if using HTTPS only
-                viewer_protocol = config.get("DefaultCacheBehavior", {}).get(
+                viewer_protocol: Optional[str] = config.get("DefaultCacheBehavior", {}).get(
                     "ViewerProtocolPolicy"
                 )
                 if (
@@ -632,7 +632,7 @@ class SecurityAuditor:
         Returns:
             List of encryption-related issues
         """
-        issues = []
+        issues: List[SecurityIssue] = []
 
         # This is a meta-audit that checks encryption patterns
         # Individual resource audits already check encryption, but this provides overview
@@ -650,7 +650,7 @@ class SecurityAuditor:
         Returns:
             List of logging-related issues
         """
-        issues = []
+        issues: List[SecurityIssue] = []
 
         # Check if CloudTrail is configured for the stack
         # This would require additional CloudTrail client and checks
@@ -668,7 +668,7 @@ class SecurityAuditor:
         Returns:
             List of public access issues
         """
-        issues = []
+        issues: List[SecurityIssue] = []
 
         # This checks for any resources that might be publicly accessible
         # S3 buckets are already checked in audit_s3_buckets

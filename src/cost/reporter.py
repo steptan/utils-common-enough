@@ -14,7 +14,7 @@ from .monitor import CostMonitor
 class CostReporter:
     """Generate cost reports for projects."""
 
-    def __init__(self, config: ProjectConfig, aws_profile: Optional[str] = None):
+    def __init__(self, config: ProjectConfig, aws_profile: Optional[str] = None) -> None:
         """
         Initialize cost reporter.
 

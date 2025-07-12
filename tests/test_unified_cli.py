@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from typing import Any, Dict, List, Optional, Union
+
 # Script path
 SCRIPT_PATH = (
     Path(__file__).parent.parent / "src" / "scripts" / "unified_user_permissions.py"

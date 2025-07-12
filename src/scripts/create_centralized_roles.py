@@ -21,7 +21,7 @@ from config import get_project_config
 class CentralizedRoleManager:
     """Manage centralized IAM roles for all projects."""
 
-    def __init__(self, profile: Optional[str] = None):
+    def __init__(self, profile: Optional[str] = None) -> None:
         """Initialize with optional AWS profile."""
         if profile:
             session = boto3.Session(profile_name=profile)
@@ -282,7 +282,7 @@ class CentralizedRoleManager:
 
     def create_all_roles(self, environment: str = "dev") -> Dict[str, str]:
         """Create all centralized roles for all projects."""
-        roles = {}
+        roles: Dict[str, Any] = {}
 
         # Fraud-or-not roles
         print("\n🔧 Creating fraud-or-not roles...")
@@ -325,7 +325,7 @@ class CentralizedRoleManager:
         return roles
 
 
-def main():
+def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(
         description="Create centralized IAM roles for all projects"

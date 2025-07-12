@@ -8,6 +8,7 @@ from pathlib import Path
 
 import click
 from colorama import Fore, Style, init
+from typing import List, Any
 
 # Initialize colorama for cross-platform colored output
 init()
@@ -77,7 +78,7 @@ exit 0
 """
 
 
-def run_command(cmd, cwd=None, check=True):
+def run_command(cmd, cwd=None, check=True) -> None:
     """Run a shell command and return the result."""
     try:
         result = subprocess.run(
@@ -92,7 +93,7 @@ def run_command(cmd, cwd=None, check=True):
         )
 
 
-def setup_pre_push_hook():
+def setup_pre_push_hook() -> None:
     """Set up the pre-push git hook."""
     hook_path = Path(".git/hooks/pre-push")
     hook_path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,7 +107,7 @@ def setup_pre_push_hook():
     return hook_path
 
 
-def setup_git_aliases():
+def setup_git_aliases() -> None:
     """Set up useful git aliases for submodule management."""
     aliases = {
         "pushall": '!f() { echo "Checking for submodule changes..."; git submodule foreach "git add -A && git diff-index --quiet HEAD -- || git commit -m \\"Auto-commit from parent repo\\" && git push || true"; echo "Committing parent repository..."; git add -A && git commit -m "$1" && git push; }; f',
@@ -121,7 +122,7 @@ def setup_git_aliases():
     return aliases.keys()
 
 
-def configure_submodule(submodule_name, branch="master", update_method="merge"):
+def configure_submodule(submodule_name, branch="master", update_method="merge") -> None:
     """Configure a specific submodule."""
     run_command(
         f"git config --file .gitmodules submodule.{submodule_name}.branch {branch}"
@@ -131,7 +132,7 @@ def configure_submodule(submodule_name, branch="master", update_method="merge"):
     )
 
 
-def get_submodules():
+def get_submodules() -> None:
     """Get list of submodules in the repository."""
     ret, stdout, _ = run_command(
         "git config --file .gitmodules --get-regexp path", check=False
@@ -139,7 +140,7 @@ def get_submodules():
     if ret != 0:
         return []
 
-    submodules = []
+    submodules: List[Any] = []
     for line in stdout.splitlines():
         if line.strip():
             # Format: submodule.name.path value
@@ -151,14 +152,14 @@ def get_submodules():
 
 
 @click.group()
-def main():
+def main() -> None:
     """Git submodule management commands."""
     pass
 
 
 @main.command()
 @click.option("--force", is_flag=True, help="Overwrite existing hooks and aliases")
-def submodules_setup(force):
+def submodules_setup(force) -> None:
     """Set up git submodule configuration, hooks, and aliases."""
     print(f"{Fore.CYAN}Setting up git submodule configuration...{Style.RESET_ALL}")
 
@@ -207,7 +208,7 @@ def submodules_setup(force):
 
 
 @main.command()
-def status():
+def status() -> None:
     """Show status of repository and all submodules."""
     # Show main repo status
     print(f"{Fore.CYAN}=== Main Repository ==={Style.RESET_ALL}")
@@ -228,7 +229,7 @@ def status():
 
 @main.command()
 @click.argument("message", required=False)
-def pushall(message):
+def pushall(message) -> None:
     """Commit and push changes in repository and all submodules."""
     if not message:
         message = click.prompt("Commit message")
@@ -279,7 +280,7 @@ def pushall(message):
 
 
 @main.command()
-def pullall():
+def pullall() -> None:
     """Pull changes for repository and update all submodules."""
     print(f"{Fore.CYAN}Pulling parent repository...{Style.RESET_ALL}")
     ret, stdout, stderr = run_command("git pull", check=False)

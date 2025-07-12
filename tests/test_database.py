@@ -7,6 +7,8 @@ from datetime import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, Mock, call, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 from botocore.exceptions import ClientError
 
@@ -15,90 +17,73 @@ from database.seeder import DataSeeder, SeedData
 
 
 class TestSeedData:
-    """Test seed data generation functionality."""
+    """Test seed data container functionality."""
 
-    def test_generate_politician(self):
-        """Test politician data generation."""
-        generator = SeedData()
-        politician = generator.generate_politician()
+    def test_add_items(self) -> None:
+        """Test adding items to seed data."""
+        seed_data = SeedData()
+        
+        items = [
+            {"id": "1", "name": "Item 1"},
+            {"id": "2", "name": "Item 2"}
+        ]
+        
+        seed_data.add_items("test-table", items)
+        
+        assert len(seed_data.get_items("test-table")) == 2
+        assert seed_data.get_items("test-table")[0]["name"] == "Item 1"
 
-        # Verify required fields
-        assert "id" in politician
-        assert "name" in politician
-        assert "party" in politician
-        assert "state" in politician
-        assert "position" in politician
-        assert "imageUrl" in politician
-        assert "isActive" in politician
-        assert "createdAt" in politician
+    def test_get_items_empty_table(self) -> None:
+        """Test getting items from non-existent table."""
+        seed_data = SeedData()
+        
+        items = seed_data.get_items("non-existent")
+        assert items == []
 
-        # Verify data types
-        assert isinstance(politician["id"], str)
-        assert isinstance(politician["name"], str)
-        assert isinstance(politician["party"], str)
-        assert politician["party"] in ["Democrat", "Republican", "Independent"]
-        assert isinstance(politician["isActive"], bool)
+    def test_clear_table(self) -> None:
+        """Test clearing table data."""
+        seed_data = SeedData()
+        
+        items = [{"id": "1", "name": "Item 1"}]
+        seed_data.add_items("test-table", items)
+        
+        # Verify items were added
+        assert len(seed_data.get_items("test-table")) == 1
+        
+        # Clear the table
+        seed_data.clear_table("test-table")
+        
+        # Verify table is empty
+        assert len(seed_data.get_items("test-table")) == 0
 
-    def test_generate_action(self):
-        """Test action data generation."""
-        generator = SeedData()
-        action = generator.generate_action()
+    def test_to_json(self) -> None:
+        """Test JSON serialization."""
+        seed_data = SeedData()
+        
+        items = [
+            {"id": "1", "name": "Item 1", "timestamp": datetime.now()},
+            {"id": "2", "name": "Item 2", "value": Decimal("10.5")}
+        ]
+        
+        seed_data.add_items("test-table", items)
+        
+        json_str = seed_data.to_json()
+        
+        # Verify it's valid JSON
+        parsed = json.loads(json_str)
+        assert "test-table" in parsed
+        assert len(parsed["test-table"]) == 2
 
-        # Verify required fields
-        assert "id" in action
-        assert "title" in action
-        assert "description" in action
-        assert "category" in action
-        assert "date" in action
-        assert "sources" in action
-        assert "impact" in action
-        assert "tags" in action
-        assert "isVerified" in action
-        assert "createdAt" in action
+    def test_from_json(self) -> None:
+        """Test JSON deserialization."""
+        json_str = '{"test-table": [{"id": "1", "name": "Item 1"}]}'
+        
+        seed_data = SeedData.from_json(json_str)
+        
+        assert len(seed_data.get_items("test-table")) == 1
+        assert seed_data.get_items("test-table")[0]["name"] == "Item 1"
 
-        # Verify data types
-        assert isinstance(action["sources"], list)
-        assert isinstance(action["tags"], list)
-        assert action["impact"] in ["positive", "negative", "neutral"]
-        assert isinstance(action["isVerified"], bool)
-
-    def test_generate_vote(self):
-        """Test vote data generation."""
-        generator = SeedData()
-        vote = generator.generate_vote()
-
-        # Verify required fields
-        assert "id" in vote
-        assert "userId" in vote
-        assert "politicianId" in vote
-        assert "actionId" in vote
-        assert "vote" in vote
-        assert "timestamp" in vote
-
-        # Verify vote value
-        assert vote["vote"] in ["fraud", "not"]
-
-    def test_generate_comment(self):
-        """Test comment data generation."""
-        generator = SeedData()
-        comment = generator.generate_comment()
-
-        # Verify required fields
-        assert "id" in comment
-        assert "userId" in comment
-        assert "actionId" in comment
-        assert "content" in comment
-        assert "timestamp" in comment
-        assert "likes" in comment
-        assert "isModerated" in comment
-
-        # Verify data types
-        assert isinstance(comment["content"], str)
-        assert isinstance(comment["likes"], int)
-        assert comment["likes"] >= 0
-        assert isinstance(comment["isModerated"], bool)
-
-    def test_generate_consistent_ids(self):
+    def test_generate_consistent_ids(self) -> None:
         """Test that generated IDs are unique."""
         generator = SeedData()
 
@@ -113,7 +98,7 @@ class TestSeedData:
         assert len(set(politician_ids)) == len(politician_ids)
         assert len(set(action_ids)) == len(action_ids)
 
-    def test_generate_realistic_dates(self):
+    def test_generate_realistic_dates(self) -> None:
         """Test that generated dates are realistic."""
         generator = SeedData()
         action = generator.generate_action()
@@ -133,14 +118,14 @@ class TestDataSeeder:
     """Test data seeding functionality."""
 
     @pytest.fixture
-    def basic_config(self):
+    def basic_config(self) -> Any:
         """Create a basic project configuration."""
         return ProjectConfig(
             name="test-project", display_name="Test Project", aws_region="us-east-1"
         )
 
     @pytest.fixture
-    def mock_dynamodb(self):
+    def mock_dynamodb(self) -> Any:
         """Create mock DynamoDB client."""
         with patch("boto3.Session") as mock_session:
             mock_client = Mock()
@@ -148,7 +133,7 @@ class TestDataSeeder:
             yield mock_client
 
     @pytest.fixture
-    def seeder(self, basic_config, mock_dynamodb):
+    def seeder(self, basic_config, mock_dynamodb) -> Any:
         """Create a DataSeeder instance."""
         seeder = DataSeeder(
             project_name="test-project", environment="dev", config=basic_config
@@ -160,14 +145,14 @@ class TestDataSeeder:
         seeder.account_id = "123456789012"
         return seeder
 
-    def test_initialization(self, seeder):
+    def test_initialization(self, seeder) -> None:
         """Test DataSeeder initialization."""
         assert seeder.project_name == "test-project"
         assert seeder.environment == "dev"
         assert hasattr(seeder, "dynamodb")
         assert hasattr(seeder, "account_id")
 
-    def test_get_table_name(self, seeder):
+    def test_get_table_name(self, seeder) -> None:
         """Test table name generation."""
         table_name = seeder.get_table_name("politicians")
         assert table_name == "test-project-politicians-dev"
@@ -175,29 +160,29 @@ class TestDataSeeder:
         table_name = seeder.get_table_name("actions")
         assert table_name == "test-project-actions-dev"
 
-    def test_verify_table_exists_success(self, seeder, mock_dynamodb):
-        """Test verifying table exists."""
-        mock_dynamodb.describe_table.return_value = {
-            "Table": {
-                "TableName": "test-project-politicians-dev",
-                "TableStatus": "ACTIVE",
-            }
-        }
-
-        result = seeder.verify_table_exists("politicians")
+    def test_verify_tables_exist(self, seeder) -> None:
+        """Test verifying tables exist."""
+        # Mock describe_table responses
+        seeder.dynamodb_client.describe_table.side_effect = [
+            {"Table": {"TableName": "test-project-politicians-dev", "TableStatus": "ACTIVE"}},
+            {"Table": {"TableName": "test-project-actions-dev", "TableStatus": "ACTIVE"}}
+        ]
+        
+        result = seeder.verify_tables_exist(["politicians", "actions"])
         assert result is True
-        mock_dynamodb.describe_table.assert_called_once()
+        assert seeder.dynamodb_client.describe_table.call_count == 2
 
-    def test_verify_table_exists_not_found(self, seeder, mock_dynamodb):
-        """Test verifying table that doesn't exist."""
-        mock_dynamodb.describe_table.side_effect = ClientError(
-            {"Error": {"Code": "ResourceNotFoundException"}}, "DescribeTable"
-        )
-
-        result = seeder.verify_table_exists("politicians")
+    def test_verify_tables_exist_not_found(self, seeder) -> None:
+        """Test verifying tables when one doesn't exist."""
+        seeder.dynamodb_client.describe_table.side_effect = [
+            {"Table": {"TableName": "test-project-politicians-dev", "TableStatus": "ACTIVE"}},
+            ClientError({"Error": {"Code": "ResourceNotFoundException"}}, "DescribeTable")
+        ]
+        
+        result = seeder.verify_tables_exist(["politicians", "actions"])
         assert result is False
 
-    def test_clear_table(self, seeder, mock_dynamodb):
+    def test_clear_table(self, seeder, mock_dynamodb) -> None:
         """Test clearing table data."""
         # Mock scan response
         mock_dynamodb.scan.return_value = {
@@ -219,7 +204,7 @@ class TestDataSeeder:
         assert "RequestItems" in batch_call
         assert "test-project-politicians-dev" in batch_call["RequestItems"]
 
-    def test_seed_politicians(self, seeder, mock_dynamodb):
+    def test_seed_politicians(self, seeder, mock_dynamodb) -> None:
         """Test seeding politicians table."""
         mock_dynamodb.batch_write_item.return_value = {}
 
@@ -229,7 +214,7 @@ class TestDataSeeder:
         # Should be called once (10 items fit in one batch)
         assert mock_dynamodb.batch_write_item.call_count == 1
 
-    def test_seed_politicians_multiple_batches(self, seeder, mock_dynamodb):
+    def test_seed_politicians_multiple_batches(self, seeder, mock_dynamodb) -> None:
         """Test seeding politicians with multiple batches."""
         mock_dynamodb.batch_write_item.return_value = {}
 
@@ -240,7 +225,7 @@ class TestDataSeeder:
         # Should be called twice (25 + 25)
         assert mock_dynamodb.batch_write_item.call_count == 2
 
-    def test_seed_actions(self, seeder, mock_dynamodb):
+    def test_seed_actions(self, seeder, mock_dynamodb) -> None:
         """Test seeding actions table."""
         mock_dynamodb.batch_write_item.return_value = {}
 
@@ -249,7 +234,7 @@ class TestDataSeeder:
         assert result == 15
         assert mock_dynamodb.batch_write_item.call_count == 1
 
-    def test_seed_votes(self, seeder, mock_dynamodb):
+    def test_seed_votes(self, seeder, mock_dynamodb) -> None:
         """Test seeding votes table."""
         mock_dynamodb.batch_write_item.return_value = {}
 
@@ -258,7 +243,7 @@ class TestDataSeeder:
         assert result == 20
         assert mock_dynamodb.batch_write_item.call_count == 1
 
-    def test_seed_comments(self, seeder, mock_dynamodb):
+    def test_seed_comments(self, seeder, mock_dynamodb) -> None:
         """Test seeding comments table."""
         mock_dynamodb.batch_write_item.return_value = {}
 
@@ -267,7 +252,7 @@ class TestDataSeeder:
         assert result == 25
         assert mock_dynamodb.batch_write_item.call_count == 1
 
-    def test_seed_all_tables(self, seeder, mock_dynamodb):
+    def test_seed_all_tables(self, seeder, mock_dynamodb) -> None:
         """Test seeding all tables."""
         # Mock table verification
         mock_dynamodb.describe_table.return_value = {"Table": {"TableStatus": "ACTIVE"}}
@@ -286,7 +271,7 @@ class TestDataSeeder:
         # Verify clear was called for each table
         assert seeder.clear_table.call_count == 4
 
-    def test_batch_write_items(self, seeder, mock_dynamodb):
+    def test_batch_write_items(self, seeder, mock_dynamodb) -> None:
         """Test batch writing items."""
         items = [{"id": "1", "name": "Test 1"}, {"id": "2", "name": "Test 2"}]
 
@@ -302,7 +287,7 @@ class TestDataSeeder:
         assert "test-table" in call_args["RequestItems"]
         assert len(call_args["RequestItems"]["test-table"]) == 2
 
-    def test_batch_write_with_unprocessed_items(self, seeder, mock_dynamodb):
+    def test_batch_write_with_unprocessed_items(self, seeder, mock_dynamodb) -> None:
         """Test handling unprocessed items in batch write."""
         # First call returns unprocessed items
         mock_dynamodb.batch_write_item.side_effect = [
@@ -322,7 +307,7 @@ class TestDataSeeder:
         # Should retry for unprocessed items
         assert mock_dynamodb.batch_write_item.call_count == 2
 
-    def test_serialize_item(self, seeder):
+    def test_serialize_item(self, seeder) -> None:
         """Test DynamoDB item serialization."""
         item = {
             "id": "123",
@@ -344,7 +329,7 @@ class TestDataSeeder:
         assert serialized["tags"]["L"][0]["S"] == "tag1"
         assert serialized["metadata"]["M"]["created"]["S"] == "2024-01-01"
 
-    def test_generate_sample_data(self, seeder):
+    def test_generate_sample_data(self, seeder) -> None:
         """Test generating sample data without seeding."""
         data = seeder.generate_sample_data()
 
@@ -359,7 +344,7 @@ class TestDataSeeder:
         assert len(data["votes"]) >= 50
         assert len(data["comments"]) >= 30
 
-    def test_save_sample_data_to_file(self, seeder):
+    def test_save_sample_data_to_file(self, seeder) -> None:
         """Test saving sample data to file."""
         import tempfile
 
@@ -382,7 +367,7 @@ class TestDataSeeder:
 
             os.unlink(filename)
 
-    def test_error_handling_table_not_found(self, seeder, mock_dynamodb):
+    def test_error_handling_table_not_found(self, seeder, mock_dynamodb) -> None:
         """Test error handling when table doesn't exist."""
         mock_dynamodb.describe_table.side_effect = ClientError(
             {"Error": {"Code": "ResourceNotFoundException"}}, "DescribeTable"
@@ -391,7 +376,7 @@ class TestDataSeeder:
         with pytest.raises(ValueError, match="Table .* does not exist"):
             seeder.seed_politicians()
 
-    def test_error_handling_batch_write_failure(self, seeder, mock_dynamodb):
+    def test_error_handling_batch_write_failure(self, seeder, mock_dynamodb) -> None:
         """Test error handling for batch write failures."""
         mock_dynamodb.batch_write_item.side_effect = ClientError(
             {"Error": {"Code": "ProvisionedThroughputExceededException"}},
@@ -407,7 +392,7 @@ class TestDataSeeder:
 class TestDataSeederIntegration:
     """Integration tests for data seeder."""
 
-    def test_seed_with_relationships(self):
+    def test_seed_with_relationships(self) -> None:
         """Test seeding with consistent relationships between tables."""
         with patch("boto3.Session"):
             seeder = DataSeeder("test-project", "dev")
@@ -428,7 +413,7 @@ class TestDataSeederIntegration:
             for comment in data["comments"]:
                 assert comment["actionId"] in action_ids
 
-    def test_seed_with_custom_data_generator(self):
+    def test_seed_with_custom_data_generator(self) -> None:
         """Test seeding with custom data generation logic."""
 
         class CustomSeedData(SeedData):

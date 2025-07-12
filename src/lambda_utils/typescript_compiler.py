@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 class TypeScriptCompiler:
     """Compile TypeScript Lambda functions."""
 
-    def __init__(self, project_path: Path):
+    def __init__(self, project_path: Path) -> None:
         """Initialize the TypeScript compiler.
 
         Args:
             project_path: Path to the project root
         """
-        self.project_path = Path(project_path)
+        self.project_path: Path = Path(project_path)
 
     def check_typescript_installed(self, lambda_path: Path) -> bool:
         """Check if TypeScript is installed in the project.
@@ -32,13 +32,15 @@ class TypeScriptCompiler:
             True if TypeScript is available
         """
         # Check local installation
-        local_tsc = lambda_path / "node_modules" / ".bin" / "tsc"
+        local_tsc: Path = lambda_path / "node_modules" / ".bin" / "tsc"
         if local_tsc.exists():
             return True
 
         # Check global installation
         try:
-            subprocess.run(["tsc", "--version"], capture_output=True, check=True)
+            result: subprocess.CompletedProcess[str] = subprocess.run(
+                ["tsc", "--version"], capture_output=True, check=True, text=True
+            )
             return True
         except (subprocess.CalledProcessError, FileNotFoundError):
             return False
@@ -52,7 +54,7 @@ class TypeScriptCompiler:
         Returns:
             TypeScript configuration dictionary
         """
-        tsconfig_path = lambda_path / "tsconfig.json"
+        tsconfig_path: Path = lambda_path / "tsconfig.json"
 
         if not tsconfig_path.exists():
             # Return default configuration
@@ -93,7 +95,7 @@ class TypeScriptCompiler:
         Returns:
             Path to compiled output directory
         """
-        lambda_path = Path(lambda_path)
+        lambda_path: Path = Path(lambda_path)
 
         # Check if TypeScript is installed
         if not self.check_typescript_installed(lambda_path):
@@ -103,25 +105,28 @@ class TypeScriptCompiler:
             )
 
         # Determine output directory from tsconfig or use default
-        tsconfig = self.get_tsconfig(lambda_path)
-        compiler_options = tsconfig.get("compilerOptions", {})
+        tsconfig: Dict[str, Any] = self.get_tsconfig(lambda_path)
+        compiler_options: Dict[str, Any] = tsconfig.get("compilerOptions", {})
 
         if not output_dir:
-            output_dir = compiler_options.get("outDir", "./dist")
-            if not Path(output_dir).is_absolute():
-                output_dir = lambda_path / output_dir
+            output_dir_str: str = compiler_options.get("outDir", "./dist")
+            if not Path(output_dir_str).is_absolute():
+                output_dir = lambda_path / output_dir_str
+            else:
+                output_dir = Path(output_dir_str)
 
-        output_dir = Path(output_dir)
+        else:
+            output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         logger.info(f"Compiling TypeScript files from {lambda_path}")
 
         # Determine tsc command
-        local_tsc = lambda_path / "node_modules" / ".bin" / "tsc"
-        tsc_cmd = str(local_tsc) if local_tsc.exists() else "tsc"
+        local_tsc: Path = lambda_path / "node_modules" / ".bin" / "tsc"
+        tsc_cmd: str = str(local_tsc) if local_tsc.exists() else "tsc"
 
         # Create temporary tsconfig if needed
-        temp_tsconfig = None
+        temp_tsconfig: Optional[Path] = None
         if not (lambda_path / "tsconfig.json").exists():
             temp_tsconfig = lambda_path / "tsconfig.temp.json"
             logger.info("Creating temporary tsconfig.json")
@@ -136,13 +141,13 @@ class TypeScriptCompiler:
 
         try:
             # Run TypeScript compiler
-            cmd = [tsc_cmd]
+            cmd: List[str] = [tsc_cmd]
             if temp_tsconfig:
                 cmd.extend(["-p", str(temp_tsconfig)])
             else:
                 cmd.extend(["-p", str(lambda_path)])
 
-            result = subprocess.run(
+            result: subprocess.CompletedProcess[str] = subprocess.run(
                 cmd, cwd=lambda_path, capture_output=True, text=True
             )
 
@@ -153,14 +158,14 @@ class TypeScriptCompiler:
             logger.info("TypeScript compilation successful")
 
             # Copy package.json to output directory (needed for dependencies)
-            package_json_src = lambda_path / "package.json"
+            package_json_src: Path = lambda_path / "package.json"
             if package_json_src.exists():
-                package_json_dst = output_dir / "package.json"
+                package_json_dst: Path = output_dir / "package.json"
                 shutil.copy2(package_json_src, package_json_dst)
 
                 # Update package.json to remove dev dependencies and scripts
                 with open(package_json_dst) as f:
-                    package_data = json.load(f)
+                    package_data: Dict[str, Any] = json.load(f)
 
                 # Remove dev dependencies and scripts for production
                 package_data.pop("devDependencies", None)
@@ -185,16 +190,16 @@ class TypeScriptCompiler:
         Returns:
             List of TypeScript file paths
         """
-        ts_files = []
+        ts_files: List[Path] = []
 
         # Get file patterns from tsconfig
-        tsconfig = self.get_tsconfig(lambda_path)
-        exclude_patterns = tsconfig.get("exclude", ["node_modules", "dist"])
+        tsconfig: Dict[str, Any] = self.get_tsconfig(lambda_path)
+        exclude_patterns: List[str] = tsconfig.get("exclude", ["node_modules", "dist"])
 
         # Find all .ts files
         for ts_file in lambda_path.rglob("*.ts"):
             # Skip excluded paths
-            relative_path = ts_file.relative_to(lambda_path)
+            relative_path: Path = ts_file.relative_to(lambda_path)
             if not any(pattern in str(relative_path) for pattern in exclude_patterns):
                 ts_files.append(ts_file)
 
@@ -209,7 +214,7 @@ class TypeScriptCompiler:
         Returns:
             True if type checking passes
         """
-        lambda_path = Path(lambda_path)
+        lambda_path: Path = Path(lambda_path)
 
         if not self.check_typescript_installed(lambda_path):
             logger.warning("TypeScript not installed, skipping type validation")
@@ -218,11 +223,11 @@ class TypeScriptCompiler:
         logger.info("Running TypeScript type checking")
 
         # Determine tsc command
-        local_tsc = lambda_path / "node_modules" / ".bin" / "tsc"
-        tsc_cmd = str(local_tsc) if local_tsc.exists() else "tsc"
+        local_tsc: Path = lambda_path / "node_modules" / ".bin" / "tsc"
+        tsc_cmd: str = str(local_tsc) if local_tsc.exists() else "tsc"
 
         try:
-            subprocess.run(
+            result: subprocess.CompletedProcess[str] = subprocess.run(
                 [tsc_cmd, "--noEmit", "-p", str(lambda_path)],
                 cwd=lambda_path,
                 capture_output=True,

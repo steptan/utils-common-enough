@@ -6,15 +6,25 @@ Testing CLI commands.
 import json
 import sys
 from pathlib import Path
+from typing import Dict, Any, List, Optional, Tuple
 
 import click
 
-from config import get_project_config
-from testing import SmokeTestRunner, TestResult
+try:
+    from config import get_project_config
+except ImportError:
+    from typing import Callable
+    get_project_config: Optional[Callable] = None
+
+try:
+    from testing import SmokeTestRunner, TestResult
+except ImportError:
+    SmokeTestRunner = None  # type: Optional[Any]
+    TestResult: Optional[type] = None
 
 
 @click.group()
-def main():
+def main() -> None:
     """Testing and validation commands."""
     pass
 
@@ -28,10 +38,13 @@ def main():
 @click.option("--api-url", help="Override API URL")
 @click.option("--timeout", default=30, help="Request timeout in seconds")
 @click.option("--json", "output_json", is_flag=True, help="Output results as JSON")
-def smoke(project, environment, base_url, api_url, timeout, output_json):
+def smoke(project: str, environment: str, base_url: Optional[str], api_url: Optional[str], timeout: int, output_json: bool) -> None:
     """Run smoke tests against deployed application."""
     try:
         # Create test runner
+        if SmokeTestRunner is None:
+            click.echo("❌ SmokeTestRunner not available")
+            sys.exit(1)
         runner = SmokeTestRunner(
             project_name=project,
             environment=environment,
@@ -45,7 +58,7 @@ def smoke(project, environment, base_url, api_url, timeout, output_json):
 
         if output_json:
             # Output as JSON
-            results_data = []
+            results_data: List[Dict[str, Any]] = []
             for result in results:
                 results_data.append(
                     {
@@ -57,7 +70,7 @@ def smoke(project, environment, base_url, api_url, timeout, output_json):
                     }
                 )
 
-            output = {
+            output: Dict[str, Any] = {
                 "project": project,
                 "environment": environment,
                 "all_passed": all_passed,
@@ -79,15 +92,23 @@ def smoke(project, environment, base_url, api_url, timeout, output_json):
 @click.option(
     "--environment", "-e", required=True, help="Environment (dev/staging/prod)"
 )
-def health(project, environment):
+def health(project: str, environment: str) -> None:
     """Quick health check of deployed resources."""
     try:
         click.echo(f"🏥 Health check for {project} ({environment})")
 
         # Import here to avoid circular dependency
-        from cloudformation import StackManager
+        try:
+            from cloudformation import StackManager
+        except ImportError:
+    StackManager = None  # type: Optional[Any]
+            click.echo("❌ StackManager not available")
+            sys.exit(1)
 
         # Load configuration
+        if get_project_config is None:
+            click.echo("❌ get_project_config not available")
+            sys.exit(1)
         config = get_project_config(project)
 
         # Check stack status
@@ -122,6 +143,9 @@ def health(project, environment):
 
         # Run basic smoke test
         click.echo("\n🔍 Running basic connectivity test...")
+        if SmokeTestRunner is None:
+            click.echo("❌ SmokeTestRunner not available")
+            sys.exit(1)
         runner = SmokeTestRunner(
             project_name=project, environment=environment, timeout=10
         )
@@ -133,7 +157,7 @@ def health(project, environment):
             runner._run_test(runner.test_api_health)
 
         # Overall status
-        failed = sum(1 for r in runner.results if r.status.value == "failed")
+        failed: int = sum(1 for r in runner.results if r.status.value == "failed")
         if failed == 0:
             click.echo("\n✅ Health check passed")
             sys.exit(0)
@@ -151,15 +175,18 @@ def health(project, environment):
 @click.option(
     "--environment", "-e", required=True, help="Environment (dev/staging/prod)"
 )
-def validate(project, environment):
+def validate(project: str, environment: str) -> None:
     """Validate deployment configuration and readiness."""
     try:
         click.echo(f"🔍 Validating {project} deployment for {environment}")
 
         # Load configuration
+        if get_project_config is None:
+            click.echo("❌ get_project_config not available")
+            sys.exit(1)
         config = get_project_config(project)
 
-        validation_passed = True
+        validation_passed: bool = True
 
         # Check configuration
         click.echo("\n📋 Configuration:")
@@ -177,7 +204,7 @@ def validate(project, environment):
             result = subprocess.run(
                 ["node", "--version"], capture_output=True, text=True
             )
-            node_version = result.stdout.strip()
+            node_version: str = result.stdout.strip()
             if config.node_version in node_version:
                 click.echo(f"  ✅ Node.js: {node_version}")
             else:
@@ -192,7 +219,7 @@ def validate(project, environment):
         # Python version
         import sys
 
-        python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+        python_version: str = f"{sys.version_info.major}.{sys.version_info.minor}"
         if python_version == config.python_version:
             click.echo(f"  ✅ Python: {python_version}")
         else:
@@ -227,15 +254,15 @@ def validate(project, environment):
         try:
             # Check if CI/CD user exists
             iam = boto3.client("iam", region_name=config.aws_region)
-            user_name = config.format_name(config.cicd_user_pattern)
+            user_name: str = config.format_name(config.cicd_user_pattern)
             try:
                 iam.get_user(UserName=user_name)
                 click.echo(f"  ✅ CI/CD user '{user_name}' exists")
 
                 # Check if user has policies attached
-                policies = iam.list_user_policies(UserName=user_name)
-                attached = iam.list_attached_user_policies(UserName=user_name)
-                total_policies = len(policies.get("PolicyNames", [])) + len(
+                policies: Dict[str, Any] = iam.list_user_policies(UserName=user_name)
+                attached: Dict[str, Any] = iam.list_attached_user_policies(UserName=user_name)
+                total_policies: int = len(policies.get("PolicyNames", [])) + len(
                     attached.get("AttachedPolicies", [])
                 )
 
@@ -274,7 +301,7 @@ def validate(project, environment):
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--quiet", "-q", is_flag=True, help="Quiet output (minimal)")
 @click.option("--test-dir", help="Test directory path")
-def infrastructure(project, pattern, verbose, quiet, test_dir):
+def infrastructure(project: str, pattern: str, verbose: bool, quiet: bool, test_dir: Optional[str]) -> None:
     """Run infrastructure unit tests."""
     import unittest
     from pathlib import Path
@@ -288,14 +315,14 @@ def infrastructure(project, pattern, verbose, quiet, test_dir):
             start_dir = Path(test_dir)
         else:
             # Try to find test directory
-            possible_dirs = [
+            possible_dirs: List[Path] = [
                 Path.cwd() / "tests" / "unit",
                 Path.cwd() / "tests",
                 Path.cwd() / project / "tests" / "unit",
                 Path.cwd() / project / "tests",
             ]
 
-            start_dir = None
+            start_dir: Optional[Path] = None
             for dir_path in possible_dirs:
                 if dir_path.exists():
                     start_dir = dir_path
@@ -310,6 +337,7 @@ def infrastructure(project, pattern, verbose, quiet, test_dir):
         click.echo("-" * 50)
 
         # Set verbosity
+        verbosity: int
         if quiet:
             verbosity = 0
         elif verbose:

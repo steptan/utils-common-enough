@@ -14,30 +14,31 @@ logger = logging.getLogger(__name__)
 class NodeJSBuilder:
     """Build Node.js Lambda functions."""
 
-    def __init__(self, project_path: Path, runtime: str = "nodejs20.x"):
+    def __init__(self, project_path: Path, runtime: str = "nodejs20.x") -> None:
         """Initialize the Node.js builder.
 
         Args:
             project_path: Path to the project root
             runtime: Node.js runtime version
         """
-        self.project_path = Path(project_path)
-        self.runtime = runtime
-        self.node_version = self._extract_node_version(runtime)
+        self.project_path: Path = Path(project_path)
+        self.runtime: str = runtime
+        self.node_version: str = self._extract_node_version(runtime)
 
     def _extract_node_version(self, runtime: str) -> str:
         """Extract Node.js version from runtime string."""
         # nodejs20.x -> 20
-        return runtime.replace("nodejs", "").replace(".x", "")
+        version: str = runtime.replace("nodejs", "").replace(".x", "")
+        return version
 
     def check_node_version(self) -> bool:
         """Check if the correct Node.js version is installed."""
         try:
-            result = subprocess.run(
+            result: subprocess.CompletedProcess[str] = subprocess.run(
                 ["node", "--version"], capture_output=True, text=True, check=True
             )
-            version = result.stdout.strip()
-            major_version = version.split(".")[0].replace("v", "")
+            version: str = result.stdout.strip()
+            major_version: str = version.split(".")[0].replace("v", "")
 
             if major_version != self.node_version:
                 logger.warning(
@@ -66,8 +67,8 @@ class NodeJSBuilder:
 
         # Determine package manager
         if (lambda_path / "yarn.lock").exists():
-            package_manager = "yarn"
-            install_cmd = ["yarn", "install"]
+            package_manager: str = "yarn"
+            install_cmd: List[str] = ["yarn", "install"]
             if production:
                 install_cmd.append("--production")
         elif (lambda_path / "package-lock.json").exists():
@@ -84,7 +85,7 @@ class NodeJSBuilder:
         logger.info(f"Using {package_manager} to install dependencies")
 
         # Run installation
-        subprocess.run(
+        result: subprocess.CompletedProcess[str] = subprocess.run(
             install_cmd, cwd=lambda_path, check=True, capture_output=True, text=True
         )
 
@@ -111,14 +112,14 @@ class NodeJSBuilder:
         package_json_path = lambda_path / "package.json"
         if package_json_path.exists():
             with open(package_json_path) as f:
-                package_data = json.load(f)
+                package_data: Dict[str, Any] = json.load(f)
 
-            scripts = package_data.get("scripts", {})
+            scripts: Dict[str, str] = package_data.get("scripts", {})
 
             # Run build script if it exists
             if "build" in scripts:
                 logger.info("Running npm build script")
-                subprocess.run(
+                result: subprocess.CompletedProcess[str] = subprocess.run(
                     ["npm", "run", "build"],
                     cwd=lambda_path,
                     check=True,
@@ -128,7 +129,7 @@ class NodeJSBuilder:
             else:
                 logger.info("No build script found, copying source files")
                 # Copy source files (excluding common non-deploy files)
-                exclude_patterns = [
+                exclude_patterns: List[str] = [
                     "node_modules",
                     "test",
                     "tests",
@@ -187,7 +188,7 @@ class NodeJSBuilder:
 
         logger.info("Running tests")
         try:
-            subprocess.run(
+            result: subprocess.CompletedProcess[str] = subprocess.run(
                 ["npm", "test"],
                 cwd=lambda_path,
                 check=True,
@@ -209,7 +210,7 @@ class NodeJSBuilder:
         Returns:
             Dictionary with handler information
         """
-        info = {
+        info: Dict[str, Any] = {
             "handler": "index.handler",  # Default
             "runtime": self.runtime,
             "timeout": 30,
@@ -220,9 +221,9 @@ class NodeJSBuilder:
         package_json_path = lambda_path / "package.json"
         if package_json_path.exists():
             with open(package_json_path) as f:
-                package_data = json.load(f)
+                package_data: Dict[str, Any] = json.load(f)
 
-            lambda_config = package_data.get("lambda", {})
+            lambda_config: Dict[str, Any] = package_data.get("lambda", {})
             info.update(lambda_config)
 
         # Look for handler file

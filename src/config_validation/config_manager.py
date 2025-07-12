@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from jsonschema import ValidationError, validate
 
 
@@ -34,7 +34,7 @@ class ConfigManager:
     - Provides type-safe access to configuration values
     """
 
-    def __init__(self, config_dir: str = "config", environment: Optional[str] = None):
+    def __init__(self, config_dir: str = "config", environment: Optional[str] = None) -> None:
         """
         Initialize configuration manager.
 
@@ -43,7 +43,7 @@ class ConfigManager:
             environment: Environment name (dev, staging, prod). If None, uses ENVIRONMENT env var
         """
         self.config_dir = Path(config_dir)
-        self.environment = environment or os.getenv("ENVIRONMENT", "dev")
+        self.environment: str = environment or os.getenv("ENVIRONMENT") or "dev"
 
         # Validate config directory exists
         if not self.config_dir.exists():
@@ -86,7 +86,7 @@ class ConfigManager:
         # Ensure environment is set in config
         config["environment"] = self.environment
 
-        return config
+        return config  # type: ignore[no-any-return]
 
     def _deep_merge(
         self, base: Dict[str, Any], override: Dict[str, Any]
@@ -229,7 +229,7 @@ class ConfigManager:
 
     def to_yaml(self) -> str:
         """Export configuration as YAML string."""
-        return yaml.dump(self._config, default_flow_style=False, sort_keys=True)
+        return yaml.dump(self._config, default_flow_style=False, sort_keys=True)  # type: ignore[no-any-return]
 
     def save_to_file(self, file_path: str, format: str = "yaml") -> None:
         """

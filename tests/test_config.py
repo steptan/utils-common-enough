@@ -6,6 +6,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 import yaml
 
@@ -15,7 +17,7 @@ from config import ConfigManager, ProjectConfig, get_project_config
 class TestProjectConfig:
     """Test ProjectConfig dataclass."""
 
-    def test_default_initialization(self):
+    def test_default_initialization(self) -> None:
         """Test creating config with minimal parameters."""
         config = ProjectConfig(name="test-project", display_name="Test Project")
 
@@ -25,7 +27,7 @@ class TestProjectConfig:
         assert config.environments == ["dev", "staging", "prod"]
         assert config.lambda_runtime == "nodejs20.x"
 
-    def test_format_name(self):
+    def test_format_name(self) -> None:
         """Test pattern formatting."""
         config = ProjectConfig(
             name="test-project", display_name="Test Project", aws_account_id="123456789"
@@ -39,7 +41,7 @@ class TestProjectConfig:
         result = config.format_name("{project}-{account_id}", environment="dev")
         assert result == "test-project-123456789"
 
-    def test_get_stack_name(self):
+    def test_get_stack_name(self) -> None:
         """Test stack name generation."""
         config = ProjectConfig(
             name="test-project",
@@ -50,7 +52,7 @@ class TestProjectConfig:
         assert config.get_stack_name("dev") == "test-project-stack-dev"
         assert config.get_stack_name("prod") == "test-project-stack-prod"
 
-    def test_custom_config(self):
+    def test_custom_config(self) -> None:
         """Test custom configuration."""
         config = ProjectConfig(
             name="test-project",
@@ -61,7 +63,7 @@ class TestProjectConfig:
         assert config.custom_config["feature_flag"] is True
         assert config.custom_config["api_version"] == "v2"
 
-    def test_bucket_patterns_override(self):
+    def test_bucket_patterns_override(self) -> None:
         """Test bucket pattern overrides."""
         config = ProjectConfig(
             name="test-project",
@@ -75,7 +77,7 @@ class TestProjectConfig:
         assert config.bucket_patterns["lambda"] == "custom-lambda-{environment}"
         assert config.bucket_patterns["static"] == "custom-static-{environment}"
 
-    def test_to_dict_from_dict(self):
+    def test_to_dict_from_dict(self) -> None:
         """Test serialization and deserialization."""
         original = ProjectConfig(
             name="test-project",
@@ -97,13 +99,13 @@ class TestProjectConfig:
 class TestConfigManager:
     """Test ConfigManager class."""
 
-    def test_default_configs_exist(self):
+    def test_default_configs_exist(self) -> None:
         """Test that default configs are defined."""
         assert "fraud-or-not" in ConfigManager.DEFAULT_CONFIGS
         assert "media-register" in ConfigManager.DEFAULT_CONFIGS
         assert "people-cards" in ConfigManager.DEFAULT_CONFIGS
 
-    def test_load_default_config(self):
+    def test_load_default_config(self) -> None:
         """Test loading default configuration."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = ConfigManager(config_dir=tmpdir)
@@ -114,7 +116,7 @@ class TestConfigManager:
             assert config.display_name == "Fraud or Not"
             assert config.aws_region == "us-east-1"
 
-    def test_load_from_yaml_file(self):
+    def test_load_from_yaml_file(self) -> None:
         """Test loading configuration from YAML file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a test YAML config for an existing project (media-register)
@@ -137,7 +139,7 @@ class TestConfigManager:
             assert config.aws_region == "eu-west-1"  # From YAML file
             assert config.custom_config["feature"] == "enabled"
 
-    def test_save_project_config(self):
+    def test_save_project_config(self) -> None:
         """Test saving configuration to file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = ConfigManager(config_dir=tmpdir)
@@ -161,7 +163,7 @@ class TestConfigManager:
             assert data["name"] == "new-project"
             assert data["aws_region"] == "ap-southeast-1"
 
-    def test_list_projects(self):
+    def test_list_projects(self) -> None:
         """Test listing available projects."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = ConfigManager(config_dir=tmpdir)
@@ -172,7 +174,7 @@ class TestConfigManager:
             assert "media-register" in projects
             assert "people-cards" in projects
 
-    def test_unknown_project_error(self):
+    def test_unknown_project_error(self) -> None:
         """Test error handling for unknown project."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = ConfigManager(config_dir=tmpdir)
@@ -185,14 +187,14 @@ class TestHelperFunctions:
     """Test module-level helper functions."""
 
     @patch("config._config_manager", None)
-    def test_get_project_config(self):
+    def test_get_project_config(self) -> None:
         """Test get_project_config helper."""
         config = get_project_config("fraud-or-not")
         assert config.name == "fraud-or-not"
         assert config.display_name == "Fraud or Not"
 
     @patch.dict("os.environ", {"PROJECT_NAME": "media-register"})
-    def test_get_current_project_from_env(self):
+    def test_get_current_project_from_env(self) -> None:
         """Test getting current project from environment."""
         from config import get_current_project_config
 
@@ -200,7 +202,7 @@ class TestHelperFunctions:
         assert config is not None
         assert config.name == "media-register"
 
-    def test_get_current_project_from_path(self):
+    def test_get_current_project_from_path(self) -> None:
         """Test getting current project from directory path."""
         from config import get_current_project_config
 
@@ -211,7 +213,7 @@ class TestHelperFunctions:
             assert config is not None
             assert config.name == "fraud-or-not"
 
-    def test_initialize_project_config(self):
+    def test_initialize_project_config(self) -> None:
         """Test initializing a new project configuration."""
         from config import initialize_project_config
 

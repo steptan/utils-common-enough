@@ -52,7 +52,7 @@ class StaticWebsitePattern:
         self.template = template
         self.config = config
         self.environment = environment
-        self.resources = {}
+        self.resources: Dict[str, Any] = {}
 
         # Extract configuration sections
         self.s3_config = config.get("s3", {})
@@ -66,7 +66,7 @@ class StaticWebsitePattern:
         # Build the pattern
         self._create_infrastructure()
 
-    def _create_conditions(self):
+    def _create_conditions(self) -> None:
         """Create CloudFormation conditions."""
         # Condition for custom domain
         self.has_custom_domain = self.template.add_condition(
@@ -80,7 +80,7 @@ class StaticWebsitePattern:
             Not(Equals(self.domain_config.get("certificate_arn", ""), "")),
         )
 
-    def _create_infrastructure(self):
+    def _create_infrastructure(self) -> None:
         """Create all infrastructure components."""
         # 1. Create S3 bucket for website hosting
         self._create_s3_bucket()
@@ -101,7 +101,7 @@ class StaticWebsitePattern:
         # 6. Create pattern-specific outputs
         self._create_pattern_outputs()
 
-    def _create_s3_bucket(self):
+    def _create_s3_bucket(self) -> None:
         """Create S3 bucket for static website hosting."""
         bucket_name = self.s3_config.get("bucket_name")
         if not bucket_name:
@@ -164,7 +164,7 @@ class StaticWebsitePattern:
 
         self.resources["website_bucket"] = self.website_bucket
 
-    def _create_origin_access_identity(self):
+    def _create_origin_access_identity(self) -> None:
         """Create CloudFront Origin Access Identity."""
         self.origin_access_identity = self.template.add_resource(
             cloudfront.CloudFrontOriginAccessIdentity(
@@ -177,7 +177,7 @@ class StaticWebsitePattern:
 
         self.resources["origin_access_identity"] = self.origin_access_identity
 
-    def _create_bucket_policy(self):
+    def _create_bucket_policy(self) -> None:
         """Create bucket policy for CloudFront access."""
         self.bucket_policy = self.template.add_resource(
             s3.BucketPolicy(
@@ -205,7 +205,7 @@ class StaticWebsitePattern:
             )
         )
 
-    def _create_cloudfront_distribution(self):
+    def _create_cloudfront_distribution(self) -> None:
         """Create CloudFront distribution."""
         # Cache behaviors
         default_cache_behavior = cloudfront.DefaultCacheBehavior(
@@ -223,7 +223,7 @@ class StaticWebsitePattern:
         )
 
         # Custom error responses
-        custom_error_responses = []
+        custom_error_responses: List[cloudfront.CustomErrorResponse] = []
 
         # Handle SPA routing
         if self.pattern_config.get("single_page_app", True):
@@ -308,7 +308,7 @@ class StaticWebsitePattern:
 
         self.resources["cloudfront_distribution"] = self.distribution
 
-    def _create_route53_records(self):
+    def _create_route53_records(self) -> None:
         """Create Route53 DNS records for custom domain."""
         if not self.domain_config.get("hosted_zone_id"):
             return
@@ -345,7 +345,7 @@ class StaticWebsitePattern:
             )
         )
 
-    def _create_pattern_outputs(self):
+    def _create_pattern_outputs(self) -> None:
         """Create pattern-specific outputs."""
         # S3 bucket name
         self.template.add_output(
@@ -406,15 +406,15 @@ class StaticWebsitePattern:
             )
         )
 
-    def get_bucket_name(self) -> Any:
+    def get_bucket_name(self) -> Ref:
         """Get the S3 bucket name."""
         return Ref(self.website_bucket)
 
-    def get_distribution_id(self) -> Any:
+    def get_distribution_id(self) -> Ref:
         """Get the CloudFront distribution ID."""
         return Ref(self.distribution)
 
-    def get_distribution_domain(self) -> Any:
+    def get_distribution_domain(self) -> GetAtt:
         """Get the CloudFront distribution domain name."""
         return GetAtt(self.distribution, "DomainName")
 
@@ -462,7 +462,7 @@ class StaticWebsitePattern:
         Returns:
             List of validation errors (empty if valid)
         """
-        errors = []
+        errors: List[str] = []
 
         # Check required sections
         required_sections = ["pattern", "s3", "cloudfront"]

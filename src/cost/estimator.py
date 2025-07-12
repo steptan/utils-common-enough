@@ -106,7 +106,7 @@ class CostEstimator:
         },
     }
 
-    def __init__(self, project_name: str, environment: str, region: str = "us-west-1"):
+    def __init__(self, project_name: str, environment: str, region: str = "us-west-1") -> None:
         """Initialize cost estimator.
 
         Args:
@@ -149,7 +149,7 @@ class CostEstimator:
         resources = template.get("Resources", {})
 
         # Estimate each resource
-        estimates = []
+        estimates: List[Any] = []
         for logical_id, resource in resources.items():
             resource_type = resource.get("Type", "")
             properties = resource.get("Properties", {})
@@ -172,7 +172,7 @@ class CostEstimator:
         Returns:
             Cost estimation report
         """
-        estimates = []
+        estimates: List[Any] = []
 
         # API Gateway + Lambda
         if usage_profile.get("api_requests_per_month", 0) > 0:
@@ -544,7 +544,7 @@ class CostEstimator:
 
     def _estimate_api_costs(self, usage: Dict[str, Any]) -> List[ResourceEstimate]:
         """Estimate API Gateway + Lambda costs from usage profile."""
-        estimates = []
+        estimates: List[Any] = []
 
         # API Gateway
         api_requests = usage.get("api_requests_per_month", 0)
@@ -800,7 +800,7 @@ class CostEstimator:
         self, estimates: List[ResourceEstimate]
     ) -> Dict[str, Dict[str, float]]:
         """Group estimates by service type."""
-        by_service = {}
+        by_service: Dict[str, Any] = {}
 
         for estimate in estimates:
             service = estimate.resource_type.value
@@ -828,7 +828,7 @@ class CostEstimator:
 
     def _get_optimization_tips(self, estimates: List[ResourceEstimate]) -> List[str]:
         """Get cost optimization recommendations."""
-        tips = []
+        tips: List[Any] = []
 
         # Check for expensive services
         for estimate in estimates:

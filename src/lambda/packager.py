@@ -16,14 +16,14 @@ from typing import Dict, List, Optional, Union
 class LambdaPackager:
     """Package Lambda functions for deployment."""
 
-    def __init__(self, project_root: Union[str, Path]):
+    def __init__(self, project_root: Union[str, Path]) -> None:
         """
         Initialize Lambda packager.
 
         Args:
             project_root: Root directory of the project
         """
-        self.project_root = Path(project_root)
+        self.project_root: Path = Path(project_root)
 
     def package_nodejs_lambda(
         self,
@@ -46,22 +46,22 @@ class LambdaPackager:
         Returns:
             Path to the created zip file
         """
-        source_dir = Path(source_dir)
-        output_path = Path(output_path)
+        source_dir: Path = Path(source_dir)
+        output_path: Path = Path(output_path)
 
         if not source_dir.exists():
             raise ValueError(f"Source directory does not exist: {source_dir}")
 
         # Create temporary directory for packaging
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+            temp_path: Path = Path(temp_dir)
 
             # Copy source files
             print(f"📦 Copying source files from {source_dir}")
             shutil.copytree(source_dir, temp_path / "src", dirs_exist_ok=True)
 
             # Install dependencies
-            package_json = source_dir / "package.json"
+            package_json: Path = source_dir / "package.json"
             if package_json.exists():
                 print("📦 Installing dependencies...")
 
@@ -69,16 +69,16 @@ class LambdaPackager:
                 shutil.copy2(package_json, temp_path / "package.json")
 
                 # Copy package-lock.json if exists
-                package_lock = source_dir / "package-lock.json"
+                package_lock: Path = source_dir / "package-lock.json"
                 if package_lock.exists():
                     shutil.copy2(package_lock, temp_path / "package-lock.json")
 
                 # Install dependencies
-                npm_cmd = ["npm", "ci" if package_lock.exists() else "install"]
+                npm_cmd: List[str] = ["npm", "ci" if package_lock.exists() else "install"]
                 if not include_dev_deps:
                     npm_cmd.append("--production")
 
-                result = subprocess.run(
+                result: subprocess.CompletedProcess[str] = subprocess.run(
                     npm_cmd, cwd=temp_path, capture_output=True, text=True
                 )
 
@@ -86,7 +86,7 @@ class LambdaPackager:
                     raise RuntimeError(f"npm install failed: {result.stderr}")
 
             # Build TypeScript if needed
-            tsconfig = source_dir / "tsconfig.json"
+            tsconfig: Path = source_dir / "tsconfig.json"
             if tsconfig.exists():
                 print("📦 Building TypeScript...")
 
@@ -94,7 +94,7 @@ class LambdaPackager:
                 shutil.copy2(tsconfig, temp_path / "tsconfig.json")
 
                 # Run TypeScript compiler
-                result = subprocess.run(
+                result: subprocess.CompletedProcess[str] = subprocess.run(
                     ["npx", "tsc"], cwd=temp_path, capture_output=True, text=True
                 )
 
@@ -133,16 +133,16 @@ class LambdaPackager:
         Returns:
             Path to the created zip file
         """
-        source_dir = Path(source_dir)
-        output_path = Path(output_path)
+        source_dir: Path = Path(source_dir)
+        output_path: Path = Path(output_path)
 
         if not source_dir.exists():
             raise ValueError(f"Source directory does not exist: {source_dir}")
 
         # Create temporary directory for packaging
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            package_dir = temp_path / "package"
+            temp_path: Path = Path(temp_dir)
+            package_dir: Path = temp_path / "package"
             package_dir.mkdir()
 
             # Copy source files
@@ -156,7 +156,7 @@ class LambdaPackager:
 
             # Install dependencies
             if requirements_file:
-                req_path = Path(requirements_file)
+                req_path: Path = Path(requirements_file)
             else:
                 req_path = source_dir / "requirements.txt"
 
@@ -164,7 +164,7 @@ class LambdaPackager:
                 print(f"📦 Installing dependencies from {req_path}")
 
                 # Use platform-specific pip for Lambda runtime
-                result = subprocess.run(
+                result: subprocess.CompletedProcess[str] = subprocess.run(
                     [
                         sys.executable,
                         "-m",
@@ -191,7 +191,7 @@ class LambdaPackager:
                     print(
                         "⚠️  Platform-specific install failed, trying regular install..."
                     )
-                    result = subprocess.run(
+                    result: subprocess.CompletedProcess[str] = subprocess.run(
                         [
                             sys.executable,
                             "-m",
@@ -217,7 +217,7 @@ class LambdaPackager:
         """Minify JavaScript files in directory."""
         try:
             # Try to use terser if available
-            result = subprocess.run(
+            result: subprocess.CompletedProcess[str] = subprocess.run(
                 ["npx", "terser", "--version"], capture_output=True, text=True
             )
 
@@ -237,6 +237,7 @@ class LambdaPackager:
                                 "--mangle",
                             ],
                             capture_output=True,
+                            text=True,
                         )
         except Exception as e:
             print(f"⚠️  Minification failed: {e}")
@@ -257,8 +258,8 @@ class LambdaPackager:
                     if file.endswith((".pyc", ".pyo", ".git", ".DS_Store")):
                         continue
 
-                    file_path = Path(root) / file
-                    arc_name = file_path.relative_to(source_dir)
+                    file_path: Path = Path(root) / file
+                    arc_name: Path = file_path.relative_to(source_dir)
 
                     # For the main handler file in src/, put it at root level
                     if source_dir.name == "src" and str(arc_name).startswith("src/"):
@@ -267,10 +268,10 @@ class LambdaPackager:
                     zf.write(file_path, arc_name)
 
         # Verify handler exists in zip
-        handler_file = handler.split(".")[0] + ".py" if handler else None
+        handler_file: Optional[str] = handler.split(".")[0] + ".py" if handler else None
         if handler_file:
             with zipfile.ZipFile(output_path, "r") as zf:
-                files_in_zip = zf.namelist()
+                files_in_zip: List[str] = zf.namelist()
                 if (
                     handler_file not in files_in_zip
                     and f"src/{handler_file}" not in files_in_zip
@@ -298,14 +299,14 @@ class LambdaPackager:
         Returns:
             True if package is valid
         """
-        package_path = Path(package_path)
+        package_path: Path = Path(package_path)
 
         if not package_path.exists():
             print(f"❌ Package does not exist: {package_path}")
             return False
 
         # Check size (Lambda limit is 50MB for direct upload)
-        size_mb = package_path.stat().st_size / 1024 / 1024
+        size_mb: float = package_path.stat().st_size / 1024 / 1024
         if size_mb > 50:
             print(
                 f"⚠️  Package size ({size_mb:.2f} MB) exceeds 50MB limit for direct upload"
@@ -313,16 +314,16 @@ class LambdaPackager:
             print("   Consider using S3 for deployment")
 
         # Validate handler exists
-        handler_parts = handler.split(".")
+        handler_parts: List[str] = handler.split(".")
         if runtime.startswith("python"):
-            handler_file = handler_parts[0] + ".py"
+            handler_file: str = handler_parts[0] + ".py"
         elif runtime.startswith("node"):
             handler_file = handler_parts[0] + ".js"
         else:
             handler_file = handler_parts[0]
 
         with zipfile.ZipFile(package_path, "r") as zf:
-            files = zf.namelist()
+            files: List[str] = zf.namelist()
             if handler_file not in files:
                 print(f"❌ Handler file '{handler_file}' not found in package")
                 print(f"   Available files: {', '.join(sorted(files)[:10])}...")

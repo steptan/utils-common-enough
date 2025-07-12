@@ -37,7 +37,7 @@ class NetworkConstruct:
         self.template = template
         self.config = config
         self.environment = environment
-        self.resources = {}
+        self.resources: Dict[str, Any] = {}
 
         # Create network resources
         self._create_vpc()
@@ -49,7 +49,7 @@ class NetworkConstruct:
         self._create_vpc_endpoints()
         self._create_outputs()
 
-    def _create_vpc(self):
+    def _create_vpc(self) -> None:
         """Create VPC with DNS enabled."""
         vpc_config = self.config.get("vpc", {})
 
@@ -67,10 +67,10 @@ class NetworkConstruct:
         )
         self.resources["vpc"] = self.vpc
 
-    def _create_subnets(self):
+    def _create_subnets(self) -> None:
         """Create public and private subnets across AZs."""
-        self.public_subnets = []
-        self.private_subnets = []
+        self.public_subnets: List[ec2.Subnet] = []
+        self.private_subnets: List[ec2.Subnet] = []
 
         # Get availability zones
         vpc_config = self.config.get("vpc", {})
@@ -122,7 +122,7 @@ class NetworkConstruct:
         self.resources["public_subnets"] = self.public_subnets
         self.resources["private_subnets"] = self.private_subnets
 
-    def _create_internet_gateway(self):
+    def _create_internet_gateway(self) -> None:
         """Create and attach internet gateway."""
         self.igw = self.template.add_resource(
             ec2.InternetGateway(
@@ -141,10 +141,10 @@ class NetworkConstruct:
             )
         )
 
-    def _create_nat_gateways(self):
+    def _create_nat_gateways(self) -> None:
         """Create NAT gateways for private subnet internet access."""
-        self.nat_gateways = []
-        self.elastic_ips = []
+        self.nat_gateways: List[ec2.NatGateway] = []
+        self.elastic_ips: List[ec2.EIP] = []
 
         # Check configuration for NAT requirements
         vpc_config = self.config.get("vpc", {})
@@ -186,7 +186,7 @@ class NetworkConstruct:
             )
             self.nat_gateways.append(nat)
 
-    def _create_route_tables(self):
+    def _create_route_tables(self) -> None:
         """Create and configure route tables."""
         # Public route table
         self.public_route_table = self.template.add_resource(
@@ -222,7 +222,7 @@ class NetworkConstruct:
             )
 
         # Private route tables
-        self.private_route_tables = []
+        self.private_route_tables: List[ec2.RouteTable] = []
 
         # If single NAT gateway, create one route table for all private subnets
         if len(self.nat_gateways) == 1:
@@ -295,7 +295,7 @@ class NetworkConstruct:
                     )
                 )
 
-    def _create_security_groups(self):
+    def _create_security_groups(self) -> None:
         """Create security groups for various resources."""
         # Lambda security group
         self.lambda_sg = self.template.add_resource(
@@ -319,7 +319,7 @@ class NetworkConstruct:
 
         self.resources["lambda_security_group"] = self.lambda_sg
 
-    def _create_vpc_endpoints(self):
+    def _create_vpc_endpoints(self) -> None:
         """Create VPC endpoints for AWS services."""
         endpoints_config = self.config.get("vpc_endpoints", {})
 
@@ -349,7 +349,7 @@ class NetworkConstruct:
                 )
             )
 
-    def _create_outputs(self):
+    def _create_outputs(self) -> None:
         """Create CloudFormation outputs."""
         outputs = [
             ("VPCId", Ref(self.vpc), "VPC ID"),
@@ -377,11 +377,11 @@ class NetworkConstruct:
                 )
             )
 
-    def get_lambda_subnet_ids(self):
+    def get_lambda_subnet_ids(self) -> List[Ref]:
         """Get subnet IDs for Lambda deployment."""
         return [Ref(subnet) for subnet in self.private_subnets]
 
-    def get_lambda_security_group_id(self):
+    def get_lambda_security_group_id(self) -> Ref:
         """Get security group ID for Lambda."""
         return Ref(self.lambda_sg)
 
@@ -391,10 +391,10 @@ class CostOptimizedNetworkConstruct(NetworkConstruct):
     Cost-optimized network construct with single NAT gateway option.
     """
 
-    def _create_nat_gateways(self):
+    def _create_nat_gateways(self) -> None:
         """Create NAT gateways - single NAT for cost optimization."""
-        self.nat_gateways = []
-        self.elastic_ips = []
+        self.nat_gateways: List[ec2.NatGateway] = []
+        self.elastic_ips: List[ec2.EIP] = []
 
         # Check if NAT is required
         vpc_config = self.config.get("vpc", {})
@@ -447,7 +447,7 @@ class CostOptimizedNetworkConstruct(NetworkConstruct):
             )
             self.nat_gateways.append(nat)
 
-    def _create_route_tables(self):
+    def _create_route_tables(self) -> None:
         """Create route tables with cost-optimized NAT routing."""
         # Create public route table as normal
         super()._create_route_tables()
@@ -455,7 +455,7 @@ class CostOptimizedNetworkConstruct(NetworkConstruct):
         # For private route tables with cost optimization
         if not self.nat_gateways:
             # No NAT gateways - create route tables without NAT routes
-            self.private_route_tables = []
+            self.private_route_tables: List[ec2.RouteTable] = []
             for idx, private_subnet in enumerate(self.private_subnets):
                 rt = self.template.add_resource(
                     ec2.RouteTable(

@@ -2,11 +2,12 @@
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from troposphere import Export, GetAtt, Join, Output, Ref, Sub, Template, cloudformation
 
-from config import ProjectConfig
+# Import from parent directory
+from ..config import ProjectConfig
 from constructs.compute import ComputeConstruct
 from constructs.distribution import DistributionConstruct
 from constructs.storage import StorageConstruct
@@ -46,7 +47,7 @@ class ServerlessAppPattern:
         # Build the infrastructure
         self._build()
 
-    def _build(self):
+    def _build(self) -> None:
         """Build the complete infrastructure."""
         # Storage configuration
         storage_config = {
@@ -114,7 +115,7 @@ class ServerlessAppPattern:
 
         # Get API Gateway outputs
         api_gateway = compute.resources.get("api_gateway")
-        api_domain_name = None
+        api_domain_name: Optional[Join] = None
         api_stage = self.config.api_stage_name
 
         if api_gateway:
@@ -150,7 +151,7 @@ class ServerlessAppPattern:
         # Add stack outputs
         self._create_outputs(storage, compute, distribution)
 
-    def _create_outputs(self, storage, compute, distribution):
+    def _create_outputs(self, storage: StorageConstruct, compute: ComputeConstruct, distribution: DistributionConstruct) -> None:
         """Create stack outputs for cross-stack references."""
         # S3 Bucket outputs
         self.template.add_output(
@@ -183,16 +184,16 @@ class ServerlessAppPattern:
 
     def generate_template(self) -> str:
         """Generate the CloudFormation template."""
-        return self.template.to_json()
+        return self.template.to_json()  # type: ignore[no-any-return]
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert template to dictionary."""
-        return json.loads(self.template.to_json())
+        return json.loads(self.template.to_json())  # type: ignore[no-any-return]
 
     def to_yaml(self) -> str:
         """Convert template to YAML."""
-        return self.template.to_yaml()
+        return self.template.to_yaml()  # type: ignore[no-any-return]
 
     def to_json(self) -> str:
         """Convert template to JSON."""
-        return self.template.to_json()
+        return self.template.to_json()  # type: ignore[no-any-return]

@@ -9,6 +9,8 @@ import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, mock_open, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 
 from config import ProjectConfig
@@ -22,7 +24,7 @@ class TestLambdaBuilder:
     """Test base Lambda builder functionality."""
 
     @pytest.fixture
-    def basic_config(self):
+    def basic_config(self) -> Any:
         """Create a basic project configuration."""
         return ProjectConfig(
             name="test-project",
@@ -32,7 +34,7 @@ class TestLambdaBuilder:
         )
 
     @pytest.fixture
-    def builder(self, basic_config):
+    def builder(self, basic_config) -> Any:
         """Create a LambdaBuilder instance."""
         with tempfile.TemporaryDirectory() as tmpdir:
             return LambdaBuilder(
@@ -41,13 +43,13 @@ class TestLambdaBuilder:
                 config=basic_config,
             )
 
-    def test_initialization(self, builder):
+    def test_initialization(self, builder) -> None:
         """Test LambdaBuilder initialization."""
         assert builder.function_path.name == "lambda"
         assert builder.output_path.name == "dist"
         assert builder.runtime == "nodejs18.x"
 
-    def test_validate_function_path(self, builder):
+    def test_validate_function_path(self, builder) -> None:
         """Test function path validation."""
         # Non-existent path should fail
         assert not builder.validate_function_path()
@@ -56,14 +58,14 @@ class TestLambdaBuilder:
         builder.function_path.mkdir(parents=True)
         assert builder.validate_function_path()
 
-    def test_prepare_output_directory(self, builder):
+    def test_prepare_output_directory(self, builder) -> None:
         """Test output directory preparation."""
         builder.prepare_output_directory()
 
         assert builder.output_path.exists()
         assert builder.output_path.is_dir()
 
-    def test_copy_source_files(self, builder):
+    def test_copy_source_files(self, builder) -> None:
         """Test copying source files."""
         # Create source files
         builder.function_path.mkdir(parents=True)
@@ -84,7 +86,7 @@ class TestLambdaBuilder:
         # Check node_modules was not copied
         assert not (builder.output_path / "node_modules").exists()
 
-    def test_get_builder_for_runtime(self):
+    def test_get_builder_for_runtime(self) -> None:
         """Test getting appropriate builder for runtime."""
         # Node.js runtime
         node_builder = LambdaBuilder.get_builder_for_runtime(
@@ -103,14 +105,14 @@ class TestNodeJSBuilder:
     """Test Node.js Lambda builder functionality."""
 
     @pytest.fixture
-    def builder(self):
+    def builder(self) -> Any:
         """Create a NodeJSBuilder instance."""
         with tempfile.TemporaryDirectory() as tmpdir:
             return NodeJSBuilder(
                 function_path=Path(tmpdir) / "lambda", output_path=Path(tmpdir) / "dist"
             )
 
-    def test_detect_package_manager(self, builder):
+    def test_detect_package_manager(self, builder) -> None:
         """Test package manager detection."""
         builder.function_path.mkdir(parents=True)
 
@@ -132,7 +134,7 @@ class TestNodeJSBuilder:
         (builder.function_path / "pnpm-lock.yaml").unlink()
         assert builder.detect_package_manager() == "npm"
 
-    def test_install_dependencies_npm(self, builder):
+    def test_install_dependencies_npm(self, builder) -> None:
         """Test npm dependency installation."""
         builder.output_path.mkdir(parents=True)
         (builder.output_path / "package.json").write_text(
@@ -153,7 +155,7 @@ class TestNodeJSBuilder:
             assert "install" in args
             assert "--production" in args
 
-    def test_install_dependencies_yarn(self, builder):
+    def test_install_dependencies_yarn(self, builder) -> None:
         """Test yarn dependency installation."""
         builder.output_path.mkdir(parents=True)
         (builder.output_path / "package.json").write_text('{"name":"test"}')
@@ -172,7 +174,7 @@ class TestNodeJSBuilder:
             assert "install" in args
             assert "--production" in args
 
-    def test_build_typescript(self, builder):
+    def test_build_typescript(self, builder) -> None:
         """Test TypeScript compilation."""
         builder.function_path.mkdir(parents=True)
         builder.output_path.mkdir(parents=True)
@@ -203,7 +205,7 @@ class TestNodeJSBuilder:
             args = mock_run.call_args[0][0]
             assert "tsc" in args[0] or args[0] == "npx"
 
-    def test_build_process(self, builder):
+    def test_build_process(self, builder) -> None:
         """Test complete build process."""
         # Setup
         builder.function_path.mkdir(parents=True)
@@ -229,7 +231,7 @@ class TestLambdaPackager:
     """Test Lambda packaging functionality."""
 
     @pytest.fixture
-    def packager(self):
+    def packager(self) -> Any:
         """Create a LambdaPackager instance."""
         with tempfile.TemporaryDirectory() as tmpdir:
             return LambdaPackager(
@@ -237,12 +239,12 @@ class TestLambdaPackager:
                 output_file=Path(tmpdir) / "function.zip",
             )
 
-    def test_initialization(self, packager):
+    def test_initialization(self, packager) -> None:
         """Test LambdaPackager initialization."""
         assert packager.build_path.name == "dist"
         assert packager.output_file.name == "function.zip"
 
-    def test_create_deployment_package(self, packager):
+    def test_create_deployment_package(self, packager) -> None:
         """Test creating deployment package."""
         # Create build directory with files
         packager.build_path.mkdir(parents=True)
@@ -267,7 +269,7 @@ class TestLambdaPackager:
             assert "package.json" in files
             assert "lib/helper.js" in files
 
-    def test_validate_package_size(self, packager):
+    def test_validate_package_size(self, packager) -> None:
         """Test package size validation."""
         packager.output_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -283,7 +285,7 @@ class TestLambdaPackager:
 
         assert packager.validate_package_size() is False
 
-    def test_add_file_to_zip(self, packager):
+    def test_add_file_to_zip(self, packager) -> None:
         """Test adding individual files to zip."""
         packager.build_path.mkdir(parents=True)
         packager.output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -299,7 +301,7 @@ class TestLambdaPackager:
             assert "test.txt" in zf.namelist()
             assert zf.read("test.txt").decode() == "test content"
 
-    def test_package_with_layers(self, packager):
+    def test_package_with_layers(self, packager) -> None:
         """Test packaging with Lambda layers (excludes dependencies)."""
         packager.build_path.mkdir(parents=True)
         (packager.build_path / "index.js").write_text(
@@ -328,19 +330,19 @@ class TestTypeScriptCompiler:
     """Test TypeScript compilation functionality."""
 
     @pytest.fixture
-    def compiler(self):
+    def compiler(self) -> Any:
         """Create a TypeScriptCompiler instance."""
         with tempfile.TemporaryDirectory() as tmpdir:
             return TypeScriptCompiler(
                 source_path=Path(tmpdir) / "src", output_path=Path(tmpdir) / "dist"
             )
 
-    def test_initialization(self, compiler):
+    def test_initialization(self, compiler) -> None:
         """Test TypeScriptCompiler initialization."""
         assert compiler.source_path.name == "src"
         assert compiler.output_path.name == "dist"
 
-    def test_check_typescript_available(self, compiler):
+    def test_check_typescript_available(self, compiler) -> None:
         """Test TypeScript availability check."""
         with patch("subprocess.run") as mock_run:
             # TypeScript is available
@@ -351,7 +353,7 @@ class TestTypeScriptCompiler:
             mock_run.return_value.returncode = 1
             assert compiler.check_typescript_available() is False
 
-    def test_create_default_tsconfig(self, compiler):
+    def test_create_default_tsconfig(self, compiler) -> None:
         """Test creating default tsconfig.json."""
         compiler.source_path.mkdir(parents=True)
 
@@ -368,7 +370,7 @@ class TestTypeScriptCompiler:
         assert config["compilerOptions"]["module"] == "commonjs"
         assert config["compilerOptions"]["strict"] is True
 
-    def test_compile_typescript(self, compiler):
+    def test_compile_typescript(self, compiler) -> None:
         """Test TypeScript compilation."""
         compiler.source_path.mkdir(parents=True)
         compiler.output_path.mkdir(parents=True)
@@ -397,7 +399,7 @@ class TestTypeScriptCompiler:
             assert result is True
             mock_run.assert_called_once()
 
-    def test_compile_with_errors(self, compiler):
+    def test_compile_with_errors(self, compiler) -> None:
         """Test compilation with TypeScript errors."""
         compiler.source_path.mkdir(parents=True)
 
@@ -411,7 +413,7 @@ class TestTypeScriptCompiler:
 
             assert result is False
 
-    def test_watch_mode(self, compiler):
+    def test_watch_mode(self, compiler) -> None:
         """Test TypeScript watch mode."""
         compiler.source_path.mkdir(parents=True)
 
@@ -427,7 +429,7 @@ class TestTypeScriptCompiler:
 class TestLambdaBuilderIntegration:
     """Integration tests for Lambda building process."""
 
-    def test_build_nodejs_function(self):
+    def test_build_nodejs_function(self) -> None:
         """Test building a complete Node.js function."""
         with tempfile.TemporaryDirectory() as tmpdir:
             func_path = Path(tmpdir) / "function"
@@ -478,7 +480,7 @@ class TestLambdaBuilderIntegration:
             assert zip_file.exists()
             assert zip_file.stat().st_size > 0
 
-    def test_build_typescript_function(self):
+    def test_build_typescript_function(self) -> None:
         """Test building a TypeScript Lambda function."""
         with tempfile.TemporaryDirectory() as tmpdir:
             func_path = Path(tmpdir) / "function"

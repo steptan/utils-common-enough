@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
 
@@ -64,12 +64,12 @@ class ComplianceChecker:
         Returns:
             List of compliance check results
         """
-        checks = []
+        checks: List[ComplianceCheck] = []
 
         logger.info(f"Running Well-Architected compliance checks for {self.stack_name}")
 
         # Run checks for each pillar
-        pillar_checks = [
+        pillar_checks: List[Tuple[Pillar, Any]] = [
             (Pillar.OPERATIONAL_EXCELLENCE, self.check_operational_excellence),
             (Pillar.SECURITY, self.check_security),
             (Pillar.RELIABILITY, self.check_reliability),
@@ -93,11 +93,11 @@ class ComplianceChecker:
         Returns:
             List of compliance checks
         """
-        checks = []
+        checks: List[ComplianceCheck] = []
 
         # Check 1: Infrastructure as Code
         try:
-            stack_info = self.cf_client.describe_stacks(StackName=self.stack_name)[
+            stack_info: Dict[str, Any] = self.cf_client.describe_stacks(StackName=self.stack_name)[
                 "Stacks"
             ][0]
             checks.append(
@@ -123,11 +123,11 @@ class ComplianceChecker:
             )
 
         # Check 2: Tagging Strategy
-        tags_check = self._check_resource_tagging()
+        tags_check: ComplianceCheck = self._check_resource_tagging()
         checks.append(tags_check)
 
         # Check 3: Monitoring and Alerting
-        monitoring_check = self._check_monitoring_setup()
+        monitoring_check: ComplianceCheck = self._check_monitoring_setup()
         checks.append(monitoring_check)
 
         # Check 4: Runbook Documentation
@@ -150,26 +150,26 @@ class ComplianceChecker:
         Returns:
             List of compliance checks
         """
-        checks = []
+        checks: List[ComplianceCheck] = []
 
         # Check 1: Data Encryption at Rest
-        encryption_check = self._check_encryption_at_rest()
+        encryption_check: ComplianceCheck = self._check_encryption_at_rest()
         checks.append(encryption_check)
 
         # Check 2: Data Encryption in Transit
-        transit_check = self._check_encryption_in_transit()
+        transit_check: ComplianceCheck = self._check_encryption_in_transit()
         checks.append(transit_check)
 
         # Check 3: Least Privilege Access
-        iam_check = self._check_least_privilege()
+        iam_check: ComplianceCheck = self._check_least_privilege()
         checks.append(iam_check)
 
         # Check 4: Network Security
-        network_check = self._check_network_security()
+        network_check: ComplianceCheck = self._check_network_security()
         checks.append(network_check)
 
         # Check 5: Secrets Management
-        secrets_check = self._check_secrets_management()
+        secrets_check: ComplianceCheck = self._check_secrets_management()
         checks.append(secrets_check)
 
         return checks
@@ -180,22 +180,22 @@ class ComplianceChecker:
         Returns:
             List of compliance checks
         """
-        checks = []
+        checks: List[ComplianceCheck] = []
 
         # Check 1: Multi-AZ Deployment
-        multi_az_check = self._check_multi_az()
+        multi_az_check: ComplianceCheck = self._check_multi_az()
         checks.append(multi_az_check)
 
         # Check 2: Backup Strategy
-        backup_check = self._check_backup_strategy()
+        backup_check: ComplianceCheck = self._check_backup_strategy()
         checks.append(backup_check)
 
         # Check 3: Auto Scaling
-        scaling_check = self._check_auto_scaling()
+        scaling_check: ComplianceCheck = self._check_auto_scaling()
         checks.append(scaling_check)
 
         # Check 4: Health Checks
-        health_check = self._check_health_monitoring()
+        health_check: ComplianceCheck = self._check_health_monitoring()
         checks.append(health_check)
 
         return checks
@@ -206,18 +206,18 @@ class ComplianceChecker:
         Returns:
             List of compliance checks
         """
-        checks = []
+        checks: List[ComplianceCheck] = []
 
         # Check 1: CDN Usage
-        cdn_check = self._check_cdn_usage()
+        cdn_check: ComplianceCheck = self._check_cdn_usage()
         checks.append(cdn_check)
 
         # Check 2: Caching Strategy
-        caching_check = self._check_caching()
+        caching_check: ComplianceCheck = self._check_caching()
         checks.append(caching_check)
 
         # Check 3: Right-sized Resources
-        sizing_check = self._check_resource_sizing()
+        sizing_check: ComplianceCheck = self._check_resource_sizing()
         checks.append(sizing_check)
 
         return checks
@@ -228,14 +228,14 @@ class ComplianceChecker:
         Returns:
             List of compliance checks
         """
-        checks = []
+        checks: List[ComplianceCheck] = []
 
         # Check 1: Resource Tagging for Cost Allocation
-        cost_tags_check = self._check_cost_allocation_tags()
+        cost_tags_check: ComplianceCheck = self._check_cost_allocation_tags()
         checks.append(cost_tags_check)
 
         # Check 2: Unused Resources
-        unused_check = self._check_unused_resources()
+        unused_check: ComplianceCheck = self._check_unused_resources()
         checks.append(unused_check)
 
         # Check 3: Reserved Capacity
@@ -258,14 +258,14 @@ class ComplianceChecker:
         Returns:
             List of compliance checks
         """
-        checks = []
+        checks: List[ComplianceCheck] = []
 
         # Check 1: Graviton/ARM Usage
-        arm_check = self._check_arm_usage()
+        arm_check: ComplianceCheck = self._check_arm_usage()
         checks.append(arm_check)
 
         # Check 2: Resource Efficiency
-        efficiency_check = self._check_resource_efficiency()
+        efficiency_check: ComplianceCheck = self._check_resource_efficiency()
         checks.append(efficiency_check)
 
         return checks
@@ -274,13 +274,13 @@ class ComplianceChecker:
         """Check if resources are properly tagged."""
         try:
             # Get stack tags
-            stack_info = self.cf_client.describe_stacks(StackName=self.stack_name)[
+            stack_info: Dict[str, Any] = self.cf_client.describe_stacks(StackName=self.stack_name)[
                 "Stacks"
             ][0]
-            tags = {tag["Key"]: tag["Value"] for tag in stack_info.get("Tags", [])}
+            tags: Dict[str, str] = {tag["Key"]: tag["Value"] for tag in stack_info.get("Tags", [])}
 
-            required_tags = ["Project", "Environment", "Owner", "CostCenter"]
-            missing_tags = [tag for tag in required_tags if tag not in tags]
+            required_tags: List[str] = ["Project", "Environment", "Owner", "CostCenter"]
+            missing_tags: List[str] = [tag for tag in required_tags if tag not in tags]
 
             if not missing_tags:
                 return ComplianceCheck(
@@ -500,7 +500,7 @@ class ComplianceChecker:
         Returns:
             Formatted report dictionary
         """
-        report = {
+        report: Dict[str, Any] = {
             "project": self.project_name,
             "environment": self.environment,
             "total_checks": len(checks),
@@ -511,12 +511,12 @@ class ComplianceChecker:
 
         for check in checks:
             # Update summary
-            status_key = check.status.lower()
+            status_key: str = check.status.lower()
             if status_key in report["summary"]:
                 report["summary"][status_key] += 1
 
             # Group by pillar
-            pillar_name = check.pillar.value
+            pillar_name: str = check.pillar.value
             if pillar_name not in report["by_pillar"]:
                 report["by_pillar"][pillar_name] = {
                     "pass": 0,
@@ -544,12 +544,12 @@ class ComplianceChecker:
             )
 
         # Calculate compliance score
-        total_weighted = (
+        total_weighted: float = (
             report["summary"]["pass"] * 1.0
             + report["summary"]["warning"] * 0.5
             + report["summary"]["info"] * 0.8
         )
-        max_score = len(checks)
+        max_score: int = len(checks)
         report["compliance_score"] = (
             round((total_weighted / max_score) * 100, 2) if max_score > 0 else 0
         )

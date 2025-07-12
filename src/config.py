@@ -173,7 +173,7 @@ class ConfigManager:
         },
     }
 
-    def __init__(self, config_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, config_dir: Optional[Union[str, Path]] = None) -> None:
         """Initialize config manager."""
         self.config_dir = Path(config_dir) if config_dir else self._find_config_dir()
         self._cache: Dict[str, ProjectConfig] = {}

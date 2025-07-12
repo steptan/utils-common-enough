@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 from click.testing import CliRunner
 
@@ -15,6 +17,7 @@ from click.testing import CliRunner
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from config import ProjectConfig
+from iam.unified_permissions import UnifiedPolicyGenerator
 from scripts.unified_user_permissions import (
     PolicyGenerator,
     UnifiedPermissionManager,
@@ -25,13 +28,13 @@ from scripts.unified_user_permissions import (
 class TestPolicyGenerator:
     """Test the PolicyGenerator class."""
 
-    def test_generate_policy_by_category_structure(self):
+    def test_generate_policy_by_category_structure(self) -> None:
         """Test that generated category policies have correct structure."""
         config = ProjectConfig(
             name="test-project", display_name="Test Project", aws_region="us-east-1"
         )
 
-        generator = PolicyGenerator(config)
+        generator = UnifiedPolicyGenerator(config)
         categories = [
             "infrastructure",
             "compute",
@@ -55,13 +58,13 @@ class TestPolicyGenerator:
                 assert "Action" in statement
                 assert "Resource" in statement
 
-    def test_generate_category_permissions(self):
+    def test_generate_category_permissions(self) -> None:
         """Test that category policies include expected permissions."""
         config = ProjectConfig(
             name="test-project", display_name="Test Project", aws_region="us-east-1"
         )
 
-        generator = PolicyGenerator(config)
+        generator = UnifiedPolicyGenerator(config)
 
         # Test infrastructure category
         policy = generator.generate_policy_by_category("123456789012", "infrastructure")
@@ -82,7 +85,7 @@ class TestPolicyGenerator:
         assert "S3FullAccess" in sids
         assert "DynamoDBFullAccess" in sids
 
-    def test_generate_networking_policy_with_waf(self):
+    def test_generate_networking_policy_with_waf(self) -> None:
         """Test WAF permissions are included in networking category when enabled."""
         config = ProjectConfig(
             name="test-project",
@@ -91,7 +94,7 @@ class TestPolicyGenerator:
             enable_waf=True,
         )
 
-        generator = PolicyGenerator(config)
+        generator = UnifiedPolicyGenerator(config)
         policy = generator.generate_policy_by_category("123456789012", "networking")
 
         # Check WAF statement exists
@@ -101,13 +104,13 @@ class TestPolicyGenerator:
         assert waf_statement is not None
         assert "wafv2:*" in waf_statement["Action"]
 
-    def test_policy_resource_scoping(self):
+    def test_policy_resource_scoping(self) -> None:
         """Test that resources are properly scoped to project."""
         config = ProjectConfig(
             name="my-app", display_name="My App", aws_region="us-west-2"
         )
 
-        generator = PolicyGenerator(config)
+        generator = UnifiedPolicyGenerator(config)
 
         # Check infrastructure resources
         policy = generator.generate_policy_by_category("123456789012", "infrastructure")
@@ -135,7 +138,7 @@ class TestUnifiedPermissionManager:
     """Test the UnifiedPermissionManager class."""
 
     @pytest.fixture
-    def mock_aws_clients(self):
+    def mock_aws_clients(self) -> Any:
         """Create mocked AWS clients."""
         with patch("boto3.Session") as mock_session:
             mock_iam = Mock()
@@ -150,7 +153,7 @@ class TestUnifiedPermissionManager:
 
             yield mock_iam, mock_sts
 
-    def test_get_user_projects_cicd_user(self, mock_aws_clients):
+    def test_get_user_projects_cicd_user(self, mock_aws_clients) -> None:
         """Test project detection for legacy project-cicd user."""
         mock_iam, mock_sts = mock_aws_clients
 
@@ -159,7 +162,7 @@ class TestUnifiedPermissionManager:
 
         assert projects == ["fraud-or-not", "media-register", "people-cards"]
 
-    def test_get_user_projects_specific_user(self, mock_aws_clients):
+    def test_get_user_projects_specific_user(self, mock_aws_clients) -> None:
         """Test project detection for project-specific user."""
         mock_iam, mock_sts = mock_aws_clients
 
@@ -168,7 +171,7 @@ class TestUnifiedPermissionManager:
 
         assert projects == ["fraud-or-not"]
 
-    def test_get_user_projects_from_policies(self, mock_aws_clients):
+    def test_get_user_projects_from_policies(self, mock_aws_clients) -> None:
         """Test project detection from existing policies."""
         mock_iam, mock_sts = mock_aws_clients
 
@@ -181,7 +184,7 @@ class TestUnifiedPermissionManager:
 
         assert set(projects) == {"media-register", "fraud-or-not"}
 
-    def test_update_user_permissions(self, mock_aws_clients):
+    def test_update_user_permissions(self, mock_aws_clients) -> None:
         """Test updating user permissions."""
         mock_iam, mock_sts = mock_aws_clients
 
@@ -208,7 +211,7 @@ class TestUnifiedPermissionManager:
             assert policy_doc["Version"] == "2012-10-17"
             assert len(policy_doc["Statement"]) > 0
 
-    def test_cleanup_old_policies(self, mock_aws_clients):
+    def test_cleanup_old_policies(self, mock_aws_clients) -> None:
         """Test cleanup of old project-specific policies."""
         mock_iam, mock_sts = mock_aws_clients
 
@@ -238,17 +241,17 @@ class TestCLICommands:
     """Test CLI commands."""
 
     @pytest.fixture
-    def runner(self):
+    def runner(self) -> Any:
         """Create a CLI test runner."""
         return CliRunner()
 
     @pytest.fixture
-    def mock_manager(self):
+    def mock_manager(self) -> Any:
         """Mock the UnifiedPermissionManager."""
         with patch("scripts.unified_user_permissions.UnifiedPermissionManager") as mock:
             yield mock
 
-    def test_update_command(self, runner, mock_manager):
+    def test_update_command(self, runner, mock_manager) -> None:
         """Test the update command."""
         mock_instance = mock_manager.return_value
 
@@ -270,7 +273,7 @@ class TestCLICommands:
             "test-user", ["fraud-or-not", "media-register"]
         )
 
-    def test_show_command(self, runner, mock_manager):
+    def test_show_command(self, runner, mock_manager) -> None:
         """Test the show command."""
         mock_instance = mock_manager.return_value
 
@@ -279,7 +282,7 @@ class TestCLICommands:
         assert result.exit_code == 0
         mock_instance.show_user_permissions.assert_called_once_with("test-user")
 
-    def test_list_users_command(self, runner, mock_manager):
+    def test_list_users_command(self, runner, mock_manager) -> None:
         """Test the list-users command."""
         mock_instance = mock_manager.return_value
 
@@ -288,7 +291,7 @@ class TestCLICommands:
         assert result.exit_code == 0
         mock_instance.list_all_users_with_permissions.assert_called_once()
 
-    def test_update_all_command(self, runner, mock_manager):
+    def test_update_all_command(self, runner, mock_manager) -> None:
         """Test the update-all command."""
         mock_instance = mock_manager.return_value
 
@@ -311,7 +314,7 @@ class TestCLICommands:
         assert result.exit_code == 0
         assert mock_instance.update_user_permissions.call_count == 2
 
-    def test_generate_command(self, runner, mock_manager):
+    def test_generate_command(self, runner, mock_manager) -> None:
         """Test the generate command."""
         mock_instance = mock_manager.return_value
         mock_instance.account_id = "123456789012"
@@ -352,7 +355,7 @@ class TestErrorHandling:
     """Test error handling scenarios."""
 
     @pytest.fixture
-    def mock_aws_clients(self):
+    def mock_aws_clients(self) -> Any:
         """Create mocked AWS clients with error scenarios."""
         with patch("boto3.Session") as mock_session:
             mock_iam = Mock()
@@ -367,7 +370,7 @@ class TestErrorHandling:
 
             yield mock_iam, mock_sts
 
-    def test_update_nonexistent_user(self, mock_aws_clients):
+    def test_update_nonexistent_user(self, mock_aws_clients) -> None:
         """Test updating permissions for non-existent user."""
         mock_iam, mock_sts = mock_aws_clients
 
@@ -384,7 +387,7 @@ class TestErrorHandling:
             with pytest.raises(SystemExit):
                 manager.update_user_permissions("nonexistent-user", ["test-project"])
 
-    def test_show_permissions_nonexistent_user(self, mock_aws_clients):
+    def test_show_permissions_nonexistent_user(self, mock_aws_clients) -> None:
         """Test showing permissions for non-existent user."""
         mock_iam, mock_sts = mock_aws_clients
 

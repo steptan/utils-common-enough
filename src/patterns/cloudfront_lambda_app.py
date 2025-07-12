@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from troposphere import Export, GetAtt, Join, Output, Ref, Sub, Template, cloudformation
 
-from config import ProjectConfig
+from ..config import ProjectConfig
 from constructs.compute import ComputeConstruct
 from constructs.distribution import DistributionConstruct
 from constructs.network import NetworkConstruct
@@ -41,7 +41,7 @@ class CloudFrontLambdaAppPattern:
         # Build the infrastructure
         self._build()
 
-    def _build(self):
+    def _build(self) -> None:
         """Build the complete infrastructure."""
         # Prepare configurations
         network_config = {
@@ -123,11 +123,11 @@ class CloudFrontLambdaAppPattern:
         # Get VPC outputs for compute
         # Note: Lambda doesn't need VPC access since it only uses AWS services
         # This avoids NAT Gateway costs and reduces cold starts
-        vpc_config = None
+        vpc_config: Optional[Dict[str, Any]] = None
 
         # Get DynamoDB outputs for compute
         main_table = storage.resources.get("table_main")
-        dynamodb_tables = {}
+        dynamodb_tables: Dict[str, Any] = {}
         if main_table:
             dynamodb_tables["main"] = Ref(main_table)
 
@@ -141,7 +141,7 @@ class CloudFrontLambdaAppPattern:
 
         # Get API Gateway outputs
         api_gateway = compute.resources.get("api_gateway")
-        api_domain_name = None
+        api_domain_name: Optional[Join] = None
         api_stage = self.config.api_stage_name
 
         if api_gateway:
@@ -170,12 +170,12 @@ class CloudFrontLambdaAppPattern:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert template to dictionary."""
-        return json.loads(self.template.to_json())
+        return json.loads(self.template.to_json())  # type: ignore[no-any-return]
 
     def to_yaml(self) -> str:
         """Convert template to YAML."""
-        return self.template.to_yaml()
+        return self.template.to_yaml()  # type: ignore[no-any-return]
 
     def to_json(self) -> str:
         """Convert template to JSON."""
-        return self.template.to_json()
+        return self.template.to_json()  # type: ignore[no-any-return]

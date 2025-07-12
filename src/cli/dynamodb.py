@@ -24,7 +24,7 @@ from config import get_project_config
 
 
 @click.group()
-def dynamodb():
+def dynamodb() -> None:
     """DynamoDB local management commands."""
     pass
 
@@ -34,7 +34,7 @@ def dynamodb():
 @click.option("--port", help="Override DynamoDB port from config")
 @click.option("--detach/--no-detach", default=True, help="Run in background")
 @click.option("--clean/--no-clean", default=False, help="Clean start (remove data)")
-def start(project: str, port: Optional[int], detach: bool, clean: bool):
+def start(project: str, port: Optional[int], detach: bool, clean: bool) -> None:
     """Start DynamoDB Local for a project."""
     config = get_project_config(project)
     dynamodb_config = config.get("dynamodb", {})
@@ -130,7 +130,7 @@ def start(project: str, port: Optional[int], detach: bool, clean: bool):
 
 @dynamodb.command()
 @click.option("--project", required=True, help="Project name")
-def stop(project: str):
+def stop(project: str) -> None:
     """Stop DynamoDB Local for a project."""
     container_name = f"{project}-dynamodb"
     admin_container_name = f"{project}-dynamodb-admin"
@@ -149,7 +149,7 @@ def stop(project: str):
 @dynamodb.command()
 @click.option("--project", required=True, help="Project name")
 @click.option("--port", help="Override DynamoDB port")
-def create_tables(project: str, port: Optional[int]):
+def create_tables(project: str, port: Optional[int]) -> None:
     """Create DynamoDB tables for a project."""
     config = get_project_config(project)
     dynamodb_config = config.get("dynamodb", {})
@@ -222,7 +222,7 @@ def create_tables(project: str, port: Optional[int]):
 @dynamodb.command()
 @click.option("--project", required=True, help="Project name")
 @click.option("--port", help="Override DynamoDB port")
-def list_tables(project: str, port: Optional[int]):
+def list_tables(project: str, port: Optional[int]) -> None:
     """List DynamoDB tables."""
     config = get_project_config(project)
     port = port or config.get("dynamodb", {}).get("local_port", 8000)
@@ -251,7 +251,7 @@ def list_tables(project: str, port: Optional[int]):
 
 @dynamodb.command()
 @click.option("--project", required=True, help="Project name")
-def generate_compose(project: str):
+def generate_compose(project: str) -> None:
     """Generate docker-compose.yml for a project."""
     config = get_project_config(project)
     dynamodb_config = config.get("dynamodb", {})

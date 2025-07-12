@@ -39,7 +39,7 @@ class FullStackAppPattern:
         self.template = template
         self.config = config
         self.environment = environment
-        self.resources = {}
+        self.resources: Dict[str, Any] = {}
 
         # Extract configuration sections
         self.api_config = config.get("api", {})
@@ -49,7 +49,7 @@ class FullStackAppPattern:
         # Build the pattern
         self._create_infrastructure()
 
-    def _create_infrastructure(self):
+    def _create_infrastructure(self) -> None:
         """Create all infrastructure components."""
         # 1. Create backend API infrastructure
         self._create_api_infrastructure()
@@ -63,7 +63,7 @@ class FullStackAppPattern:
         # 4. Create pattern-specific outputs
         self._create_pattern_outputs()
 
-    def _create_api_infrastructure(self):
+    def _create_api_infrastructure(self) -> None:
         """Create serverless API infrastructure."""
         # Ensure API configuration has proper CORS settings
         if "compute" not in self.api_config:
@@ -92,7 +92,7 @@ class FullStackAppPattern:
 
         self.resources["api"] = self.api
 
-    def _create_website_infrastructure(self):
+    def _create_website_infrastructure(self) -> None:
         """Create static website infrastructure."""
         # Configure website with API endpoint
         if "pattern" not in self.website_config:
@@ -146,13 +146,13 @@ class FullStackAppPattern:
 
         return allowed_origins
 
-    def _configure_cors(self):
+    def _configure_cors(self) -> None:
         """Configure CORS settings for API Gateway."""
         # CORS is handled by Lambda function with appropriate headers
         # This is more flexible than API Gateway CORS configuration
         pass
 
-    def _create_pattern_outputs(self):
+    def _create_pattern_outputs(self) -> None:
         """Create pattern-specific outputs."""
         # Frontend URL
         self.template.add_output(
@@ -233,13 +233,13 @@ class FullStackAppPattern:
             )
         )
 
-    def get_frontend_url(self) -> Any:
+    def get_frontend_url(self) -> Sub:
         """Get the frontend application URL."""
         return Sub(
             "https://${Domain}", Domain=GetAtt(self.website.distribution, "DomainName")
         )
 
-    def get_api_endpoint(self) -> Any:
+    def get_api_endpoint(self) -> Sub:
         """Get the backend API endpoint."""
         return self.api.get_api_endpoint()
 
@@ -283,7 +283,7 @@ class FullStackAppPattern:
         Returns:
             List of validation errors (empty if valid)
         """
-        errors = []
+        errors: List[str] = []
 
         # Check required sections
         required_sections = ["pattern", "api", "website"]

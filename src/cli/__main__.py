@@ -2,7 +2,8 @@
 """Main CLI entry point for project utilities."""
 
 import sys
-from typing import Optional, Type
+from pathlib import Path
+from typing import Optional, Type, Dict, Any, List, Tuple, Callable
 
 import click
 
@@ -10,38 +11,38 @@ import click
 try:
     from .deploy import main as deploy_commands
 except ImportError:
-    deploy_commands: Optional[click.Group] = None
+    deploy_commands = None  # type: Optional[Any]
 
 try:
     from .cloudformation import main as cf_commands
 except ImportError:
-    cf_commands: Optional[click.Group] = None
+    cf_commands = None  # type: Optional[Any]
 
 try:
     from .lambda_cmd import main as lambda_commands
 except ImportError:
-    lambda_commands: Optional[click.Group] = None
+    lambda_commands = None  # type: Optional[Any]
 
 try:
     from .iam import main as iam_commands
 except ImportError:
-    iam_commands = None
+    iam_commands = None  # type: Optional[Any]
 
 try:
     from .database import main as db_commands
 except ImportError:
-    db_commands: Optional[click.Group] = None
+    db_commands = None  # type: Optional[Any]
 
 try:
     from .test import main as test_commands
 except ImportError:
-    test_commands: Optional[click.Group] = None
+    test_commands = None  # type: Optional[Any]
 
 # Import new commands
 try:
     from .setup import SetupWizard
 except ImportError:
-    SetupWizard: Optional[Type] = None
+    SetupWizard = None  # type: Optional[Any]
 
 # Import dynamodb commands
 try:
@@ -51,26 +52,26 @@ except ImportError:
 try:
     from deployment.validation import PreDeploymentValidator
 except ImportError:
-    PreDeploymentValidator = None
+    PreDeploymentValidator = None  # type: Optional[Any]
 
 try:
     from security.audit import SecurityAuditor
     from security.compliance import ComplianceChecker
 except ImportError:
-    SecurityAuditor = None
-    ComplianceChecker = None
+    SecurityAuditor = None  # type: Optional[Type[Any]]
+    ComplianceChecker = None  # type: Optional[Type[Any]]
 
 try:
     from cost.analyzer import CostAnalyzer
     from cost.estimator import CostEstimator
 except ImportError:
-    CostEstimator = None
-    CostAnalyzer = None
+    CostEstimator = None  # type: Optional[Type[Any]]
+    CostAnalyzer = None  # type: Optional[Type[Any]]
 
 try:
-    from config import get_project_config
+    from config_validation.config_manager import get_project_config
 except ImportError:
-    get_project_config = None
+    get_project_config = None  # type: Optional[Callable[..., Any]]
 
 
 @click.group()
@@ -104,6 +105,9 @@ if dynamodb_commands:
 @cli.command()
 def setup() -> None:
     """Run interactive setup wizard for AWS credentials and project configuration."""
+    if SetupWizard is None:
+        click.echo("❌ SetupWizard not available")
+        sys.exit(1)
     wizard = SetupWizard()
     success = wizard.run()
     sys.exit(0 if success else 1)
@@ -120,11 +124,11 @@ def setup() -> None:
 @click.option(
     "--output", "-o", type=click.Choice(["console", "json", "html"]), default="console"
 )
-def validate(project: str, environment: str, region: str, skip: tuple, config_only: bool, output: str) -> None:
+def validate(project: str, environment: str, region: str, skip: Tuple[str, ...], config_only: bool, output: str) -> None:
     """Run pre-deployment validation checks."""
     try:
-        all_valid = True
-        combined_report = {
+        all_valid: bool = True
+        combined_report: Dict[str, Any] = {
             "project": project,
             "environment": environment,
             "validations": {},
@@ -137,8 +141,11 @@ def validate(project: str, environment: str, region: str, skip: tuple, config_on
             config_validator = ConfigurationValidator(project)
         except ImportError:
             click.echo("⚠️  Configuration validator not available")
-            config_validator = None
-        config_valid, config_result = config_validator.validate_environment(environment)
+            config_validator = None  # type: Optional[Any]
+        if config_validator:
+            config_valid, config_result = config_validator.validate_environment(environment)
+        else:
+            config_valid, config_result = False, {"errors": ["Configuration validator not available"]}
         combined_report["validations"]["configuration"] = config_result
 
         if not config_valid:
@@ -154,6 +161,9 @@ def validate(project: str, environment: str, region: str, skip: tuple, config_on
             sys.exit(0 if config_valid else 1)
 
         # Deployment validation
+        if PreDeploymentValidator is None:
+            click.echo("❌ PreDeploymentValidator not available")
+            sys.exit(1)
         validator = PreDeploymentValidator(project, environment, region)
         checks = validator.validate_all(skip_categories=list(skip))
         report = validator.generate_report(checks)
@@ -170,7 +180,7 @@ def validate(project: str, environment: str, region: str, skip: tuple, config_on
             click.echo(json.dumps(combined_report, indent=2))
         elif output == "html":
             # Generate HTML report
-            html = generate_html_report(report)
+            html: str = generate_html_report(report)
             output_file = f"validation-{project}-{environment}.html"
             with open(output_file, "w") as f:
                 f.write(html)
@@ -197,6 +207,9 @@ def validate(project: str, environment: str, region: str, skip: tuple, config_on
 def audit_security(project: str, environment: str, region: str, output: str) -> None:
     """Run security audit on deployed resources."""
     try:
+        if SecurityAuditor is None:
+            click.echo("❌ SecurityAuditor not available")
+            sys.exit(1)
         auditor = SecurityAuditor(project, environment, region)
         issues = auditor.audit_all()
         report = auditor.generate_report(issues)
@@ -235,6 +248,9 @@ def audit_security(project: str, environment: str, region: str, output: str) -> 
 def check_compliance(project: str, environment: str, region: str, output: str) -> None:
     """Check AWS Well-Architected Framework compliance."""
     try:
+        if ComplianceChecker is None:
+            click.echo("❌ ComplianceChecker not available")
+            sys.exit(1)
         checker = ComplianceChecker(project, environment, region)
         checks = checker.check_all_pillars()
         report = checker.generate_report(checks)
@@ -265,6 +281,9 @@ def estimate_cost(
 ) -> None:
     """Estimate deployment costs."""
     try:
+        if CostEstimator is None:
+            click.echo("❌ CostEstimator not available")
+            sys.exit(1)
         estimator = CostEstimator(project, environment, region)
 
         if template:
@@ -322,30 +341,36 @@ def estimate_cost(
 def analyze_cost(project: str, days: int, profile: Optional[str]) -> None:
     """Analyze actual AWS costs for the project."""
     try:
+        if get_project_config is None:
+            click.echo("❌ get_project_config not available")
+            sys.exit(1)
         config = get_project_config(project)
+        if CostAnalyzer is None:
+            click.echo("❌ CostAnalyzer not available")
+            sys.exit(1)
         analyzer = CostAnalyzer(config, profile)
 
         # Get cost data
         from datetime import datetime, timedelta
 
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
+        end_date: datetime = datetime.now()
+        start_date: datetime = end_date - timedelta(days=days)
 
-        costs = analyzer.get_project_costs(start_date, end_date)
-        forecast = analyzer.get_cost_forecast()
-        anomalies = analyzer.get_cost_anomalies()
+        costs: Dict[str, Any] = analyzer.get_project_costs(start_date, end_date)
+        forecast: Dict[str, Any] = analyzer.get_cost_forecast()
+        anomalies: List[Dict[str, Any]] = analyzer.get_cost_anomalies()
 
         # Print report
         click.echo(f"\n💰 Cost Analysis for {project}")
         click.echo("=" * 60)
 
-        period = costs.get("period", {})
+        period: Dict[str, Any] = costs.get("period", {})
         click.echo(f"Period: {period.get('start')} to {period.get('end')}")
         click.echo(f"Total Cost: ${costs.get('total_cost', 0):.2f}")
 
         # Service breakdown
         click.echo("\n📊 Cost by Service:")
-        services = costs.get("services", {})
+        services: Dict[str, float] = costs.get("services", {})
         for service, cost in sorted(services.items(), key=lambda x: x[1], reverse=True):
             if cost > 0:
                 click.echo(f"  {service}: ${cost:.2f}")
@@ -373,7 +398,7 @@ def analyze_cost(project: str, days: int, profile: Optional[str]) -> None:
 
 
 # Helper functions for report formatting
-def print_security_report(report: dict) -> None:
+def print_security_report(report: Dict[str, Any]) -> None:
     """Print security report to console."""
     click.echo("\n🔒 Security Audit Report")
     click.echo("=" * 60)
@@ -385,7 +410,7 @@ def print_security_report(report: dict) -> None:
     for severity in ["critical", "high", "medium", "low", "info"]:
         count = report["summary"][severity]
         if count > 0:
-            emoji = {
+            emoji: str = {
                 "critical": "🔴",
                 "high": "🟠",
                 "medium": "🟡",
@@ -395,7 +420,7 @@ def print_security_report(report: dict) -> None:
             click.echo(f"  {emoji} {severity.upper()}: {count}")
 
     # Critical and high issues
-    critical_high = [
+    critical_high: List[Dict[str, Any]] = [
         i for i in report["detailed_issues"] if i["severity"] in ["CRITICAL", "HIGH"]
     ]
     if critical_high:
@@ -408,7 +433,7 @@ def print_security_report(report: dict) -> None:
                 click.echo(f"    Fix: {issue['recommendation']}")
 
 
-def print_compliance_report(report: dict) -> None:
+def print_compliance_report(report: Dict[str, Any]) -> None:
     """Print compliance report to console."""
     click.echo("\n📋 Well-Architected Compliance Report")
     click.echo("=" * 60)
@@ -424,20 +449,20 @@ def print_compliance_report(report: dict) -> None:
     # By pillar
     click.echo("\n🏛️  Results by Pillar:")
     for pillar, stats in report["by_pillar"].items():
-        total = sum(stats.values()) - len(stats.get("checks", []))
-        passed = stats["pass"]
-        percentage = (passed / total * 100) if total > 0 else 0
+        total: int = sum(stats.values()) - len(stats.get("checks", []))
+        passed: int = stats["pass"]
+        percentage: float = (passed / total * 100) if total > 0 else 0
         click.echo(f"  {pillar}: {passed}/{total} ({percentage:.0f}%)")
 
 
-def print_cost_report(report: dict) -> None:
+def print_cost_report(report: Dict[str, Any]) -> None:
     """Print cost estimation report to console."""
     click.echo("\n💰 Cost Estimation Report")
     click.echo("=" * 60)
     click.echo(f"Project: {report['project']} | Environment: {report['environment']}")
 
     # Summary
-    summary = report["summary"]
+    summary: Dict[str, Any] = report["summary"]
     click.echo("\n📊 Estimated Monthly Costs:")
     click.echo(f"  Minimum: ${summary['monthly_cost_estimate']['minimum']:.2f}")
     click.echo(f"  Maximum: ${summary['monthly_cost_estimate']['maximum']:.2f}")
@@ -449,7 +474,7 @@ def print_cost_report(report: dict) -> None:
     # By service
     click.echo("\n💵 Cost Breakdown by Service:")
     for service, data in report["breakdown_by_service"].items():
-        avg = (data["monthly_min"] + data["monthly_max"]) / 2
+        avg: float = (data["monthly_min"] + data["monthly_max"]) / 2
         click.echo(f"  {service}: ${avg:.2f}/month")
         for resource in data["resources"]:
             click.echo(f"    - {resource}")
@@ -461,7 +486,7 @@ def print_cost_report(report: dict) -> None:
             click.echo(f"  • {tip}")
 
 
-def generate_html_report(report: dict) -> str:
+def generate_html_report(report: Dict[str, Any]) -> str:
     """Generate HTML validation report."""
     # Simple HTML template
     return f"""
@@ -510,7 +535,7 @@ def generate_html_report(report: dict) -> str:
     """
 
 
-def generate_security_html_report(report: dict) -> str:
+def generate_security_html_report(report: Dict[str, Any]) -> str:
     """Generate HTML security report."""
     return f"""
     <!DOCTYPE html>
@@ -569,14 +594,19 @@ def generate_security_html_report(report: dict) -> str:
     help="Specific projects to deploy to (default: all projects)",
 )
 @click.option("--settings-dir", type=click.Path(exists=True), help="Directory containing settings files")
-def deploy_settings(projects: tuple, settings_dir: str) -> None:
+def deploy_settings(projects: Tuple[str, ...], settings_dir: Optional[str]) -> None:
     """Deploy Claude settings to projects."""
-    from scripts.deploy_claude_settings import ClaudeSettingsDeployer
+    try:
+        from scripts.deploy_claude_settings import ClaudeSettingsDeployer
+    except ImportError:
+        ClaudeSettingsDeployer = None  # type: Optional[Type[Any]]
+        click.echo("❌ ClaudeSettingsDeployer not available")
+        sys.exit(1)
     
     deployer = ClaudeSettingsDeployer(Path(settings_dir) if settings_dir else None)
     
     if projects:
-        success = True
+        success: bool = True
         for project in projects:
             if project in deployer.projects:
                 success &= deployer.deploy_project(project)
@@ -595,9 +625,14 @@ def deploy_settings(projects: tuple, settings_dir: str) -> None:
 
 @cli.command()
 @click.option("--backup-dir", type=click.Path(), help="Directory containing backup files")
-def rollback_settings(backup_dir: str) -> None:
+def rollback_settings(backup_dir: Optional[str]) -> None:
     """Rollback Claude settings from backup."""
-    from scripts.rollback_claude_settings import ClaudeSettingsRollback
+    try:
+        from scripts.rollback_claude_settings import ClaudeSettingsRollback
+    except ImportError:
+        ClaudeSettingsRollback = None  # type: Optional[Type[Any]]
+        click.echo("❌ ClaudeSettingsRollback not available")
+        sys.exit(1)
     
     rollback = ClaudeSettingsRollback(Path(backup_dir) if backup_dir else None)
     success = rollback.rollback_all()
@@ -608,9 +643,14 @@ def rollback_settings(backup_dir: str) -> None:
 @click.argument("project_path", type=click.Path(exists=True))
 @click.argument("command", type=click.Choice(["setup", "push", "pull"]))
 @click.option("-m", "--message", help="Commit message for push command")
-def setup_submodules(project_path: str, command: str, message: str) -> None:
+def setup_submodules(project_path: str, command: str, message: Optional[str]) -> None:
     """Set up git submodules for a project."""
-    from scripts.git_submodules import GitSubmoduleManager
+    try:
+        from scripts.git_submodules import GitSubmoduleManager
+    except ImportError:
+        GitSubmoduleManager = None  # type: Optional[Type[Any]]
+        click.echo("❌ GitSubmoduleManager not available")
+        sys.exit(1)
     
     manager = GitSubmoduleManager(Path(project_path))
     

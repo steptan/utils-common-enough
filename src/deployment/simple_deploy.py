@@ -8,14 +8,15 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any, Dict
 
 
-def create_cloudformation_template(environment="dev"):
+def create_cloudformation_template(environment: str = "dev") -> Dict[str, Any]:
     """Create a CloudFormation template for Media Register."""
 
-    stack_name = f"media-register-{environment}"
+    stack_name: str = f"media-register-{environment}"
 
-    template = {
+    template: Dict[str, Any] = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": f"Media Register Application - {environment}",
         "Parameters": {
@@ -398,7 +399,7 @@ exports.handler = async (event) => {
     return template
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     import argparse
 

@@ -7,9 +7,12 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 
 
 class DeploymentValidator:
@@ -31,7 +34,7 @@ class DeploymentValidator:
         with open(self.outputs_file) as f:
             return json.load(f)
 
-    def add_result(self, test_name: str, success: bool, message: str):
+    def add_result(self, test_name: str, success: bool, message: str) -> None:
         """Add a test result."""
         self.results.append((test_name, success, message))
 
@@ -40,6 +43,10 @@ class DeploymentValidator:
 
     def test_api_health(self) -> bool:
         """Test API health endpoint."""
+        if requests is None:
+            self.add_result("API Health", False, "requests library not installed")
+            return False
+        
         if not self.api_url:
             self.add_result("API Health", False, "No API URL found")
             return False
@@ -48,7 +55,7 @@ class DeploymentValidator:
             response = requests.get(f"{self.api_url}/health", timeout=10)
 
             if response.status_code == 200:
-                data = response.json()
+                data: Dict[str, Any] = response.json()
                 self.add_result(
                     "API Health",
                     True,
@@ -67,6 +74,9 @@ class DeploymentValidator:
 
     def test_api_detailed_health(self) -> bool:
         """Test API detailed health endpoint."""
+        if requests is None:
+            return False
+        
         if not self.api_url:
             return False
 
@@ -74,8 +84,8 @@ class DeploymentValidator:
             response = requests.get(f"{self.api_url}/health/detailed", timeout=10)
 
             if response.status_code == 200:
-                data = response.json()
-                db_healthy = data.get("database", {}).get("healthy", False)
+                data: Dict[str, Any] = response.json()
+                db_healthy: bool = data.get("database", {}).get("healthy", False)
 
                 self.add_result(
                     "API Detailed Health",
@@ -97,6 +107,10 @@ class DeploymentValidator:
 
     def test_website_availability(self) -> bool:
         """Test website availability."""
+        if requests is None:
+            self.add_result("Website", False, "requests library not installed")
+            return False
+        
         if not self.website_url:
             self.add_result("Website", False, "No website URL found")
             return False
@@ -106,7 +120,7 @@ class DeploymentValidator:
 
             if response.status_code == 200:
                 # Check for expected content
-                has_content = "Media Register" in response.text
+                has_content: bool = "Media Register" in response.text
 
                 self.add_result(
                     "Website",
@@ -126,6 +140,9 @@ class DeploymentValidator:
 
     def test_api_cors(self) -> bool:
         """Test API CORS configuration."""
+        if requests is None:
+            return False
+        
         if not self.api_url:
             return False
 
@@ -139,13 +156,13 @@ class DeploymentValidator:
                 timeout=10,
             )
 
-            cors_headers = {
+            cors_headers: set[str] = {
                 "access-control-allow-origin",
                 "access-control-allow-methods",
                 "access-control-allow-headers",
             }
 
-            has_cors = all(h in response.headers for h in cors_headers)
+            has_cors: bool = all(h in response.headers for h in cors_headers)
 
             self.add_result(
                 "API CORS", has_cors, "Configured" if has_cors else "Not configured"
@@ -158,17 +175,20 @@ class DeploymentValidator:
 
     def test_api_endpoints(self) -> bool:
         """Test various API endpoints."""
+        if requests is None:
+            return False
+        
         if not self.api_url:
             return False
 
-        endpoints = [
+        endpoints: List[Tuple[str, str, str]] = [
             ("GET", "/authors", "List Authors"),
             ("GET", "/works", "List Works"),
             ("GET", "/health/readiness", "Readiness Check"),
             ("GET", "/health/liveness", "Liveness Check"),
         ]
 
-        all_passed = True
+        all_passed: bool = True
 
         for method, path, name in endpoints:
             try:
@@ -176,7 +196,7 @@ class DeploymentValidator:
 
                 # We expect 200 for successful endpoints
                 # Some might return empty lists which is fine
-                success = response.status_code in [200, 201]
+                success: bool = response.status_code in [200, 201]
 
                 self.add_result(
                     f"API {name}", success, f"Status: {response.status_code}"
@@ -193,6 +213,9 @@ class DeploymentValidator:
 
     def test_cloudfront_headers(self) -> bool:
         """Test CloudFront cache headers."""
+        if requests is None:
+            return False
+        
         if not self.website_url:
             return False
 
@@ -200,13 +223,13 @@ class DeploymentValidator:
             response = requests.get(self.website_url, timeout=10)
 
             # Check for CloudFront headers
-            cf_headers = [
+            cf_headers: List[str] = [
                 h
                 for h in response.headers
                 if h.lower().startswith("x-amz-cf-") or h.lower() == "x-cache"
             ]
 
-            has_cf = len(cf_headers) > 0
+            has_cf: bool = len(cf_headers) > 0
 
             self.add_result(
                 "CloudFront",
@@ -244,8 +267,8 @@ class DeploymentValidator:
         print("📊 Validation Summary")
         print("=" * 50)
 
-        passed = sum(1 for _, success, _ in self.results if success)
-        total = len(self.results)
+        passed: int = sum(1 for _, success, _ in self.results if success)
+        total: int = len(self.results)
 
         print(f"\nTests passed: {passed}/{total}")
 
@@ -262,9 +285,13 @@ class DeploymentValidator:
 
     def wait_for_deployment(self, max_wait: int = 300) -> bool:
         """Wait for deployment to be ready."""
+        if requests is None:
+            print("❌ requests library not installed")
+            return False
+        
         print(f"\n⏳ Waiting for deployment to be ready (max {max_wait}s)...")
 
-        start_time = time.time()
+        start_time: float = time.time()
 
         while time.time() - start_time < max_wait:
             # Check API health
@@ -278,14 +305,14 @@ class DeploymentValidator:
 
             # Wait before retrying
             time.sleep(10)
-            elapsed = int(time.time() - start_time)
+            elapsed: int = int(time.time() - start_time)
             print(f"  Still waiting... ({elapsed}s elapsed)")
 
         print("❌ Deployment did not become ready in time")
         return False
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     import argparse
 

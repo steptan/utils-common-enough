@@ -11,10 +11,10 @@ import boto3
 from botocore.exceptions import ClientError
 
 try:
-    from config import ProjectConfig, get_project_config
+    from ..config import ProjectConfig, get_project_config
 except ImportError:
-    ProjectConfig = None
-    get_project_config = None
+    ProjectConfig = None  # type: ignore
+    get_project_config = None  # type: ignore
 
 
 class StackManager:

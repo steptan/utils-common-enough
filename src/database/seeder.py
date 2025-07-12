@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Union
 import boto3
 from botocore.exceptions import ClientError
 
-from config import ProjectConfig, get_project_config
+from ..config import ProjectConfig, get_project_config
 
 
 @dataclass
@@ -105,7 +105,7 @@ class DataSeeder:
         """Get AWS account ID."""
         try:
             response = self.sts.get_caller_identity()
-            return response["Account"]
+            return response["Account"]  # type: ignore[no-any-return]
         except Exception as e:
             print(f"❌ Failed to get AWS account ID: {e}", file=sys.stderr)
             sys.exit(1)
@@ -144,11 +144,11 @@ class DataSeeder:
             patterns = self.config.custom_config.get("table_patterns", {})
             if table_key in patterns:
                 pattern = patterns[table_key]
-                return pattern.format(
+                return str(pattern.format(
                     project=self.project_name,
                     environment=self.environment,
                     account_id=self.account_id,
-                )
+                ))
 
         # Check standard patterns
         if (
@@ -156,11 +156,11 @@ class DataSeeder:
             and table_key in self.config.table_patterns
         ):
             pattern = self.config.table_patterns[table_key]
-            return pattern.format(
+            return str(pattern.format(
                 project=self.project_name,
                 environment=self.environment,
                 account_id=self.account_id,
-            )
+            ))
 
         # Default pattern
         return f"{self.project_name}-{table_key}-{self.environment}"
@@ -317,7 +317,7 @@ class DataSeeder:
 
     def _process_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """Process item for DynamoDB insertion."""
-        processed = {}
+        processed: Dict[str, Any] = {}
 
         for key, value in item.items():
             if isinstance(value, datetime):

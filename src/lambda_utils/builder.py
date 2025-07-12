@@ -13,16 +13,16 @@ from config import ProjectConfig
 class LambdaBuilder:
     """Build Lambda functions for deployment."""
 
-    def __init__(self, config: ProjectConfig):
+    def __init__(self, config: ProjectConfig) -> None:
         """
         Initialize Lambda builder.
 
         Args:
             config: Project configuration
         """
-        self.config = config
-        self.runtime = config.lambda_runtime
-        self.architecture = config.lambda_architecture
+        self.config: ProjectConfig = config
+        self.runtime: str = config.lambda_runtime
+        self.architecture: str = config.lambda_architecture
 
     def build_function(
         self,
@@ -92,6 +92,7 @@ class LambdaBuilder:
                 cwd=output_dir,
                 check=True,
                 capture_output=True,
+                text=True,
             )
 
         # Run build command if specified
@@ -104,6 +105,7 @@ class LambdaBuilder:
                     cwd=output_dir,
                     check=True,
                     capture_output=True,
+                    text=True,
                 )
 
         return output_dir
@@ -154,13 +156,14 @@ class LambdaBuilder:
                     ],
                     check=True,
                     capture_output=True,
+                    text=True,
                 )
 
         return output_dir
 
     def _build_python_docker(self, requirements_file: Path, output_dir: Path) -> None:
         """Build Python dependencies using Docker."""
-        image = f"public.ecr.aws/lambda/python:{self.runtime.replace('python', '')}"
+        image: str = f"public.ecr.aws/lambda/python:{self.runtime.replace('python', '')}"
 
         subprocess.run(
             [
@@ -190,6 +193,7 @@ class LambdaBuilder:
             ],
             check=True,
             capture_output=True,
+            text=True,
         )
 
     def build_all_functions(
@@ -208,7 +212,7 @@ class LambdaBuilder:
         """
         print(f"🔨 Building all Lambda functions for {self.config.name}")
 
-        built_functions = {}
+        built_functions: Dict[str, Path] = {}
 
         # Find all Lambda functions
         for function_dir in source_root.iterdir():
@@ -244,4 +248,5 @@ class LambdaBuilder:
         import json
 
         with open(file_path, "r") as f:
-            return json.load(f)
+            data: Dict[str, Any] = json.load(f)
+            return data

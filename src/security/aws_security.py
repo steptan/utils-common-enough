@@ -23,10 +23,10 @@ logger = logging.getLogger(__name__)
 class AWSSecurityValidator:
     """Validates AWS credentials and enforces security best practices"""
 
-    def __init__(self):
-        self.session = None
-        self.sts_client = None
-        self.iam_client = None
+    def __init__(self) -> None:
+        self.session: Optional[boto3.Session] = None
+        self.sts_client: Optional[Any] = None
+        self.iam_client: Optional[Any] = None
 
     def get_session(self) -> boto3.Session:
         """Get boto3 session with proper credential chain"""
@@ -49,15 +49,15 @@ class AWSSecurityValidator:
             self.sts_client = session.client("sts")
 
             # Get caller identity
-            identity = self.sts_client.get_caller_identity()
+            identity: Dict[str, Any] = self.sts_client.get_caller_identity()
 
             # Extract identity info
-            account_id = identity["Account"]
-            user_arn = identity["Arn"]
-            user_id = identity["UserId"]
+            account_id: str = identity["Account"]
+            user_arn: str = identity["Arn"]
+            user_id: str = identity["UserId"]
 
             # Determine credential type
-            cred_type = self._determine_credential_type(user_arn)
+            cred_type: str = self._determine_credential_type(user_arn)
 
             return True, {
                 "account_id": account_id,
@@ -103,10 +103,10 @@ class AWSSecurityValidator:
             self.iam_client = session.client("iam")
 
             # Extract username from ARN
-            username = user_arn.split(":user/")[-1]
+            username: str = user_arn.split(":user/")[-1]
 
             # Check MFA devices
-            response = self.iam_client.list_mfa_devices(UserName=username)
+            response: Dict[str, Any] = self.iam_client.list_mfa_devices(UserName=username)
             return len(response["MFADevices"]) > 0
 
         except ClientError:
@@ -124,11 +124,11 @@ class AWSSecurityValidator:
                 iam = session.client("iam")
                 try:
                     # Get access key metadata
-                    response = iam.list_access_keys()
+                    response: Dict[str, Any] = iam.list_access_keys()
                     for key in response["AccessKeyMetadata"]:
                         if key["AccessKeyId"] == credentials.access_key:
-                            created_date = key["CreateDate"]
-                            age_days = (
+                            created_date: datetime = key["CreateDate"]
+                            age_days: int = (
                                 datetime.now(created_date.tzinfo) - created_date
                             ).days
                             return {
@@ -153,7 +153,9 @@ class AWSSecurityValidator:
 
     def enforce_security_policies(self, environment: str) -> Tuple[bool, List[str]]:
         """Enforce security policies based on environment"""
-        issues = []
+        issues: List[str] = []
+        valid: bool
+        identity: Optional[Dict[str, Any]]
         valid, identity = self.validate_credentials()
 
         if not valid:
@@ -184,15 +186,15 @@ class AWSSecurityValidator:
                 )
 
         # Check credential age
-        age_info = self.check_credential_age()
+        age_info: Optional[Dict[str, Any]] = self.check_credential_age()
         if age_info and age_info["needs_rotation"]:
             issues.append(
                 f"⚠️  WARNING: Access key is {age_info['age_days']} days old (>90 days)"
             )
 
         # Check for required permissions
-        required_permissions = self._get_required_permissions(environment)
-        missing_perms = self._check_permissions(required_permissions)
+        required_permissions: List[str] = self._get_required_permissions(environment)
+        missing_perms: List[str] = self._check_permissions(required_permissions)
         if missing_perms:
             issues.append(
                 f"❌ Missing required permissions: {', '.join(missing_perms)}"
@@ -203,7 +205,7 @@ class AWSSecurityValidator:
 
     def _get_required_permissions(self, environment: str) -> List[str]:
         """Get required permissions for deployment"""
-        base_permissions = [
+        base_permissions: List[str] = [
             "cloudformation:CreateStack",
             "cloudformation:UpdateStack",
             "cloudformation:DescribeStacks",
@@ -222,7 +224,7 @@ class AWSSecurityValidator:
 
     def _check_permissions(self, permissions: List[str]) -> List[str]:
         """Check if current credentials have required permissions"""
-        missing = []
+        missing: List[str] = []
 
         try:
             session = self.get_session()
@@ -233,7 +235,7 @@ class AWSSecurityValidator:
                 service, action = permission.split(":")
                 try:
                     # This is a simplified check - in production, use policy simulator
-                    response = iam.simulate_principal_policy(
+                    response: Dict[str, Any] = iam.simulate_principal_policy(
                         PolicySourceArn=self.sts_client.get_caller_identity()["Arn"],
                         ActionNames=[permission],
                         ResourceArns=["*"],
@@ -265,25 +267,25 @@ class AWSSecurityValidator:
                 sts = base_session.client("sts")
 
                 # Generate unique session name
-                session_name = (
+                session_name: str = (
                     f"fraud-or-not-deploy-{datetime.now().strftime('%Y%m%d%H%M%S')}"
                 )
 
                 # Assume role with MFA if available
-                assume_role_params = {
+                assume_role_params: Dict[str, Any] = {
                     "RoleArn": role_arn,
                     "RoleSessionName": session_name,
                     "DurationSeconds": 3600,  # 1 hour
                 }
 
                 # Add MFA if available
-                mfa_serial = os.environ.get("AWS_MFA_SERIAL")
-                mfa_token = os.environ.get("AWS_MFA_TOKEN")
+                mfa_serial: Optional[str] = os.environ.get("AWS_MFA_SERIAL")
+                mfa_token: Optional[str] = os.environ.get("AWS_MFA_TOKEN")
                 if mfa_serial and mfa_token:
                     assume_role_params["SerialNumber"] = mfa_serial
                     assume_role_params["TokenCode"] = mfa_token
 
-                response = sts.assume_role(**assume_role_params)
+                response: Dict[str, Any] = sts.assume_role(**assume_role_params)
 
                 # Create new session with temporary credentials
                 return boto3.Session(
@@ -419,7 +421,9 @@ def run_security_audit() -> None:
     print("🔒 AWS Security Audit")
     print("=" * 50)
 
-    validator = AWSSecurityValidator()
+    validator: AWSSecurityValidator = AWSSecurityValidator()
+    valid: bool
+    identity: Optional[Dict[str, Any]]
     valid, identity = validator.validate_credentials()
 
     if valid:
@@ -430,7 +434,7 @@ def run_security_audit() -> None:
         print(f"   Temporary: {identity['is_temporary']}")
 
         # Check rotation
-        rotation_check = CredentialRotationChecker.check_rotation_needed()
+        rotation_check: Dict[str, Any] = CredentialRotationChecker.check_rotation_needed()
         print(f"\n📅 Credential Rotation Status: {rotation_check['status']}")
         print(f"   {rotation_check['message']}")
 

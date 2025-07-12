@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import jsonschema
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class CloudFormationYAMLLoader(yaml.SafeLoader):
 
 
 # Register CloudFormation intrinsic functions as constructors
-def cfn_tag_constructor(loader, tag_suffix, node):
+def cfn_tag_constructor(loader: yaml.SafeLoader, tag_suffix: str, node: yaml.Node) -> Any:
     """Generic constructor for CloudFormation tags."""
     if isinstance(node, yaml.ScalarNode):
         return loader.construct_scalar(node)
@@ -68,7 +68,7 @@ for tag in cfn_tags:
 class ConfigurationValidator:
     """Validates project configuration files."""
 
-    def __init__(self, project_name: str, config_dir: Optional[Path] = None):
+    def __init__(self, project_name: str, config_dir: Optional[Path] = None) -> None:
         """Initialize the configuration validator.
 
         Args:
@@ -104,7 +104,7 @@ class ConfigurationValidator:
             return {}
 
         with open(schema_path, "r") as f:
-            return yaml.load(f, Loader=CloudFormationYAMLLoader)
+            return yaml.load(f, Loader=CloudFormationYAMLLoader)  # type: ignore[no-any-return]
 
     def load_config(self, config_path: Path) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -112,7 +112,7 @@ class ConfigurationValidator:
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
         with open(config_path, "r") as f:
-            return yaml.load(f, Loader=CloudFormationYAMLLoader)
+            return yaml.load(f, Loader=CloudFormationYAMLLoader)  # type: ignore[no-any-return]
 
     def merge_config(
         self, base_config: Dict[str, Any], override_config: Dict[str, Any]
@@ -203,7 +203,7 @@ class ConfigurationValidator:
         Returns:
             Tuple of (is_valid, validation_result)
         """
-        result = {
+        result: Dict[str, Any] = {
             "environment": environment,
             "valid": False,
             "errors": [],
@@ -257,7 +257,7 @@ class ConfigurationValidator:
             Dictionary with validation results for all environments
         """
         environments_dir = self.config_dir / "environments"
-        results = {"all_valid": True, "environments": {}}
+        results: Dict[str, Any] = {"all_valid": True, "environments": {}}
 
         if not environments_dir.exists():
             logger.error(f"Environments directory not found: {environments_dir}")

@@ -23,7 +23,7 @@ class StackDiagnostics:
 
     def generate_report(self, stack_name: str) -> str:
         """Generate a comprehensive diagnostic report for a stack."""
-        report = []
+        report: List[str] = []
         report.append("🔍 CloudFormation Stack Diagnostic Report")
         report.append(f"Stack: {stack_name}")
         report.append(f"Time: {datetime.now().isoformat()}")
@@ -218,7 +218,7 @@ class StackDiagnostics:
 
     def analyze_drift(self, stack_name: str) -> Dict[str, Any]:
         """Analyze stack drift (differences between template and actual resources)."""
-        drift_info = {
+        drift_info: Dict[str, Any] = {
             "stack_name": stack_name,
             "drift_status": "UNKNOWN",
             "drifted_resources": [],
@@ -259,7 +259,7 @@ class StackDiagnostics:
                 )
 
                 for resource in resources["StackResourceDrifts"]:
-                    drift_detail = {
+                    drift_detail: Dict[str, Any] = {
                         "logical_id": resource["LogicalResourceId"],
                         "resource_type": resource["ResourceType"],
                         "drift_status": resource["StackResourceDriftStatus"],

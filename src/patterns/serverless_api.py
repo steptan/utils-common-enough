@@ -13,6 +13,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from troposphere import Export, GetAtt, Output, Ref, Sub, Template
+from typing import Union
 
 from constructs import (
     ComputeConstruct,
@@ -44,7 +45,7 @@ class ServerlessAPIPattern:
         self.template = template
         self.config = config
         self.environment = environment
-        self.resources = {}
+        self.resources: Dict[str, Any] = {}
 
         # Extract configuration sections
         self.network_config = config.get("network", {})
@@ -55,7 +56,7 @@ class ServerlessAPIPattern:
         # Build the pattern
         self._create_infrastructure()
 
-    def _create_infrastructure(self):
+    def _create_infrastructure(self) -> None:
         """Create all infrastructure components."""
         # 1. Create network infrastructure
         self._create_network()
@@ -69,7 +70,7 @@ class ServerlessAPIPattern:
         # 4. Create pattern-specific outputs
         self._create_pattern_outputs()
 
-    def _create_network(self):
+    def _create_network(self) -> None:
         """Create network infrastructure based on configuration."""
         # Use cost-optimized network for non-production environments
         use_cost_optimized = (
@@ -92,7 +93,7 @@ class ServerlessAPIPattern:
 
         self.resources["network"] = self.network
 
-    def _create_storage(self):
+    def _create_storage(self) -> None:
         """Create storage infrastructure."""
         # Set default DynamoDB configuration if not provided
         if "dynamodb" not in self.storage_config:
@@ -128,10 +129,10 @@ class ServerlessAPIPattern:
 
         self.resources["storage"] = self.storage
 
-    def _create_compute(self):
+    def _create_compute(self) -> None:
         """Create compute infrastructure with VPC and storage integration."""
         # Prepare VPC configuration for Lambda
-        vpc_config = None
+        vpc_config: Optional[Dict[str, Any]] = None
         if self.pattern_config.get("lambda_in_vpc", True):
             vpc_config = {
                 "subnet_ids": self.network.get_lambda_subnet_ids(),
@@ -183,7 +184,7 @@ class ServerlessAPIPattern:
 
         self.resources["compute"] = self.compute
 
-    def _create_pattern_outputs(self):
+    def _create_pattern_outputs(self) -> None:
         """Create pattern-specific outputs."""
         # API endpoint output
         self.template.add_output(
@@ -234,17 +235,17 @@ class ServerlessAPIPattern:
             )
         )
 
-    def get_api_endpoint(self) -> str:
+    def get_api_endpoint(self) -> Sub:
         """Get the API Gateway endpoint URL."""
         return self.compute.get_api_endpoint()
 
-    def get_lambda_function_arn(self) -> str:
+    def get_lambda_function_arn(self) -> GetAtt:
         """Get the Lambda function ARN."""
         return self.compute.get_lambda_function_arn()
 
     def get_table_names(self) -> Dict[str, Any]:
         """Get DynamoDB table names."""
-        return self.storage.get_table_names()
+        return self.storage.get_table_names()  # type: ignore[no-any-return]
 
     def get_resources(self) -> Dict[str, Any]:
         """Get all pattern resources."""

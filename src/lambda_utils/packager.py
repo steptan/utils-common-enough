@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 class LambdaPackager:
     """Package Lambda functions into deployment artifacts."""
 
-    def __init__(self, project_path: Path):
+    def __init__(self, project_path: Path) -> None:
         """Initialize the packager.
 
         Args:
             project_path: Path to the project root
         """
-        self.project_path = Path(project_path)
+        self.project_path: Path = Path(project_path)
 
     def create_deployment_package(
         self,
@@ -41,8 +41,8 @@ class LambdaPackager:
         Returns:
             Path to the created ZIP file
         """
-        source_dir = Path(source_dir)
-        output_file = Path(output_file)
+        source_dir: Path = Path(source_dir)
+        output_file: Path = Path(output_file)
 
         # Ensure output directory exists
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -85,7 +85,7 @@ class LambdaPackager:
                     zipf.write(file_path, archive_path)
 
         # Get package size
-        size_mb = output_file.stat().st_size / (1024 * 1024)
+        size_mb: float = output_file.stat().st_size / (1024 * 1024)
         logger.info(f"Package created: {output_file} ({size_mb:.2f} MB)")
 
         # Warn if package is large
@@ -112,7 +112,7 @@ class LambdaPackager:
 
         # Create a temporary directory for clean install
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+            temp_path: Path = Path(temp_dir)
 
             # Copy package.json (and lock file if exists)
             shutil.copy2(source_dir / "package.json", temp_path)
@@ -123,14 +123,14 @@ class LambdaPackager:
 
             # Determine package manager and install command
             if (temp_path / "yarn.lock").exists():
-                install_cmd = ["yarn", "install", "--production", "--frozen-lockfile"]
+                install_cmd: List[str] = ["yarn", "install", "--production", "--frozen-lockfile"]
             elif (temp_path / "package-lock.json").exists():
                 install_cmd = ["npm", "ci", "--omit=dev"]
             else:
                 install_cmd = ["npm", "install", "--omit=dev"]
 
             # Install dependencies
-            subprocess.run(
+            result: subprocess.CompletedProcess[str] = subprocess.run(
                 install_cmd, cwd=temp_path, check=True, capture_output=True, text=True
             )
 
@@ -155,12 +155,12 @@ class LambdaPackager:
         Returns:
             Path to the created layer ZIP file
         """
-        output_file = Path(output_file)
+        output_file: Path = Path(output_file)
 
         logger.info(f"Creating Lambda layer package: {output_file}")
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+            temp_path: Path = Path(temp_dir)
 
             # Determine the correct directory structure for the runtime
             if runtime.startswith("nodejs"):
@@ -169,7 +169,7 @@ class LambdaPackager:
                 layer_dir.mkdir()
 
                 # Create package.json
-                package_json = {
+                package_json: Dict[str, Any] = {
                     "name": "lambda-layer",
                     "version": "1.0.0",
                     "dependencies": dependencies,
@@ -181,7 +181,7 @@ class LambdaPackager:
                     json.dump(package_json, f, indent=2)
 
                 # Install dependencies
-                subprocess.run(
+                result: subprocess.CompletedProcess[str] = subprocess.run(
                     ["npm", "install", "--omit=dev"],
                     cwd=layer_dir,
                     check=True,
@@ -197,11 +197,11 @@ class LambdaPackager:
                 # Install Python dependencies
                 for package, version in dependencies.items():
                     if version:
-                        package_spec = f"{package}=={version}"
+                        package_spec: str = f"{package}=={version}"
                     else:
                         package_spec = package
 
-                    subprocess.run(
+                    result: subprocess.CompletedProcess[str] = subprocess.run(
                         ["pip", "install", package_spec, "-t", str(layer_dir)],
                         check=True,
                         capture_output=True,
@@ -219,7 +219,7 @@ class LambdaPackager:
                         archive_path = file_path.relative_to(temp_path)
                         zipf.write(file_path, archive_path)
 
-        size_mb = output_file.stat().st_size / (1024 * 1024)
+        size_mb: float = output_file.stat().st_size / (1024 * 1024)
         logger.info(f"Layer package created: {output_file} ({size_mb:.2f} MB)")
 
         return output_file
@@ -233,7 +233,7 @@ class LambdaPackager:
         Returns:
             True if package is valid
         """
-        package_file = Path(package_file)
+        package_file: Path = Path(package_file)
 
         if not package_file.exists():
             logger.error(f"Package file not found: {package_file}")
@@ -244,17 +244,17 @@ class LambdaPackager:
             return False
 
         # Check size
-        size_mb = package_file.stat().st_size / (1024 * 1024)
+        size_mb: float = package_file.stat().st_size / (1024 * 1024)
         if size_mb > 250:
             logger.error(f"Package size ({size_mb:.2f} MB) exceeds Lambda limit")
             return False
 
         # Check contents
         with zipfile.ZipFile(package_file, "r") as zipf:
-            files = zipf.namelist()
+            files: List[str] = zipf.namelist()
 
             # Check for handler file
-            has_handler = any(
+            has_handler: bool = any(
                 f.startswith(("index.", "handler.", "lambda_function.")) for f in files
             )
 
@@ -273,8 +273,8 @@ class LambdaPackager:
         Returns:
             Path to extraction directory
         """
-        package_file = Path(package_file)
-        output_dir = Path(output_dir)
+        package_file: Path = Path(package_file)
+        output_dir: Path = Path(output_dir)
 
         output_dir.mkdir(parents=True, exist_ok=True)
 

@@ -5,18 +5,30 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Dict, Any, List, Optional, Tuple
 
 import click
 
-from config import get_project_config
-from lambda_utils.builder import LambdaBuilder
-from lambda_utils.nodejs_builder import NodeJSBuilder
-from lambda_utils.packager import LambdaPackager
-from lambda_utils.typescript_compiler import TypeScriptCompiler
+try:
+    from config import get_project_config
+except ImportError:
+    from typing import Callable
+    get_project_config: Optional[Callable] = None
+
+try:
+    from lambda_utils.builder import LambdaBuilder
+    from lambda_utils.nodejs_builder import NodeJSBuilder
+    from lambda_utils.packager import LambdaPackager
+    from lambda_utils.typescript_compiler import TypeScriptCompiler
+except ImportError:
+    LambdaBuilder = None  # type: Optional[Any]
+    NodeJSBuilder: Optional[type] = None
+    LambdaPackager: Optional[type] = None
+    TypeScriptCompiler: Optional[type] = None
 
 
 @click.group()
-def main():
+def main() -> None:
     """Lambda function management commands."""
     pass
 
@@ -30,7 +42,7 @@ def main():
 )
 @click.option("--minify/--no-minify", default=False, help="Minify code")
 @click.option("--source-map/--no-source-map", default=True, help="Generate source maps")
-def build(function, output, runtime, install_deps, minify, source_map):
+def build(function: str, output: Optional[str], runtime: Optional[str], install_deps: bool, minify: bool, source_map: bool) -> None:
     """Build Lambda function for deployment."""
     try:
         function_path = Path(function).resolve()
@@ -56,6 +68,9 @@ def build(function, output, runtime, install_deps, minify, source_map):
 
         # Build based on runtime
         if runtime.startswith("nodejs"):
+            if NodeJSBuilder is None:
+                click.echo("❌ NodeJSBuilder not available")
+                sys.exit(1)
             builder = NodeJSBuilder()
             result_path = builder.build(
                 function_path,
@@ -65,6 +80,9 @@ def build(function, output, runtime, install_deps, minify, source_map):
                 source_maps=source_map,
             )
         elif runtime.startswith("python"):
+            if LambdaBuilder is None:
+                click.echo("❌ LambdaBuilder not available")
+                sys.exit(1)
             builder = LambdaBuilder()
             result_path = builder.build_lambda(
                 function_path, Path(output) if output else function_path / "dist"
@@ -84,7 +102,7 @@ def build(function, output, runtime, install_deps, minify, source_map):
 @click.option("--function", "-f", required=True, help="Lambda function directory")
 @click.option("--output", "-o", help="Output path for zip file")
 @click.option("--exclude", "-e", multiple=True, help="Patterns to exclude")
-def package(function, output, exclude):
+def package(function: str, output: Optional[str], exclude: Tuple[str, ...]) -> None:
     """Package Lambda function into deployment zip."""
     try:
         function_path = Path(function).resolve()
@@ -95,6 +113,9 @@ def package(function, output, exclude):
 
         click.echo(f"📦 Packaging Lambda function: {function_path.name}")
 
+        if LambdaPackager is None:
+            click.echo("❌ LambdaPackager not available")
+            sys.exit(1)
         packager = LambdaPackager()
 
         # Determine output path
@@ -123,7 +144,7 @@ def package(function, output, exclude):
 @main.command()
 @click.option("--function", "-f", required=True, help="Lambda function directory")
 @click.option("--watch/--no-watch", default=False, help="Watch for changes")
-def compile(function, watch):
+def compile(function: str, watch: bool) -> None:
     """Compile TypeScript Lambda functions."""
     try:
         function_path = Path(function).resolve()
@@ -134,6 +155,9 @@ def compile(function, watch):
 
         click.echo(f"🔄 Compiling TypeScript: {function_path.name}")
 
+        if TypeScriptCompiler is None:
+            click.echo("❌ TypeScriptCompiler not available")
+            sys.exit(1)
         compiler = TypeScriptCompiler()
 
         if watch:
@@ -156,7 +180,7 @@ def compile(function, watch):
 @click.option("--project", "-p", required=True, help="Project name")
 @click.option("--output", "-o", help="Output directory")
 @click.option("--parallel/--sequential", default=True, help="Build in parallel")
-def build_all(project, output, parallel):
+def build_all(project: str, output: Optional[str], parallel: bool) -> None:
     """Build all Lambda functions in the project."""
     try:
         project_root = Path.cwd()
@@ -167,7 +191,7 @@ def build_all(project, output, parallel):
             sys.exit(1)
 
         # Find all Lambda functions
-        functions = []
+        functions: List[Path] = []
         for item in lambda_dir.iterdir():
             if item.is_dir() and not item.name.startswith("."):
                 if (
@@ -184,8 +208,11 @@ def build_all(project, output, parallel):
         click.echo(f"🚀 Building {len(functions)} Lambda functions")
 
         # Build each function
+        if NodeJSBuilder is None:
+            click.echo("❌ NodeJSBuilder not available")
+            sys.exit(1)
         builder = NodeJSBuilder()
-        failed = []
+        failed: List[str] = []
 
         for func in functions:
             try:
@@ -219,7 +246,7 @@ def build_all(project, output, parallel):
 @click.option("--event", "-e", help="Event JSON file or inline JSON")
 @click.option("--env-file", help="Environment variables file")
 @click.option("--timeout", "-t", default=3, help="Timeout in seconds")
-def local_test(function, event, env_file, timeout):
+def local_test(function: str, event: Optional[str], env_file: Optional[str], timeout: int) -> None:
     """Test Lambda function locally."""
     try:
         function_path = Path(function).resolve()
@@ -231,7 +258,7 @@ def local_test(function, event, env_file, timeout):
         click.echo(f"🧪 Testing Lambda function: {function_path.name}")
 
         # Load event
-        event_data = {}
+        event_data: Dict[str, Any] = {}
         if event:
             if event.startswith("{"):
                 # Inline JSON
@@ -242,7 +269,7 @@ def local_test(function, event, env_file, timeout):
                     event_data = json.load(f)
 
         # Set up environment
-        env = {}
+        env: Dict[str, str] = {}
         if env_file:
             with open(env_file, "r") as f:
                 for line in f:
@@ -251,7 +278,7 @@ def local_test(function, event, env_file, timeout):
                         env[key] = value
 
         # Find the handler file
-        handler_file = None
+        handler_file: Optional[str] = None
         for name in ["index.js", "handler.js", "index.py", "handler.py"]:
             if (function_path / name).exists():
                 handler_file = name
@@ -264,7 +291,7 @@ def local_test(function, event, env_file, timeout):
         # Test based on runtime
         if handler_file.endswith(".js"):
             # Node.js test
-            test_script = f"""
+            test_script: str = f"""
 const handler = require('./{handler_file}');
 const event = {json.dumps(event_data)};
 const context = {{
@@ -326,13 +353,13 @@ handler.handler(event, context, (err, result) => {{
 @click.option("--runtime", "-r", default="nodejs18.x", help="Lambda runtime version")
 @click.option("--memory", "-m", default=512, help="Memory in MB")
 @click.option("--timeout", "-t", default=30, help="Timeout in seconds")
-def validate_config(project, runtime, memory, timeout):
+def validate_config(project: str, runtime: str, memory: int, timeout: int) -> None:
     """Validate Lambda configuration."""
     try:
-        issues = []
+        issues: List[str] = []
 
         # Validate runtime
-        valid_runtimes = [
+        valid_runtimes: List[str] = [
             "nodejs18.x",
             "nodejs16.x",
             "nodejs14.x",
@@ -377,7 +404,7 @@ def validate_config(project, runtime, memory, timeout):
                         pkg_file = func_dir / "package.json"
                         if pkg_file.exists():
                             with open(pkg_file) as f:
-                                pkg = json.load(f)
+                                pkg: Dict[str, Any] = json.load(f)
                                 if "aws-sdk" in pkg.get("dependencies", {}):
                                     issues.append(
                                         f"{func_dir.name}: aws-sdk should be in devDependencies"

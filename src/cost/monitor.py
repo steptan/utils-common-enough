@@ -15,7 +15,7 @@ from .analyzer import CostAnalyzer
 class CostMonitor:
     """Monitor AWS costs and set up alerts."""
 
-    def __init__(self, config: ProjectConfig, aws_profile: Optional[str] = None):
+    def __init__(self, config: ProjectConfig, aws_profile: Optional[str] = None) -> None:
         """
         Initialize cost monitor.
 

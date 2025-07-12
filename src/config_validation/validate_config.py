@@ -262,7 +262,7 @@ def validate_all_environments(config_dir: str = "config") -> Dict[str, List[str]
     return results
 
 
-def main():
+def main() -> None:
     """CLI for configuration validation."""
     parser = argparse.ArgumentParser(
         description="Validate Media Register configuration files"

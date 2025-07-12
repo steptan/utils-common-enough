@@ -1,3 +1,4 @@
+from typing import List, Any
 #!/usr/bin/env python3
 """
 Database management CLI commands.
@@ -17,7 +18,7 @@ from database import DataSeeder, PeopleCardsSeeder, SeedData
 
 
 @click.group()
-def main():
+def main() -> None:
     """Database management commands."""
     pass
 
@@ -33,7 +34,7 @@ def main():
     "--file", "seed_file", type=click.Path(exists=True), help="Seed data JSON file"
 )
 @click.option("--output", type=click.Path(), help="Save generated data to file")
-def seed(project, environment, profile, clear_first, seed_file, output):
+def seed(project, environment, profile, clear_first, seed_file, output) -> None:
     """Seed database tables with sample data."""
     try:
         # Get appropriate seeder class
@@ -43,7 +44,7 @@ def seed(project, environment, profile, clear_first, seed_file, output):
             seeder = DataSeeder(project, environment, profile=profile)
 
         # Determine table keys based on project
-        table_keys = []
+        table_keys: List[Any] = []
         if project == "people-cards":
             table_keys = ["politicians", "actions", "vote_comments"]
         elif project == "fraud-or-not":
@@ -100,7 +101,7 @@ def seed(project, environment, profile, clear_first, seed_file, output):
 @click.option("--profile", help="AWS profile to use")
 @click.option("--tables", "-t", multiple=True, help="Specific tables to clear")
 @click.option("--force", "-f", is_flag=True, help="Force clear without confirmation")
-def clear(project, environment, profile, tables, force):
+def clear(project, environment, profile, tables, force) -> None:
     """Clear data from database tables."""
     try:
         seeder = DataSeeder(project, environment, profile=profile)
@@ -139,7 +140,7 @@ def clear(project, environment, profile, tables, force):
 )
 @click.option("--profile", help="AWS profile to use")
 @click.option("--output", "-o", type=click.Path(), help="Output file (default: stdout)")
-def generate(project, environment, profile, output):
+def generate(project, environment, profile, output) -> None:
     """Generate sample seed data without seeding."""
     try:
         # Get appropriate seeder class
@@ -169,7 +170,7 @@ def generate(project, environment, profile, output):
     "--environment", "-e", default="dev", help="Environment (dev/staging/prod)"
 )
 @click.option("--profile", help="AWS profile to use")
-def verify(project, environment, profile):
+def verify(project, environment, profile) -> None:
     """Verify database tables exist."""
     try:
         seeder = DataSeeder(project, environment, profile=profile)
@@ -183,7 +184,7 @@ def verify(project, environment, profile):
             table_keys = ["media", "usage", "categories"]
         else:
             click.echo(f"Warning: Unknown project {project}")
-            table_keys = []
+            table_keys: List[Any] = []
 
         if table_keys:
             if seeder.verify_tables_exist(table_keys):
@@ -205,7 +206,7 @@ def verify(project, environment, profile):
 @click.option("--profile", help="AWS profile to use")
 @click.option("--table", "-t", required=True, help="Table to query")
 @click.option("--limit", "-l", default=10, help="Number of items to show")
-def list_items(project, environment, profile, table, limit):
+def list_items(project, environment, profile, table, limit) -> None:
     """List items from a table."""
     try:
         seeder = DataSeeder(project, environment, profile=profile)

@@ -5,19 +5,30 @@ Deployment CLI commands.
 
 import sys
 from pathlib import Path
+from typing import Dict, Any, List, Optional, Tuple
 
 import click
 
-from config import get_project_config
-from deployment import (
-    CDKInfrastructureDeployer,
-    FrontendDeployer,
-    InfrastructureDeployer,
-)
+try:
+    from config import get_project_config
+except ImportError:
+    from typing import Callable
+    get_project_config: Optional[Callable] = None
+
+try:
+    from deployment import (
+        CDKInfrastructureDeployer,
+        FrontendDeployer,
+        InfrastructureDeployer,
+    )
+except ImportError:
+    CDKInfrastructureDeployer = None  # type: Optional[Any]
+    FrontendDeployer: Optional[type] = None
+    InfrastructureDeployer: Optional[type] = None
 
 
 @click.group()
-def main():
+def main() -> None:
     """Deployment commands for projects."""
     pass
 
@@ -32,24 +43,27 @@ def main():
 @click.option("--tag", "-T", multiple=True, help="Tags (key=value)")
 @click.option("--profile", help="AWS profile to use")
 @click.option("--dry-run", is_flag=True, help="Show what would be deployed")
-def deploy(project, environment, template, parameter, tag, profile, dry_run):
+def deploy(project: str, environment: str, template: Optional[str], parameter: Tuple[str, ...], tag: Tuple[str, ...], profile: Optional[str], dry_run: bool) -> None:
     """Deploy infrastructure using CloudFormation."""
     try:
         # Parse parameters
-        parameters = {}
+        parameters: Dict[str, str] = {}
         for param in parameter:
             if "=" in param:
                 key, value = param.split("=", 1)
                 parameters[key] = value
 
         # Parse tags
-        tags = {}
+        tags: Dict[str, str] = {}
         for t in tag:
             if "=" in t:
                 key, value = t.split("=", 1)
                 tags[key] = value
 
         # Create deployer
+        if InfrastructureDeployer is None:
+            click.echo("❌ InfrastructureDeployer not available")
+            sys.exit(1)
         deployer = InfrastructureDeployer(
             project_name=project,
             environment=environment,
@@ -96,28 +110,40 @@ def deploy(project, environment, template, parameter, tag, profile, dry_run):
     default="yaml",
     help="Output format",
 )
-def generate_template(project, environment, output, format):
+def generate_template(project: str, environment: str, output: Optional[str], format: str) -> None:
     """Generate CloudFormation template for the project."""
     try:
         # Get project config
+        if get_project_config is None:
+            click.echo("❌ get_project_config not available")
+            sys.exit(1)
         config = get_project_config(project)
 
         # Import the appropriate pattern based on project
         if project == "media-register":
             # Use cost-optimized serverless pattern without VPC
-            from patterns.serverless_app import ServerlessAppPattern
+            try:
+                from patterns.serverless_app import ServerlessAppPattern
+            except ImportError:
+                click.echo("❌ ServerlessAppPattern not available")
+                sys.exit(1)
 
             pattern = ServerlessAppPattern(config, environment)
         else:
             # Default to VPC-based pattern for other projects
-            from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
+            try:
+                from patterns.cloudfront_lambda_app import CloudFrontLambdaAppPattern
+            except ImportError:
+                click.echo("❌ CloudFrontLambdaAppPattern not available")
+                sys.exit(1)
 
             pattern = CloudFrontLambdaAppPattern(config, environment)
 
         # Generate template
-        template = pattern.to_dict()
+        template: Dict[str, Any] = pattern.to_dict()
 
         # Format output
+        output_text: str
         if format == "yaml":
             import yaml
 
@@ -149,17 +175,20 @@ def generate_template(project, environment, output, format):
 @click.option("--context", "-c", multiple=True, help="CDK context values (key=value)")
 @click.option("--profile", help="AWS profile to use")
 @click.option("--dry-run", is_flag=True, help="Synthesize only, don't deploy")
-def cdk_deploy(project, environment, app_path, context, profile, dry_run):
+def cdk_deploy(project: str, environment: str, app_path: Optional[str], context: Tuple[str, ...], profile: Optional[str], dry_run: bool) -> None:
     """Deploy infrastructure using AWS CDK."""
     try:
         # Parse context
-        context_dict = {}
+        context_dict: Dict[str, str] = {}
         for ctx in context:
             if "=" in ctx:
                 key, value = ctx.split("=", 1)
                 context_dict[key] = value
 
         # Create deployer
+        if CDKInfrastructureDeployer is None:
+            click.echo("❌ CDKInfrastructureDeployer not available")
+            sys.exit(1)
         deployer = CDKInfrastructureDeployer(
             project_name=project,
             environment=environment,
@@ -198,13 +227,19 @@ def cdk_deploy(project, environment, app_path, context, profile, dry_run):
     "--environment", "-e", required=True, help="Environment (dev/staging/prod)"
 )
 @click.option("--profile", help="AWS profile to use")
-def status(project, environment, profile):
+def status(project: str, environment: str, profile: Optional[str]) -> None:
     """Check deployment status."""
     try:
         # Load configuration
+        if get_project_config is None:
+            click.echo("❌ get_project_config not available")
+            sys.exit(1)
         config = get_project_config(project)
 
         # Create deployer to check status
+        if InfrastructureDeployer is None:
+            click.echo("❌ InfrastructureDeployer not available")
+            sys.exit(1)
         deployer = InfrastructureDeployer(
             project_name=project,
             environment=environment,
@@ -212,15 +247,15 @@ def status(project, environment, profile):
             profile=profile,
         )
 
-        stack_name = deployer.get_stack_name()
-        status = deployer.check_stack_status(stack_name)
+        stack_name: str = deployer.get_stack_name()
+        status: Optional[str] = deployer.check_stack_status(stack_name)
 
         if status:
             click.echo(f"Stack: {stack_name}")
             click.echo(f"Status: {status}")
 
             # Get outputs
-            outputs = deployer.get_stack_outputs(stack_name)
+            outputs: Optional[Dict[str, Any]] = deployer.get_stack_outputs(stack_name)
             if outputs:
                 click.echo("\nOutputs:")
                 for key, value in outputs.items():
@@ -244,17 +279,20 @@ def status(project, environment, profile):
 )
 @click.option("--profile", help="AWS profile to use")
 @click.option("--dry-run", is_flag=True, help="Show what would be deployed")
-def frontend(project, environment, skip_build, build_env, profile, dry_run):
+def frontend(project: str, environment: str, skip_build: bool, build_env: Tuple[str, ...], profile: Optional[str], dry_run: bool) -> None:
     """Deploy frontend to S3 and CloudFront."""
     try:
         # Parse build environment
-        env_vars = {}
+        env_vars: Dict[str, str] = {}
         for env in build_env:
             if "=" in env:
                 key, value = env.split("=", 1)
                 env_vars[key] = value
 
         # Create deployer
+        if FrontendDeployer is None:
+            click.echo("❌ FrontendDeployer not available")
+            sys.exit(1)
         deployer = FrontendDeployer(
             project_name=project,
             environment=environment,
@@ -295,13 +333,16 @@ def frontend(project, environment, skip_build, build_env, profile, dry_run):
 @click.option("--skip-build", is_flag=True, help="Skip frontend build")
 @click.option("--profile", help="AWS profile to use")
 @click.option("--dry-run", is_flag=True, help="Show what would be deployed")
-def full(project, environment, skip_build, profile, dry_run):
+def full(project: str, environment: str, skip_build: bool, profile: Optional[str], dry_run: bool) -> None:
     """Deploy infrastructure and frontend (complete deployment)."""
     try:
         click.echo(f"🚀 Full deployment of {project} to {environment}")
 
         # First deploy infrastructure
         click.echo("\n1️⃣ Deploying infrastructure...")
+        if InfrastructureDeployer is None:
+            click.echo("❌ InfrastructureDeployer not available")
+            sys.exit(1)
         infra_deployer = InfrastructureDeployer(
             project_name=project,
             environment=environment,
@@ -322,6 +363,9 @@ def full(project, environment, skip_build, profile, dry_run):
 
         # Then deploy frontend
         click.echo("\n2️⃣ Deploying frontend...")
+        if FrontendDeployer is None:
+            click.echo("❌ FrontendDeployer not available")
+            sys.exit(1)
         frontend_deployer = FrontendDeployer(
             project_name=project,
             environment=environment,
@@ -343,7 +387,7 @@ def full(project, environment, skip_build, profile, dry_run):
 
         # Show combined outputs
         click.echo("\n📊 Deployment Summary:")
-        all_outputs = {}
+        all_outputs: Dict[str, Any] = {}
         if infra_result.outputs:
             all_outputs.update(infra_result.outputs)
         if frontend_result.outputs:

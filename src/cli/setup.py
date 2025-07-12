@@ -18,7 +18,7 @@ from config import ProjectConfig, get_project_config
 class SetupWizard:
     """Interactive setup wizard for project configuration."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the setup wizard."""
         self.config = None
         self.aws_config_path = Path.home() / ".aws"
@@ -278,7 +278,7 @@ AWS_SESSION_TOKEN=optional_session_token
         print(f"Default environments: {', '.join(environments)}")
 
         if self._confirm("Do you want to customize environments?"):
-            environments = []
+            environments: List[Any] = []
             while True:
                 env = self._get_input("Environment name (or 'done' to finish)")
                 if env.lower() == "done":
@@ -380,7 +380,7 @@ AWS_SESSION_TOKEN=optional_session_token
     def _test_aws_credentials(self, profile: Optional[str] = None) -> bool:
         """Test AWS credentials."""
         try:
-            session_args = {}
+            session_args: Dict[str, Any] = {}
             if profile:
                 session_args["profile_name"] = profile
 
@@ -405,7 +405,7 @@ AWS_SESSION_TOKEN=optional_session_token
 
     def _list_aws_profiles(self) -> List[str]:
         """List available AWS profiles."""
-        profiles = []
+        profiles: List[Any] = []
 
         credentials_file = self.aws_config_path / "credentials"
         if credentials_file.exists():
@@ -443,7 +443,7 @@ AWS_SESSION_TOKEN=optional_session_token
         for i, region in enumerate(common_regions, 1):
             print(f"{i}. {region}")
 
-        regions = []
+        regions: List[Any] = []
         while True:
             choice = self._get_input(
                 "Select region number or enter custom region (or 'done')"
@@ -534,7 +534,7 @@ AWS_SESSION_TOKEN=optional_session_token
             json.dump(self.config, f, indent=2)
 
 
-def main():
+def main() -> None:
     """Run the setup wizard."""
     wizard = SetupWizard()
     success = wizard.run()

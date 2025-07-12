@@ -9,8 +9,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import boto3
-from botocore.exceptions import ClientError
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+except ImportError:
+    boto3 = None
+    ClientError = Exception
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +43,7 @@ class ValidationCheck:
 class PreDeploymentValidator:
     """Validates environment before deployment."""
 
-    def __init__(self, project_name: str, environment: str, region: str = "us-west-1"):
+    def __init__(self, project_name: str, environment: str, region: str = "us-west-1") -> None:
         """Initialize the validator.
 
         Args:
@@ -53,8 +57,11 @@ class PreDeploymentValidator:
         self.stack_name = f"{project_name}-{environment}"
         self.project_root = Path.cwd()
 
+        if boto3 is None:
+            raise ImportError("boto3 is required for validation")
+        
         # Initialize AWS clients
-        self.session = boto3.Session(region_name=region)
+        self.session: Any = boto3.Session(region_name=region)
 
     def validate_all(
         self, skip_categories: Optional[List[str]] = None
@@ -68,7 +75,7 @@ class PreDeploymentValidator:
             List of validation check results
         """
         skip_categories = skip_categories or []
-        checks = []
+        checks: List[Any] = []
 
         logger.info(f"Running pre-deployment validation for {self.stack_name}")
 
@@ -146,7 +153,7 @@ class PreDeploymentValidator:
         """Check if AWS credentials are configured."""
         try:
             sts = self.session.client("sts")
-            identity = sts.get_caller_identity()
+            identity: Dict[str, Any] = sts.get_caller_identity()
 
             return ValidationCheck(
                 name="AWS Credentials",
@@ -166,10 +173,10 @@ class PreDeploymentValidator:
 
     def check_aws_permissions(self) -> List[ValidationCheck]:
         """Check required AWS permissions."""
-        checks = []
+        checks: List[ValidationCheck] = []
 
         # Define required actions by service
-        required_permissions = {
+        required_permissions: Dict[str, List[str]] = {
             "cloudformation": [
                 "cloudformation:CreateStack",
                 "cloudformation:UpdateStack",
@@ -240,10 +247,10 @@ class PreDeploymentValidator:
         """Check if stack already exists."""
         try:
             cf = self.session.client("cloudformation")
-            response = cf.describe_stacks(StackName=self.stack_name)
+            response: Dict[str, Any] = cf.describe_stacks(StackName=self.stack_name)
 
             if response["Stacks"]:
-                stack = response["Stacks"][0]
+                stack: Dict[str, Any] = response["Stacks"][0]
                 return ValidationCheck(
                     name="Existing Stack",
                     category="AWS",
@@ -275,9 +282,9 @@ class PreDeploymentValidator:
 
     def check_config_files(self) -> List[ValidationCheck]:
         """Check if required configuration files exist."""
-        checks = []
+        checks: List[ValidationCheck] = []
 
-        required_files = [
+        required_files: List[Tuple[str, str]] = [
             ("config/base.yaml", "Base configuration"),
             (
                 f"config/environments/{self.environment}.yaml",
@@ -287,7 +294,7 @@ class PreDeploymentValidator:
         ]
 
         for file_path, description in required_files:
-            full_path = self.project_root / file_path
+            full_path: Path = self.project_root / file_path
 
             if full_path.exists():
                 checks.append(
@@ -400,14 +407,14 @@ class PreDeploymentValidator:
                 name="Python Packages",
                 category="Dependencies",
                 status=CheckStatus.FAIL,
-                message=f"Missing Python package: {e.name}",
+                message=f"Missing Python package: {getattr(e, 'name', 'unknown')}",
                 fix_command="pip install -r requirements.txt",
             )
 
     def check_lambda_code(self) -> List[ValidationCheck]:
         """Check Lambda function code is ready."""
-        checks = []
-        lambda_dir = self.project_root / "src" / "lambda"
+        checks: List[ValidationCheck] = []
+        lambda_dir: Path = self.project_root / "src" / "lambda"
 
         if not lambda_dir.exists():
             checks.append(
@@ -421,10 +428,10 @@ class PreDeploymentValidator:
             return checks
 
         # Check for TypeScript files
-        ts_files = list(lambda_dir.glob("**/*.ts"))
+        ts_files: List[Path] = list(lambda_dir.glob("**/*.ts"))
         if ts_files:
             # Check if compiled
-            js_files = list(lambda_dir.glob("**/*.js"))
+            js_files: List[Path] = list(lambda_dir.glob("**/*.js"))
             if not js_files:
                 checks.append(
                     ValidationCheck(
@@ -446,7 +453,7 @@ class PreDeploymentValidator:
                 )
 
         # Check for zip files
-        zip_files = list(lambda_dir.glob("*.zip"))
+        zip_files: List[Path] = list(lambda_dir.glob("*.zip"))
         if zip_files:
             checks.append(
                 ValidationCheck(
@@ -471,10 +478,10 @@ class PreDeploymentValidator:
 
     def check_no_secrets(self) -> List[ValidationCheck]:
         """Check for hardcoded secrets."""
-        checks = []
+        checks: List[ValidationCheck] = []
 
         # Patterns to look for
-        secret_patterns = [
+        secret_patterns: List[Tuple[str, List[str]]] = [
             ("AWS credentials", ["AKIA", "aws_access_key_id", "aws_secret_access_key"]),
             ("API keys", ["api_key", "apikey", "api-key"]),
             ("Passwords", ["password", "passwd", "pwd"]),
@@ -482,7 +489,7 @@ class PreDeploymentValidator:
         ]
 
         # Files to check
-        files_to_check = [
+        files_to_check: List[str] = [
             "**/*.ts",
             "**/*.js",
             "**/*.py",
@@ -491,7 +498,7 @@ class PreDeploymentValidator:
             "**/*.yml",
         ]
 
-        found_issues = []
+        found_issues: List[Dict[str, Any]] = []
 
         for pattern_name, keywords in secret_patterns:
             for file_pattern in files_to_check:
@@ -508,7 +515,7 @@ class PreDeploymentValidator:
                         for keyword in keywords:
                             if keyword.lower() in content.lower():
                                 # Check if it's likely a real secret
-                                lines = content.split("\n")
+                                lines: List[str] = content.split("\n")
                                 for i, line in enumerate(lines):
                                     if keyword.lower() in line.lower() and "=" in line:
                                         # Potential secret assignment

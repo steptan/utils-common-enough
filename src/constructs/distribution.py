@@ -3,7 +3,7 @@ L2 Distribution Construct for People Cards Infrastructure
 Provides CloudFront distribution with S3 origin and API Gateway integration
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 
 from troposphere import (
     Export,
@@ -33,9 +33,9 @@ class DistributionConstruct:
         template: Template,
         config: Dict[str, Any],
         environment: str,
-        api_domain_name=None,
-        api_stage=None,
-        s3_bucket=None,
+        api_domain_name: Optional[Union[str, Sub]] = None,
+        api_stage: Optional[str] = None,
+        s3_bucket: Optional[s3.Bucket] = None,
     ):
         """
         Initialize distribution construct
@@ -53,7 +53,7 @@ class DistributionConstruct:
         self.environment = environment
         self.api_domain_name = api_domain_name
         self.api_stage = api_stage or environment
-        self.resources = {}
+        self.resources: Dict[str, Any] = {}
         self.s3_bucket = s3_bucket
 
         # Create distribution resources
@@ -63,7 +63,7 @@ class DistributionConstruct:
         self._create_cloudfront_distribution()
         self._create_outputs()
 
-    def _create_s3_bucket(self):
+    def _create_s3_bucket(self) -> None:
         """Create S3 bucket for static assets"""
         self.s3_bucket = self.template.add_resource(
             s3.Bucket(
@@ -109,7 +109,7 @@ class DistributionConstruct:
 
         self.resources["s3_bucket"] = self.s3_bucket
 
-    def _create_origin_access_identity(self):
+    def _create_origin_access_identity(self) -> None:
         """Create CloudFront Origin Access Identity for S3 access"""
         self.oai = self.template.add_resource(
             cloudfront.CloudFrontOriginAccessIdentity(
@@ -151,12 +151,12 @@ class DistributionConstruct:
         self.resources["oai"] = self.oai
         self.resources["bucket_policy"] = bucket_policy
 
-    def _create_cloudfront_distribution(self):
+    def _create_cloudfront_distribution(self) -> None:
         """Create CloudFront distribution with multiple origins"""
         cf_config = self.config["cloudfront"]
 
         # Origins
-        origins = []
+        origins: List[cloudfront.Origin] = []
 
         # S3 origin for static assets
         s3_origin = cloudfront.Origin(
@@ -185,7 +185,7 @@ class DistributionConstruct:
             origins.append(api_origin)
 
         # Cache behaviors
-        cache_behaviors = []
+        cache_behaviors: List[cloudfront.CacheBehavior] = []
 
         # API cache behavior (if API origin exists)
         if self.api_domain_name:
@@ -323,7 +323,7 @@ class DistributionConstruct:
 
         self.resources["distribution"] = self.distribution
 
-    def _create_outputs(self):
+    def _create_outputs(self) -> None:
         """Create CloudFormation outputs for cross-stack references"""
         outputs = {
             "CloudFrontDistributionId": {
@@ -364,18 +364,18 @@ class DistributionConstruct:
                 )
             )
 
-    def get_distribution_id(self):
+    def get_distribution_id(self) -> Ref:
         """Get reference to CloudFront distribution ID"""
         return Ref(self.distribution)
 
-    def get_distribution_domain_name(self):
+    def get_distribution_domain_name(self) -> GetAtt:
         """Get reference to CloudFront distribution domain name"""
         return GetAtt(self.distribution, "DomainName")
 
-    def get_s3_bucket_name(self):
+    def get_s3_bucket_name(self) -> Ref:
         """Get reference to S3 bucket name"""
         return Ref(self.s3_bucket)
 
-    def get_distribution_url(self):
+    def get_distribution_url(self) -> Join:
         """Get CloudFront distribution URL"""
         return Join("", ["https://", GetAtt(self.distribution, "DomainName")])

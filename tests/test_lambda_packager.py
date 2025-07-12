@@ -9,6 +9,8 @@ import zipfile
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 
 from lambda_utils.packager import LambdaPackager
@@ -21,7 +23,7 @@ class TestLambdaPackager:
         """Create a Lambda packager instance."""
         return LambdaPackager(Path.cwd())
 
-    def test_package_nodejs_lambda_basic(self, tmp_path):
+    def test_package_nodejs_lambda_basic(self, tmp_path) -> None:
         """Test basic Node.js Lambda packaging."""
         packager = self.create_packager()
 
@@ -71,7 +73,7 @@ class TestLambdaPackager:
             files = zf.namelist()
             assert any("index.js" in f for f in files)
 
-    def test_package_nodejs_lambda_with_typescript(self, tmp_path):
+    def test_package_nodejs_lambda_with_typescript(self, tmp_path) -> None:
         """Test Node.js Lambda packaging with TypeScript."""
         packager = self.create_packager()
 
@@ -128,7 +130,7 @@ class TestLambdaPackager:
         calls = mock_run.call_args_list
         assert any("tsc" in str(call) for call in calls)
 
-    def test_package_python_lambda_basic(self, tmp_path):
+    def test_package_python_lambda_basic(self, tmp_path) -> None:
         """Test basic Python Lambda packaging."""
         packager = self.create_packager()
 
@@ -166,7 +168,7 @@ def lambda_handler(event, context):
             files = zf.namelist()
             assert "handler.py" in files
 
-    def test_package_python_lambda_with_requirements(self, tmp_path):
+    def test_package_python_lambda_with_requirements(self, tmp_path) -> None:
         """Test Python Lambda packaging with requirements."""
         packager = self.create_packager()
 
@@ -205,7 +207,7 @@ def lambda_handler(event, context):
         calls = mock_run.call_args_list
         assert any("pip" in str(call) and "install" in str(call) for call in calls)
 
-    def test_validate_package_valid(self, tmp_path):
+    def test_validate_package_valid(self, tmp_path) -> None:
         """Test validating a valid Lambda package."""
         packager = self.create_packager()
 
@@ -221,7 +223,7 @@ def lambda_handler(event, context):
 
         assert is_valid is True
 
-    def test_validate_package_missing_handler(self, tmp_path):
+    def test_validate_package_missing_handler(self, tmp_path) -> None:
         """Test validating package with missing handler."""
         packager = self.create_packager()
 
@@ -237,7 +239,7 @@ def lambda_handler(event, context):
 
         assert is_valid is False
 
-    def test_validate_package_size_warning(self, tmp_path):
+    def test_validate_package_size_warning(self, tmp_path) -> None:
         """Test package size warning."""
         packager = self.create_packager()
 
@@ -265,7 +267,7 @@ def lambda_handler(event, context):
         )
         assert warning_printed
 
-    def test_minify_javascript(self, tmp_path):
+    def test_minify_javascript(self, tmp_path) -> None:
         """Test JavaScript minification."""
         packager = self.create_packager()
 
@@ -294,7 +296,7 @@ def lambda_handler(event, context):
             calls = mock_run.call_args_list
             assert any("terser" in str(call) for call in calls)
 
-    def test_create_zip_excludes_unnecessary_files(self, tmp_path):
+    def test_create_zip_excludes_unnecessary_files(self, tmp_path) -> None:
         """Test that zip excludes unnecessary files."""
         packager = self.create_packager()
 

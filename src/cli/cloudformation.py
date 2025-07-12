@@ -1,3 +1,4 @@
+from typing import List, Any
 #!/usr/bin/env python3
 """
 CloudFormation management CLI commands.
@@ -14,7 +15,7 @@ from config import get_project_config
 
 
 @click.group()
-def main():
+def main() -> None:
     """CloudFormation stack management commands."""
     pass
 
@@ -24,7 +25,7 @@ def main():
 @click.option("--region", help="AWS region")
 @click.option("--profile", help="AWS profile to use")
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
-def diagnose(stack_name, region, profile, output_json):
+def diagnose(stack_name, region, profile, output_json) -> None:
     """Diagnose CloudFormation stack failures."""
     try:
         # Create stack manager
@@ -50,14 +51,14 @@ def diagnose(stack_name, region, profile, output_json):
 @click.option("--skip-resources", help="Comma-separated list of resource IDs to skip")
 @click.option("--region", help="AWS region")
 @click.option("--profile", help="AWS profile to use")
-def fix_rollback(stack_name, skip_resources, region, profile):
+def fix_rollback(stack_name, skip_resources, region, profile) -> None:
     """Fix a stack in ROLLBACK_COMPLETE or ROLLBACK_FAILED state."""
     try:
         # Create stack manager
         manager = StackManager(region=region, profile=profile)
 
         # Parse skip resources
-        skip_list = []
+        skip_list: List[Any] = []
         if skip_resources:
             skip_list = [r.strip() for r in skip_resources.split(",")]
 
@@ -82,7 +83,7 @@ def fix_rollback(stack_name, skip_resources, region, profile):
 )
 @click.option("--region", help="AWS region")
 @click.option("--profile", help="AWS profile to use")
-def delete(stack_name, force, region, profile):
+def delete(stack_name, force, region, profile) -> None:
     """Delete a CloudFormation stack."""
     try:
         # Create stack manager
@@ -105,7 +106,7 @@ def delete(stack_name, force, region, profile):
 @click.option("--region", help="AWS region")
 @click.option("--profile", help="AWS profile to use")
 @click.option("--watch", "-w", is_flag=True, help="Watch status (refresh every 30s)")
-def status(stack_name, project, region, profile, watch):
+def status(stack_name, project, region, profile, watch) -> None:
     """Show CloudFormation stack status."""
     try:
         # Create stack manager
@@ -168,7 +169,7 @@ def status(stack_name, project, region, profile, watch):
 @click.option("--stack-name", "-s", required=True, help="CloudFormation stack name")
 @click.option("--region", help="AWS region")
 @click.option("--profile", help="AWS profile to use")
-def drift(stack_name, region, profile):
+def drift(stack_name, region, profile) -> None:
     """Check for stack drift (differences from template)."""
     try:
         # Create stack manager and diagnostics
@@ -216,7 +217,7 @@ def drift(stack_name, region, profile):
 @click.option("--output-key", "-o", required=True, help="Output key to retrieve")
 @click.option("--region", help="AWS region")
 @click.option("--profile", help="AWS profile to use")
-def get_output(project, environment, output_key, region, profile):
+def get_output(project, environment, output_key, region, profile) -> None:
     """Get a specific output value from a stack."""
     try:
         # Load configuration

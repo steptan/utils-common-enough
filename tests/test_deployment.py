@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 import yaml
 from botocore.exceptions import ClientError
@@ -19,7 +21,7 @@ class TestInfrastructureDeployer:
     """Test InfrastructureDeployer class."""
 
     @pytest.fixture
-    def basic_config(self):
+    def basic_config(self) -> Any:
         """Create a basic project configuration."""
         return ProjectConfig(
             name="test-project",
@@ -34,7 +36,7 @@ class TestInfrastructureDeployer:
         )
 
     @pytest.fixture
-    def mock_aws_clients(self):
+    def mock_aws_clients(self) -> Any:
         """Mock AWS clients."""
         with patch("boto3.Session") as mock_session:
             mock_cf = Mock()
@@ -53,7 +55,7 @@ class TestInfrastructureDeployer:
             yield {"cloudformation": mock_cf, "s3": mock_s3, "sts": mock_sts}
 
     @pytest.fixture
-    def deployer(self, basic_config, mock_aws_clients):
+    def deployer(self, basic_config, mock_aws_clients) -> Any:
         """Create an InfrastructureDeployer instance."""
         with patch("config.get_project_config", return_value=basic_config):
             deployer = InfrastructureDeployer(
@@ -66,7 +68,7 @@ class TestInfrastructureDeployer:
             deployer.sts = mock_aws_clients["sts"]
             return deployer
 
-    def test_initialization(self, basic_config):
+    def test_initialization(self, basic_config) -> None:
         """Test InfrastructureDeployer initialization."""
         with patch("config.get_project_config", return_value=basic_config):
             deployer = InfrastructureDeployer(
@@ -88,7 +90,7 @@ class TestInfrastructureDeployer:
             assert deployer.tags["Environment"] == "staging"
             assert deployer.tags["ManagedBy"] == "project-utils"
 
-    def test_find_template_with_explicit_path(self, deployer):
+    def test_find_template_with_explicit_path(self, deployer) -> None:
         """Test finding template with explicit path."""
         template_path = Path("/explicit/path/template.yaml")
         deployer.template_path = template_path
@@ -97,7 +99,7 @@ class TestInfrastructureDeployer:
             result = deployer.find_template()
             assert result == template_path
 
-    def test_find_template_search_common_locations(self, deployer):
+    def test_find_template_search_common_locations(self, deployer) -> None:
         """Test finding template by searching common locations."""
         deployer.template_path = None
 
@@ -112,7 +114,7 @@ class TestInfrastructureDeployer:
                 assert result is not None
                 assert "template" in str(result)
 
-    def test_find_template_not_found(self, deployer):
+    def test_find_template_not_found(self, deployer) -> None:
         """Test behavior when template is not found."""
         deployer.template_path = None
 
@@ -120,7 +122,7 @@ class TestInfrastructureDeployer:
             result = deployer.find_template()
             assert result is None
 
-    def test_load_template_json(self, deployer):
+    def test_load_template_json(self, deployer) -> None:
         """Test loading JSON template."""
         template_content = '{"Resources": {"Bucket": {"Type": "AWS::S3::Bucket"}}}'
         template_path = Path("template.json")
@@ -129,7 +131,7 @@ class TestInfrastructureDeployer:
             result = deployer.load_template(template_path)
             assert result == template_content
 
-    def test_load_template_yaml(self, deployer):
+    def test_load_template_yaml(self, deployer) -> None:
         """Test loading YAML template and converting to JSON."""
         yaml_content = """
 Resources:
@@ -147,7 +149,7 @@ Resources:
             assert "Bucket" in parsed["Resources"]
             assert parsed["Resources"]["Bucket"]["Type"] == "AWS::S3::Bucket"
 
-    def test_prepare_lambda_buckets_success(self, deployer, mock_aws_clients):
+    def test_prepare_lambda_buckets_success(self, deployer, mock_aws_clients) -> None:
         """Test successful Lambda bucket preparation."""
         # Mock S3 head_bucket to simulate buckets don't exist
         mock_aws_clients["s3"].head_bucket.side_effect = ClientError(
@@ -169,13 +171,13 @@ Resources:
             assert any("lambda" in name for name in bucket_names)
             assert any("deployment" in name for name in bucket_names)
 
-    def test_prepare_lambda_buckets_failure(self, deployer):
+    def test_prepare_lambda_buckets_failure(self, deployer) -> None:
         """Test Lambda bucket preparation failure."""
         with patch.object(deployer, "create_s3_bucket_if_needed", return_value=False):
             result = deployer.prepare_lambda_buckets()
             assert result is False
 
-    def test_build_stack_parameters(self, deployer):
+    def test_build_stack_parameters(self, deployer) -> None:
         """Test building CloudFormation stack parameters."""
         deployer.parameters = {"Environment": "prod", "InstanceType": "t3.micro"}
 
@@ -191,7 +193,7 @@ Resources:
             assert result[0]["ParameterKey"] == "Environment"
             assert result[0]["ParameterValue"] == "prod"
 
-    def test_deploy_success(self, deployer, mock_aws_clients):
+    def test_deploy_success(self, deployer, mock_aws_clients) -> None:
         """Test successful deployment."""
         # Mock template finding and loading
         template_path = Path("template.yaml")
@@ -220,7 +222,7 @@ Resources:
                                 )
                                 assert result.errors is None
 
-    def test_deploy_template_not_found(self, deployer):
+    def test_deploy_template_not_found(self, deployer) -> None:
         """Test deployment when template is not found."""
         with patch.object(deployer, "find_template", return_value=None):
             result = deployer.deploy()
@@ -231,7 +233,7 @@ Resources:
                 for err in (result.errors or [])
             )
 
-    def test_deploy_bucket_creation_failure(self, deployer):
+    def test_deploy_bucket_creation_failure(self, deployer) -> None:
         """Test deployment when bucket creation fails."""
         template_path = Path("template.yaml")
 
@@ -245,7 +247,7 @@ Resources:
                     for err in (result.errors or [])
                 )
 
-    def test_deploy_stack_failure(self, deployer, mock_aws_clients):
+    def test_deploy_stack_failure(self, deployer, mock_aws_clients) -> None:
         """Test deployment when stack creation fails."""
         template_path = Path("template.yaml")
         template_content = '{"Resources": {}}'
@@ -264,7 +266,7 @@ Resources:
                             for err in (result.errors or [])
                         )
 
-    def test_deploy_with_dry_run(self, deployer):
+    def test_deploy_with_dry_run(self, deployer) -> None:
         """Test deployment in dry-run mode."""
         deployer.dry_run = True
         template_path = Path("template.yaml")
@@ -283,7 +285,7 @@ Resources:
                     deployer.cloudformation.create_stack.assert_not_called()
                     deployer.cloudformation.update_stack.assert_not_called()
 
-    def test_rollback_on_failure(self, deployer, mock_aws_clients):
+    def test_rollback_on_failure(self, deployer, mock_aws_clients) -> None:
         """Test rollback behavior on deployment failure."""
         template_path = Path("template.yaml")
         template_content = '{"Resources": {}}'
@@ -306,7 +308,7 @@ Resources:
                         # Should attempt rollback
                         mock_rollback.assert_called_once()
 
-    def test_deploy_with_change_set(self, deployer, mock_aws_clients):
+    def test_deploy_with_change_set(self, deployer, mock_aws_clients) -> None:
         """Test deployment using change sets."""
         deployer.use_change_sets = True
         template_path = Path("template.yaml")
@@ -336,7 +338,7 @@ Resources:
                                 assert result.status == DeploymentStatus.SUCCESS
                                 deployer.deploy_with_change_set.assert_called_once()
 
-    def test_get_stack_outputs(self, deployer, mock_aws_clients):
+    def test_get_stack_outputs(self, deployer, mock_aws_clients) -> None:
         """Test retrieving stack outputs."""
         mock_aws_clients["cloudformation"].describe_stacks.return_value = {
             "Stacks": [
@@ -362,7 +364,7 @@ Resources:
             assert outputs["ApiUrl"] == "https://api.example.com"
             assert outputs["BucketName"] == "my-bucket"
 
-    def test_parameter_override(self, deployer):
+    def test_parameter_override(self, deployer) -> None:
         """Test parameter override functionality."""
         deployer.parameters = {"Environment": "dev", "InstanceType": "t2.micro"}
 
@@ -372,7 +374,7 @@ Resources:
         assert deployer.parameters["InstanceType"] == "t3.small"
         assert deployer.parameters["Environment"] == "dev"
 
-    def test_tag_merging(self, deployer):
+    def test_tag_merging(self, deployer) -> None:
         """Test tag merging with defaults."""
         # Add custom tags
         deployer.tags["Owner"] = "TeamA"
@@ -392,12 +394,12 @@ class TestBaseDeployer:
     """Test BaseDeployer base class functionality."""
 
     @pytest.fixture
-    def base_deployer(self, basic_config):
+    def base_deployer(self, basic_config) -> Any:
         """Create a BaseDeployer instance."""
         with patch("config.get_project_config", return_value=basic_config):
             return BaseDeployer(project_name="test-project", environment="dev")
 
-    def test_log_method(self, base_deployer, capsys):
+    def test_log_method(self, base_deployer, capsys) -> None:
         """Test logging functionality."""
         with patch("builtins.print") as mock_print:
             base_deployer.log("Test message", "INFO")
@@ -409,7 +411,7 @@ class TestBaseDeployer:
 
             assert mock_print.call_count == 3
 
-    def test_get_account_id(self, base_deployer):
+    def test_get_account_id(self, base_deployer) -> None:
         """Test getting AWS account ID."""
         with patch.object(base_deployer.sts, "get_caller_identity") as mock_sts:
             mock_sts.return_value = {"Account": "123456789012"}
@@ -418,7 +420,7 @@ class TestBaseDeployer:
             assert account_id == "123456789012"
             mock_sts.assert_called_once()
 
-    def test_create_s3_bucket_if_needed_exists(self, base_deployer):
+    def test_create_s3_bucket_if_needed_exists(self, base_deployer) -> None:
         """Test S3 bucket creation when bucket already exists."""
         bucket_name = "test-bucket"
 
@@ -430,7 +432,7 @@ class TestBaseDeployer:
         assert result is True
         base_deployer.s3.create_bucket.assert_not_called()
 
-    def test_create_s3_bucket_if_needed_create(self, base_deployer):
+    def test_create_s3_bucket_if_needed_create(self, base_deployer) -> None:
         """Test S3 bucket creation when bucket doesn't exist."""
         bucket_name = "test-bucket"
 
@@ -451,7 +453,7 @@ class TestBaseDeployer:
             "CreateBucketConfiguration" not in call_args[1]
         )  # us-east-1 doesn't need this
 
-    def test_create_s3_bucket_if_needed_non_us_east_1(self, basic_config):
+    def test_create_s3_bucket_if_needed_non_us_east_1(self, basic_config) -> None:
         """Test S3 bucket creation in non-us-east-1 region."""
         with patch("config.get_project_config", return_value=basic_config):
             deployer = BaseDeployer(
@@ -472,7 +474,7 @@ class TestBaseDeployer:
                 == "eu-west-1"
             )
 
-    def test_stack_exists(self, base_deployer):
+    def test_stack_exists(self, base_deployer) -> None:
         """Test checking if stack exists."""
         stack_name = "test-stack"
 
@@ -486,7 +488,7 @@ class TestBaseDeployer:
             result = base_deployer.stack_exists(stack_name)
             assert result is True
 
-    def test_stack_not_exists(self, base_deployer):
+    def test_stack_not_exists(self, base_deployer) -> None:
         """Test checking if stack doesn't exist."""
         stack_name = "test-stack"
 
@@ -504,7 +506,7 @@ class TestBaseDeployer:
 class TestDeploymentResult:
     """Test DeploymentResult dataclass."""
 
-    def test_success_result(self):
+    def test_success_result(self) -> None:
         """Test creating a successful deployment result."""
         result = DeploymentResult(
             status=DeploymentStatus.SUCCESS,
@@ -519,7 +521,7 @@ class TestDeploymentResult:
         assert result.outputs["ApiUrl"] == "https://api.example.com"
         assert result.duration == 120.5
 
-    def test_failure_result(self):
+    def test_failure_result(self) -> None:
         """Test creating a failed deployment result."""
         result = DeploymentResult(
             status=DeploymentStatus.FAILED,
@@ -533,7 +535,7 @@ class TestDeploymentResult:
         assert "Stack creation failed: ValidationError" in result.errors
         assert result.outputs is None
 
-    def test_rolled_back_result(self):
+    def test_rolled_back_result(self) -> None:
         """Test creating a rolled back deployment result."""
         result = DeploymentResult(
             status=DeploymentStatus.ROLLED_BACK,

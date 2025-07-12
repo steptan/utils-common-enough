@@ -4,6 +4,8 @@ Tests for CloudFormation stack management functionality.
 
 from unittest.mock import MagicMock, Mock, call, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 from botocore.exceptions import ClientError
 
@@ -25,7 +27,7 @@ class TestStackManager:
 
             return manager
 
-    def test_get_stack_status_exists(self):
+    def test_get_stack_status_exists(self) -> None:
         """Test getting stack status for existing stack."""
         manager = self.create_manager()
 
@@ -40,7 +42,7 @@ class TestStackManager:
             StackName="test-stack"
         )
 
-    def test_get_stack_status_not_exists(self):
+    def test_get_stack_status_not_exists(self) -> None:
         """Test getting stack status for non-existent stack."""
         manager = self.create_manager()
 
@@ -51,7 +53,7 @@ class TestStackManager:
         status = manager.get_stack_status("test-stack")
         assert status is None
 
-    def test_fix_rollback_state_rollback_complete(self):
+    def test_fix_rollback_state_rollback_complete(self) -> None:
         """Test fixing stack in ROLLBACK_COMPLETE state."""
         manager = self.create_manager()
 
@@ -68,7 +70,7 @@ class TestStackManager:
             assert result is True
             mock_delete.assert_called_once_with("test-stack", force=True)
 
-    def test_fix_rollback_state_rollback_failed(self):
+    def test_fix_rollback_state_rollback_failed(self) -> None:
         """Test fixing stack in ROLLBACK_FAILED state."""
         manager = self.create_manager()
 
@@ -100,7 +102,7 @@ class TestStackManager:
 
             assert result is True
 
-    def test_fix_rollback_state_with_skip_resources(self):
+    def test_fix_rollback_state_with_skip_resources(self) -> None:
         """Test fixing stack with resources to skip."""
         manager = self.create_manager()
 
@@ -128,7 +130,7 @@ class TestStackManager:
 
             assert result is True
 
-    def test_handle_delete_blockers_s3_bucket(self):
+    def test_handle_delete_blockers_s3_bucket(self) -> None:
         """Test handling S3 bucket blocking deletion."""
         manager = self.create_manager()
 
@@ -161,7 +163,7 @@ class TestStackManager:
         assert call_args[1]["Bucket"] == "test-bucket"
         assert len(call_args[1]["Delete"]["Objects"]) == 2
 
-    def test_handle_delete_blockers_s3_versioned(self):
+    def test_handle_delete_blockers_s3_versioned(self) -> None:
         """Test handling versioned S3 bucket."""
         manager = self.create_manager()
 
@@ -214,7 +216,7 @@ class TestStackManager:
                 versioned_objects = [obj for obj in objects if "VersionId" in obj]
                 assert len(versioned_objects) > 0
 
-    def test_handle_delete_blockers_eni(self):
+    def test_handle_delete_blockers_eni(self) -> None:
         """Test handling ENI blocking deletion."""
         manager = self.create_manager()
 
@@ -255,7 +257,7 @@ class TestStackManager:
             NetworkInterfaceId="eni-12345"
         )
 
-    def test_delete_stack_force_with_delete_failed(self):
+    def test_delete_stack_force_with_delete_failed(self) -> None:
         """Test force deleting stack in DELETE_FAILED state."""
         manager = self.create_manager()
 
@@ -282,7 +284,7 @@ class TestStackManager:
 
             assert result is True
 
-    def test_diagnose_stack_failure(self):
+    def test_diagnose_stack_failure(self) -> None:
         """Test diagnosing stack failure."""
         manager = self.create_manager()
 

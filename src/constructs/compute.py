@@ -53,7 +53,7 @@ class ComputeConstruct:
             None  # Always None - Lambda runs without VPC for cost optimization
         )
         self.dynamodb_tables = dynamodb_tables or {}
-        self.resources = {}
+        self.resources: Dict[str, Any] = {}
 
         # Create compute resources
         self._create_lambda_role()
@@ -62,7 +62,7 @@ class ComputeConstruct:
         self._create_api_gateway()
         self._create_outputs()
 
-    def _create_lambda_role(self):
+    def _create_lambda_role(self) -> None:
         """Create IAM role for Lambda function."""
         # Base Lambda execution policy
         assume_role_policy = {
@@ -142,7 +142,7 @@ class ComputeConstruct:
 
         self.resources["lambda_role"] = self.lambda_role
 
-    def _create_lambda_function(self):
+    def _create_lambda_function(self) -> None:
         """Create Lambda function."""
         lambda_config = self.config.get("lambda", {})
 
@@ -164,7 +164,7 @@ class ComputeConstruct:
             env_vars[env_key] = table_name
 
         # VPC configuration removed - Lambda runs without VPC for cost optimization
-        vpc_config_props = {}
+        vpc_config_props: Dict[str, Any] = {}
 
         # Determine Lambda code configuration
         s3_bucket = lambda_config.get("s3_bucket", "")
@@ -213,7 +213,7 @@ class ComputeConstruct:
 
         self.resources["lambda_function"] = self.lambda_function
 
-    def _create_lambda_log_group(self):
+    def _create_lambda_log_group(self) -> None:
         """Create CloudWatch log group for Lambda function."""
         retention_days = self.config.get("monitoring", {}).get("log_retention_days", 30)
 
@@ -227,7 +227,7 @@ class ComputeConstruct:
             )
         )
 
-    def _create_api_gateway(self):
+    def _create_api_gateway(self) -> None:
         """Create API Gateway REST API."""
         api_config = self.config.get("api_gateway", {})
 
@@ -366,7 +366,7 @@ class ComputeConstruct:
         self.resources["api"] = self.api
         self.resources["deployment"] = self.deployment
 
-    def _create_outputs(self):
+    def _create_outputs(self) -> None:
         """Create CloudFormation outputs for cross-stack references."""
         outputs = {
             "LambdaFunctionArn": {
@@ -399,17 +399,17 @@ class ComputeConstruct:
                 )
             )
 
-    def get_api_endpoint(self):
+    def get_api_endpoint(self) -> Sub:
         """Get API Gateway endpoint URL."""
         stage_name = self.config.get("api_gateway", {}).get("stage_name", "api")
         return Sub(
             f"https://${{RestAPI}}.execute-api.${{AWS::Region}}.amazonaws.com/{stage_name}"
         )
 
-    def get_lambda_function_arn(self):
+    def get_lambda_function_arn(self) -> GetAtt:
         """Get Lambda function ARN."""
         return GetAtt(self.lambda_function, "Arn")
 
-    def get_api_gateway_id(self):
+    def get_api_gateway_id(self) -> Ref:
         """Get API Gateway ID."""
         return Ref(self.api)

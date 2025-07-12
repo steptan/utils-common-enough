@@ -14,7 +14,7 @@ from config import ProjectConfig
 class CostAnalyzer:
     """Analyze AWS costs for projects."""
 
-    def __init__(self, config: ProjectConfig, aws_profile: Optional[str] = None):
+    def __init__(self, config: ProjectConfig, aws_profile: Optional[str] = None) -> None:
         """
         Initialize cost analyzer.
 
@@ -207,7 +207,7 @@ class CostAnalyzer:
         if len(daily_costs) < 7:
             return []
 
-        anomalies = []
+        anomalies: List[Any] = []
 
         # Calculate rolling average
         window_size = 7
@@ -240,7 +240,7 @@ class CostAnalyzer:
 
         # Aggregate by service
         service_costs = defaultdict(float)
-        daily_costs = []
+        daily_costs: List[Any] = []
         total_cost = 0
 
         for result in results:
@@ -290,7 +290,7 @@ class CostAnalyzer:
         self, functions: List[str], environment: str
     ) -> Dict[str, float]:
         """Analyze Lambda function costs."""
-        costs = {}
+        costs: Dict[str, Any] = {}
 
         for function in functions:
             # Get invocation metrics

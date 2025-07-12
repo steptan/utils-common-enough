@@ -21,7 +21,7 @@ from config import ConfigManager, ProjectConfig, get_project_config
 class PolicyGenerator:
     """Generate IAM policies for different use cases."""
 
-    def __init__(self, config: ProjectConfig):
+    def __init__(self, config: ProjectConfig) -> None:
         """Initialize policy generator with project configuration."""
         self.config = config
 
@@ -231,10 +231,10 @@ class PolicyGenerator:
 class UnifiedPermissionManager:
     """Unified permission management for all IAM users."""
 
-    def __init__(self, profile: Optional[str] = None):
+    def __init__(self, profile: Optional[str] = None) -> None:
         """Initialize permission manager."""
         self.profile = profile
-        session_args = {}
+        session_args: Dict[str, Any] = {}
         if profile:
             session_args["profile_name"] = profile
 
@@ -257,7 +257,7 @@ class UnifiedPermissionManager:
             # For other users, check existing policies to infer projects
             try:
                 policies = self.iam.list_user_policies(UserName=user_name)
-                projects = []
+                projects: List[Any] = []
                 for policy_name in policies["PolicyNames"]:
                     for project in ["fraud-or-not", "media-register", "people-cards"]:
                         if project in policy_name:
@@ -300,7 +300,7 @@ class UnifiedPermissionManager:
         for category in categories:
             try:
                 # Generate category policy for all projects
-                policy_statements = []
+                policy_statements: List[Any] = []
 
                 for project_name in projects:
                     config = get_project_config(project_name)
@@ -410,7 +410,7 @@ class UnifiedPermissionManager:
                 click.echo(f"\n  Inline Policy: {policy_name}")
 
                 # Extract and display projects covered
-                projects_covered = set()
+                projects_covered: Set[Any] = set()
                 for statement in policy_doc["PolicyDocument"]["Statement"]:
                     sid = statement.get("Sid", "")
                     for project in ["fraud-or-not", "media-register", "people-cards"]:
@@ -488,7 +488,7 @@ class UnifiedPermissionManager:
 
 
 @click.group()
-def cli():
+def cli() -> None:
     """Unified IAM permission management for all users."""
     pass
 
@@ -502,7 +502,7 @@ def cli():
     help="Projects to grant access to (can specify multiple)",
 )
 @click.option("--profile", help="AWS profile to use")
-def update(user: str, projects: tuple, profile: str):
+def update(user: str, projects: tuple, profile: str) -> None:
     """Update permissions for a user across all their projects."""
     manager = UnifiedPermissionManager(profile=profile)
     manager.update_user_permissions(user, list(projects) if projects else None)
@@ -511,7 +511,7 @@ def update(user: str, projects: tuple, profile: str):
 @cli.command()
 @click.option("--user", "-u", required=True, help="IAM user name")
 @click.option("--profile", help="AWS profile to use")
-def show(user: str, profile: str):
+def show(user: str, profile: str) -> None:
     """Show all permissions for a user."""
     manager = UnifiedPermissionManager(profile=profile)
     manager.show_user_permissions(user)
@@ -519,7 +519,7 @@ def show(user: str, profile: str):
 
 @cli.command()
 @click.option("--profile", help="AWS profile to use")
-def list_users(profile: str):
+def list_users(profile: str) -> None:
     """List all users with project permissions."""
     manager = UnifiedPermissionManager(profile=profile)
     manager.list_all_users_with_permissions()
@@ -527,7 +527,7 @@ def list_users(profile: str):
 
 @cli.command()
 @click.option("--profile", help="AWS profile to use")
-def update_all(profile: str):
+def update_all(profile: str) -> None:
     """Update permissions for all detected users."""
     manager = UnifiedPermissionManager(profile=profile)
 
@@ -535,7 +535,7 @@ def update_all(profile: str):
 
     # Find all users with project permissions
     paginator = manager.iam.get_paginator("list_users")
-    users_to_update = []
+    users_to_update: List[Any] = []
 
     for page in paginator.paginate():
         for user in page["Users"]:
@@ -574,7 +574,7 @@ def update_all(profile: str):
     ),
     help="Category to generate policy for",
 )
-def generate(user: str, output: str, projects: tuple, profile: str, category: str):
+def generate(user: str, output: str, projects: tuple, profile: str, category: str) -> None:
     """Generate policy JSON for a specific category."""
     manager = UnifiedPermissionManager(profile=profile)
 
@@ -585,7 +585,7 @@ def generate(user: str, output: str, projects: tuple, profile: str, category: st
         sys.exit(1)
 
     # Generate policy for specific category
-    policy_statements = []
+    policy_statements: List[Any] = []
     for project_name in project_list:
         config = get_project_config(project_name)
         policy_generator = PolicyGenerator(config)

@@ -5,6 +5,8 @@ Comprehensive tests for security auditing and compliance modules.
 from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
 
+from typing import Any, Dict, List, Optional, Union
+
 import pytest
 from botocore.exceptions import ClientError
 
@@ -18,14 +20,14 @@ class TestSecurityAuditor:
     """Test security auditing functionality."""
 
     @pytest.fixture
-    def basic_config(self):
+    def basic_config(self) -> Any:
         """Create a basic project configuration."""
         return ProjectConfig(
             name="test-project", display_name="Test Project", aws_region="us-east-1"
         )
 
     @pytest.fixture
-    def mock_aws_clients(self):
+    def mock_aws_clients(self) -> Any:
         """Create mock AWS clients."""
         with patch("boto3.Session") as mock_session:
             mock_s3 = Mock()
@@ -57,20 +59,20 @@ class TestSecurityAuditor:
             }
 
     @pytest.fixture
-    def auditor(self, basic_config, mock_aws_clients):
+    def auditor(self, basic_config, mock_aws_clients) -> Any:
         """Create a SecurityAuditor instance."""
         return SecurityAuditor(
             project_name="test-project", environment="prod", region="us-east-1"
         )
 
-    def test_initialization(self, auditor):
+    def test_initialization(self, auditor) -> None:
         """Test SecurityAuditor initialization."""
         assert auditor.project_name == "test-project"
         assert auditor.environment == "prod"
         assert hasattr(auditor, "findings")
         assert auditor.findings == []
 
-    def test_audit_s3_buckets_public_access(self, auditor, mock_aws_clients):
+    def test_audit_s3_buckets_public_access(self, auditor, mock_aws_clients) -> None:
         """Test S3 bucket public access audit."""
         # Mock S3 responses
         mock_aws_clients["s3"].list_buckets.return_value = {
@@ -101,10 +103,11 @@ class TestSecurityAuditor:
 
         # Should find issue with bucket 2
         assert len(findings) > 0
-        assert any("public access" in f["description"].lower() for f in findings)
-        assert any(f["severity"] == "HIGH" for f in findings)
+        assert any("public access" in f.description.lower() for f in findings)
+        from security.audit import Severity
+        assert any(f.severity == Severity.HIGH for f in findings)
 
-    def test_audit_s3_buckets_encryption(self, auditor, mock_aws_clients):
+    def test_audit_s3_buckets_encryption(self, auditor, mock_aws_clients) -> None:
         """Test S3 bucket encryption audit."""
         mock_aws_clients["s3"].list_buckets.return_value = {
             "Buckets": [{"Name": "test-project-bucket"}]
@@ -118,9 +121,9 @@ class TestSecurityAuditor:
         findings = auditor.audit_s3_buckets()
 
         assert len(findings) > 0
-        assert any("encryption" in f["description"].lower() for f in findings)
+        assert any("encryption" in f.description.lower() for f in findings)
 
-    def test_audit_lambda_functions_env_vars(self, auditor, mock_aws_clients):
+    def test_audit_lambda_functions_env_vars(self, auditor, mock_aws_clients) -> None:
         """Test Lambda function environment variables audit."""
         mock_aws_clients["lambda"].list_functions.return_value = {
             "Functions": [
@@ -141,10 +144,10 @@ class TestSecurityAuditor:
 
         # Should detect potential secrets in env vars
         assert len(findings) > 0
-        assert any("API_KEY" in f["description"] for f in findings)
-        assert any("DATABASE_URL" in f["description"] for f in findings)
+        assert any("API_KEY" in f.description for f in findings)
+        assert any("DATABASE_URL" in f.description for f in findings)
 
-    def test_audit_iam_roles_trust_policies(self, auditor, mock_aws_clients):
+    def test_audit_iam_roles_trust_policies(self, auditor, mock_aws_clients) -> None:
         """Test IAM role trust policy audit."""
         mock_aws_clients["iam"].list_roles.return_value = {
             "Roles": [
@@ -166,10 +169,11 @@ class TestSecurityAuditor:
         findings = auditor.audit_iam_roles()
 
         assert len(findings) > 0
-        assert any("trust policy" in f["description"].lower() for f in findings)
-        assert any(f["severity"] == "HIGH" for f in findings)
+        assert any("trust policy" in f.description.lower() for f in findings)
+        from security.audit import Severity
+        assert any(f.severity == Severity.HIGH for f in findings)
 
-    def test_audit_dynamodb_tables_encryption(self, auditor, mock_aws_clients):
+    def test_audit_dynamodb_tables_encryption(self, auditor, mock_aws_clients) -> None:
         """Test DynamoDB table encryption audit."""
         mock_aws_clients["dynamodb"].list_tables.return_value = {
             "TableNames": ["test-project-table"]
@@ -185,9 +189,9 @@ class TestSecurityAuditor:
         findings = auditor.audit_dynamodb_tables()
 
         assert len(findings) > 0
-        assert any("encryption" in f["description"].lower() for f in findings)
+        assert any("encryption" in f.description.lower() for f in findings)
 
-    def test_audit_api_gateway_auth(self, auditor, mock_aws_clients):
+    def test_audit_api_gateway_auth(self, auditor, mock_aws_clients) -> None:
         """Test API Gateway authentication audit."""
         mock_aws_clients["apigateway"].get_rest_apis.return_value = {
             "items": [{"id": "api123", "name": "test-project-api"}]
@@ -207,7 +211,7 @@ class TestSecurityAuditor:
         assert len(findings) > 0
         assert any("authentication" in f["description"].lower() for f in findings)
 
-    def test_audit_cloudfront_https(self, auditor, mock_aws_clients):
+    def test_audit_cloudfront_https(self, auditor, mock_aws_clients) -> None:
         """Test CloudFront HTTPS enforcement audit."""
         mock_aws_clients["cloudfront"].list_distributions.return_value = {
             "DistributionList": {
@@ -229,7 +233,7 @@ class TestSecurityAuditor:
         assert len(findings) > 0
         assert any("HTTPS" in f["description"] for f in findings)
 
-    def test_audit_vpc_security_groups(self, auditor, mock_aws_clients):
+    def test_audit_vpc_security_groups(self, auditor, mock_aws_clients) -> None:
         """Test VPC security group audit."""
         mock_aws_clients["ec2"].describe_security_groups.return_value = {
             "SecurityGroups": [
@@ -254,7 +258,7 @@ class TestSecurityAuditor:
         assert any("0.0.0.0/0" in f["description"] for f in findings)
         assert any(f["severity"] == "CRITICAL" for f in findings)
 
-    def test_generate_audit_report(self, auditor):
+    def test_generate_audit_report(self, auditor) -> None:
         """Test audit report generation."""
         # Add some findings
         auditor.findings = [
@@ -285,18 +289,18 @@ class TestComplianceChecker:
     """Test compliance checking functionality."""
 
     @pytest.fixture
-    def checker(self):
+    def checker(self) -> Any:
         """Create a ComplianceChecker instance."""
         with patch("boto3.Session"):
             return ComplianceChecker(project_name="test-project", environment="prod")
 
-    def test_initialization(self, checker):
+    def test_initialization(self, checker) -> None:
         """Test ComplianceChecker initialization."""
         assert checker.project_name == "test-project"
         assert checker.environment == "prod"
         assert hasattr(checker, "checks")
 
-    def test_check_operational_excellence(self, checker):
+    def test_check_operational_excellence(self, checker) -> None:
         """Test operational excellence pillar checks."""
         with patch.object(checker, "check_cloudwatch_alarms") as mock_alarms:
             with patch.object(checker, "check_logging_enabled") as mock_logging:
@@ -311,7 +315,7 @@ class TestComplianceChecker:
                     assert results["score"] < 100  # Not perfect due to tagging
                     assert len(results["findings"]) > 0
 
-    def test_check_security_pillar(self, checker):
+    def test_check_security_pillar(self, checker) -> None:
         """Test security pillar checks."""
         with patch.object(checker, "check_encryption_at_rest") as mock_encryption:
             with patch.object(checker, "check_encryption_in_transit") as mock_transit:
@@ -326,7 +330,7 @@ class TestComplianceChecker:
                     assert results["score"] == 100  # All checks pass
                     assert len(results["findings"]) == 0
 
-    def test_check_reliability_pillar(self, checker):
+    def test_check_reliability_pillar(self, checker) -> None:
         """Test reliability pillar checks."""
         results = checker.check_reliability()
 
@@ -334,14 +338,14 @@ class TestComplianceChecker:
         assert "findings" in results
         assert "recommendations" in results
 
-    def test_check_performance_efficiency(self, checker):
+    def test_check_performance_efficiency(self, checker) -> None:
         """Test performance efficiency pillar checks."""
         results = checker.check_performance_efficiency()
 
         assert results["pillar"] == "Performance Efficiency"
         assert "score" in results
 
-    def test_check_cost_optimization(self, checker):
+    def test_check_cost_optimization(self, checker) -> None:
         """Test cost optimization pillar checks."""
         with patch.object(checker, "check_unused_resources") as mock_unused:
             with patch.object(checker, "check_right_sizing") as mock_sizing:
@@ -353,14 +357,14 @@ class TestComplianceChecker:
                 assert results["pillar"] == "Cost Optimization"
                 assert len(results["findings"]) > 0
 
-    def test_check_sustainability(self, checker):
+    def test_check_sustainability(self, checker) -> None:
         """Test sustainability pillar checks."""
         results = checker.check_sustainability()
 
         assert results["pillar"] == "Sustainability"
         assert "recommendations" in results
 
-    def test_full_compliance_check(self, checker):
+    def test_full_compliance_check(self, checker) -> None:
         """Test full Well-Architected compliance check."""
         report = checker.check_all_pillars()
 
@@ -375,12 +379,12 @@ class TestAWSSecurityScanner:
     """Test AWS security scanning functionality."""
 
     @pytest.fixture
-    def scanner(self):
+    def scanner(self) -> Any:
         """Create an AWSSecurityScanner instance."""
         with patch("boto3.Session"):
             return AWSSecurityScanner(region="us-east-1")
 
-    def test_scan_exposed_credentials(self, scanner):
+    def test_scan_exposed_credentials(self, scanner) -> None:
         """Test scanning for exposed credentials."""
         test_content = """
         export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
@@ -394,7 +398,7 @@ class TestAWSSecurityScanner:
         assert any("AWS_ACCESS_KEY" in f for f in findings)
         assert any("AWS_SECRET" in f for f in findings)
 
-    def test_check_mfa_enabled(self, scanner):
+    def test_check_mfa_enabled(self, scanner) -> None:
         """Test MFA enforcement check."""
         with patch.object(scanner.iam, "get_account_summary") as mock_summary:
             mock_summary.return_value = {
@@ -405,7 +409,7 @@ class TestAWSSecurityScanner:
 
             assert result is False
 
-    def test_check_password_policy(self, scanner):
+    def test_check_password_policy(self, scanner) -> None:
         """Test password policy compliance."""
         with patch.object(scanner.iam, "get_account_password_policy") as mock_policy:
             mock_policy.return_value = {
@@ -425,7 +429,7 @@ class TestAWSSecurityScanner:
             assert any("length" in issue.lower() for issue in issues)
             assert any("symbols" in issue.lower() for issue in issues)
 
-    def test_scan_public_resources(self, scanner):
+    def test_scan_public_resources(self, scanner) -> None:
         """Test scanning for publicly accessible resources."""
         with patch.object(scanner, "scan_public_s3_buckets") as mock_s3:
             with patch.object(scanner, "scan_public_rds_instances") as mock_rds:
@@ -444,7 +448,7 @@ class TestAWSSecurityScanner:
 class TestSecurityRecommendations:
     """Test security recommendation generation."""
 
-    def test_generate_s3_recommendations(self):
+    def test_generate_s3_recommendations(self) -> None:
         """Test S3 security recommendations."""
         from security.audit import generate_s3_recommendations
 
@@ -459,7 +463,7 @@ class TestSecurityRecommendations:
         assert any("public access" in r.lower() for r in recommendations)
         assert any("encryption" in r.lower() for r in recommendations)
 
-    def test_generate_iam_recommendations(self):
+    def test_generate_iam_recommendations(self) -> None:
         """Test IAM security recommendations."""
         from security.audit import generate_iam_recommendations
 
