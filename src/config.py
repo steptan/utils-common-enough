@@ -20,7 +20,7 @@ class ProjectConfig:
     # Project identification
     name: str
     display_name: str
-    aws_region: str = "us-east-1"
+    aws_region: str = "us-west-1"
     aws_account_id: Optional[str] = None
 
     # Environment settings
@@ -110,6 +110,49 @@ class ProjectConfig:
     def get_stack_name(self, environment: str) -> str:
         """Get the CloudFormation stack name for an environment."""
         return self.format_name(self.stack_name_pattern, environment=environment)
+    
+    def get_resource_name(self, resource_type: str, resource_name: str, environment: str) -> str:
+        """Get resource name following new naming convention.
+        
+        Pattern: {project-code}-{env}-{resource-name}
+        Uses 3-letter project codes and env codes
+        """
+        project_code = self.get_project_code()
+        env_code = self.get_environment_code(environment)
+        return f"{project_code}-{env_code}-{resource_name}"
+    
+    def get_project_code(self) -> str:
+        """Get 3-letter project code."""
+        project_codes = {
+            "fraud-or-not": "fon",
+            "people-cards": "pec", 
+            "media-register": "mer"
+        }
+        return project_codes.get(self.name, self.name[:3].lower())
+    
+    def get_environment_code(self, environment: str) -> str:
+        """Get 3-letter environment code."""
+        env_codes = {
+            "development": "dev",
+            "staging": "stg",
+            "production": "prd",
+            "dev": "dev",
+            "stg": "stg", 
+            "prod": "prd"
+        }
+        return env_codes.get(environment, environment[:3].lower())
+    
+    def get_dynamodb_table_name(self, table_name: str, environment: str) -> str:
+        """Get DynamoDB table name following naming convention."""
+        return self.get_resource_name("table", table_name, environment)
+    
+    def get_s3_bucket_name(self, bucket_purpose: str, environment: str) -> str:
+        """Get S3 bucket name following naming convention."""
+        return self.get_resource_name("bucket", bucket_purpose, environment)
+    
+    def get_lambda_function_name(self, function_name: str, environment: str) -> str:
+        """Get Lambda function name following naming convention."""
+        return self.get_resource_name("function", function_name, environment)
 
     def get_lambda_bucket(self, environment: str) -> str:
         """Get the Lambda deployment bucket name."""
@@ -137,7 +180,7 @@ class ConfigManager:
         "fraud-or-not": {
             "name": "fraud-or-not",
             "display_name": "Fraud or Not",
-            "aws_region": "us-east-1",
+            "aws_region": "us-west-1",
             "lambda_runtime": "nodejs20.x",
             "frontend_build_command": "npm run build",
             "frontend_dist_dir": "out",

@@ -17,11 +17,17 @@ class BucketRotationManager:
     """
     Manages rotating S3 buckets for Lambda deployments.
 
-    Pattern: {project}-lambda-{environment}-{thousands:03d}-{number:03d}
-    Example: people-cards-lambda-staging-001-023
+    Pattern: 
+    - prod: {project}-lambda-{thousands:03d}-{number:03d}
+    - dev/staging: {environment}-{project}-lambda-{thousands:03d}-{number:03d}
+    Examples: 
+    - prod: people-cards-lambda-001-023
+    - staging: staging-people-cards-lambda-001-023
     """
 
-    BUCKET_PATTERN = r"^(.+)-lambda-(.+)-(\d{3})-(\d{3})$"
+    # Two patterns to handle both naming conventions
+    PROD_BUCKET_PATTERN = r"^(.+)-lambda-(\d{3})-(\d{3})$"
+    ENV_BUCKET_PATTERN = r"^(.+)-(.+)-lambda-(\d{3})-(\d{3})$"
     RETENTION_COUNT = 10  # Keep last 10 buckets
 
     def __init__(
@@ -51,15 +57,28 @@ class BucketRotationManager:
         Returns:
             Tuple of (project, environment, thousands, number) or None if not matching
         """
-        match = re.match(self.BUCKET_PATTERN, bucket_name)
+        # Try environment-prefixed pattern first (dev/staging)
+        match = re.match(self.ENV_BUCKET_PATTERN, bucket_name)
         if match:
-            project, env, thousands, number = match.groups()
+            env, project, thousands, number = match.groups()
             return project, env, int(thousands), int(number)
+        
+        # Try prod pattern (no environment prefix)
+        match = re.match(self.PROD_BUCKET_PATTERN, bucket_name)
+        if match:
+            project, thousands, number = match.groups()
+            # Check if this is our project and assume prod environment
+            if project == self.project_name and self.environment == "prod":
+                return project, "prod", int(thousands), int(number)
+        
         return None
 
     def _format_bucket_name(self, thousands: int, number: int) -> str:
-        """Format bucket name with given numbers."""
-        return f"{self.project_name}-lambda-{self.environment}-{thousands:03d}-{number:03d}"
+        """Format bucket name with given numbers following new naming convention."""
+        if self.environment == "prod":
+            return f"{self.project_name}-lambda-{thousands:03d}-{number:03d}"
+        else:
+            return f"{self.environment}-{self.project_name}-lambda-{thousands:03d}-{number:03d}"
 
     def _get_bucket_number(self, thousands: int, number: int) -> int:
         """Convert thousands and number to single integer."""

@@ -29,7 +29,7 @@ class StorageConstruct:
     Creates DynamoDB tables, S3 buckets, and related resources.
     """
 
-    def __init__(self, template: Template, config: Dict[str, Any], environment: str):
+    def __init__(self, template: Template, config: Dict[str, Any], environment: str, project_config=None):
         """
         Initialize storage construct.
 
@@ -37,10 +37,12 @@ class StorageConstruct:
             template: CloudFormation template to add resources to
             config: Storage configuration from project config
             environment: Deployment environment (dev/staging/prod)
+            project_config: ProjectConfig instance for naming conventions
         """
         self.template = template
         self.config = config
         self.environment = environment
+        self.project_config = project_config
         self.resources: Dict[str, Any] = {}
         self.tables: Dict[str, Any] = {}
         self.buckets: Dict[str, Any] = {}
@@ -58,13 +60,23 @@ class StorageConstruct:
         for table_config in tables_config:
             table_name = table_config["name"]
 
-            # Generate full table name
+            # Generate full table name using new 3-letter naming convention
             if "name_pattern" in table_config:
                 full_table_name = Sub(table_config["name_pattern"])
+            elif self.project_config:
+                # Use new naming convention: proj-env-resource
+                table_resource_name = self.project_config.get_resource_name("table", table_name, self.environment)
+                full_table_name = table_resource_name
             else:
-                full_table_name = Sub(
-                    f"${{AWS::StackName}}-{table_name}-{self.environment}"
-                )
+                # Fallback to old naming convention
+                if self.environment == "prod":
+                    full_table_name = Sub(
+                        f"${{AWS::StackName}}-{table_name}"
+                    )
+                else:
+                    full_table_name = Sub(
+                        f"{self.environment}-${{AWS::StackName}}-{table_name}"
+                    )
 
             # Key schema
             key_schema = []
@@ -213,13 +225,23 @@ class StorageConstruct:
         for bucket_config in buckets_config:
             bucket_name = bucket_config["name"]
 
-            # Generate bucket name
+            # Generate bucket name using new 3-letter naming convention
             if "name_pattern" in bucket_config:
                 bucket_name_ref = Sub(bucket_config["name_pattern"])
+            elif self.project_config:
+                # Use new naming convention: proj-env-resource
+                bucket_resource_name = self.project_config.get_resource_name("bucket", bucket_name, self.environment)
+                bucket_name_ref = bucket_resource_name
             else:
-                bucket_name_ref = Sub(
-                    f"${{AWS::StackName}}-{bucket_name}-{self.environment}"
-                )
+                # Fallback to old naming convention
+                if self.environment == "prod":
+                    bucket_name_ref = Sub(
+                        f"${{AWS::StackName}}-{bucket_name}"
+                    )
+                else:
+                    bucket_name_ref = Sub(
+                        f"{self.environment}-${{AWS::StackName}}-{bucket_name}"
+                    )
 
             # Create bucket
             bucket = s3.Bucket(

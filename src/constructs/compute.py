@@ -35,6 +35,7 @@ class ComputeConstruct:
         environment: str,
         vpc_config: Optional[Dict[str, Any]] = None,
         dynamodb_tables: Optional[Dict[str, Any]] = None,
+        project_config=None,
     ):
         """
         Initialize compute construct.
@@ -45,6 +46,7 @@ class ComputeConstruct:
             environment: Deployment environment (dev/staging/prod)
             vpc_config: Optional VPC configuration for Lambda
             dynamodb_tables: Optional DynamoDB table references
+            project_config: ProjectConfig instance for naming conventions
         """
         self.template = template
         self.config = config
@@ -53,6 +55,7 @@ class ComputeConstruct:
             None  # Always None - Lambda runs without VPC for cost optimization
         )
         self.dynamodb_tables = dynamodb_tables or {}
+        self.project_config = project_config
         self.resources: Dict[str, Any] = {}
 
         # Create compute resources
@@ -179,9 +182,19 @@ class ComputeConstruct:
                 ZipFile="// Placeholder Lambda function\nexports.handler = async (event) => {\n    return {\n        statusCode: 200,\n        body: JSON.stringify({ message: 'Hello from Lambda!' })\n    };\n};"
             )
 
-        # Build function properties
+        # Build function properties using new 3-letter naming convention
+        if self.project_config:
+            # Use new naming convention: proj-env-resource
+            function_name = self.project_config.get_resource_name("function", "api", self.environment)
+        else:
+            # Fallback to old naming convention
+            if self.environment == "prod":
+                function_name = Sub(f"${{AWS::StackName}}-api")
+            else:
+                function_name = Sub(f"{self.environment}-${{AWS::StackName}}-api")
+        
         function_props = {
-            "FunctionName": Sub(f"${{AWS::StackName}}-api-{self.environment}"),
+            "FunctionName": function_name,
             "Runtime": lambda_config.get("runtime", "nodejs20.x"),
             "Code": code_config,
             "Handler": lambda_config.get("handler", "index.handler"),
@@ -217,12 +230,21 @@ class ComputeConstruct:
         """Create CloudWatch log group for Lambda function."""
         retention_days = self.config.get("monitoring", {}).get("log_retention_days", 30)
 
+        # Use new 3-letter naming convention for log group
+        if self.project_config:
+            lambda_name = self.project_config.get_resource_name("function", "api", self.environment)
+            log_group_name = f"/aws/lambda/{lambda_name}"
+        else:
+            # Fallback to old naming convention
+            if self.environment == "prod":
+                log_group_name = Sub(f"/aws/lambda/${{AWS::StackName}}-api")
+            else:
+                log_group_name = Sub(f"/aws/lambda/{self.environment}-${{AWS::StackName}}-api")
+        
         self.log_group = self.template.add_resource(
             logs.LogGroup(
                 "LambdaLogGroup",
-                LogGroupName=Sub(
-                    f"/aws/lambda/${{AWS::StackName}}-api-{self.environment}"
-                ),
+                LogGroupName=log_group_name,
                 RetentionInDays=retention_days,
             )
         )
@@ -231,11 +253,20 @@ class ComputeConstruct:
         """Create API Gateway REST API."""
         api_config = self.config.get("api_gateway", {})
 
-        # REST API
+        # REST API using new 3-letter naming convention
+        if self.project_config:
+            api_name = self.project_config.get_resource_name("api", "gateway", self.environment)
+        else:
+            # Fallback to old naming convention
+            if self.environment == "prod":
+                api_name = Sub(f"${{AWS::StackName}}-api")
+            else:
+                api_name = Sub(f"{self.environment}-${{AWS::StackName}}-api")
+        
         self.api = self.template.add_resource(
             apigateway.RestApi(
                 "RestAPI",
-                Name=Sub(f"${{AWS::StackName}}-api-{self.environment}"),
+                Name=api_name,
                 Description=f"API Gateway for {self.environment}",
                 EndpointConfiguration=apigateway.EndpointConfiguration(
                     Types=["REGIONAL"]
