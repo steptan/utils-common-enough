@@ -310,8 +310,10 @@ class UnifiedPermissionManager:
                     )
 
                     # Add project prefix to avoid conflicts
+                    # Sanitize project name for SID (alphanumeric only)
+                    sanitized_project = ''.join(c for c in project_name if c.isalnum())
                     for statement in cat_policy["Statement"]:
-                        statement["Sid"] = f"{project_name}_{statement['Sid']}"
+                        statement["Sid"] = f"{sanitized_project}{statement['Sid']}"
                         policy_statements.append(statement)
 
                 if policy_statements:
@@ -593,8 +595,10 @@ def generate(user: str, output: str, projects: tuple, profile: str, category: st
             manager.account_id, category
         )
 
+        # Sanitize project name for SID (alphanumeric only)
+        sanitized_project = ''.join(c for c in project_name if c.isalnum())
         for statement in cat_policy["Statement"]:
-            statement["Sid"] = f"{project_name}_{statement['Sid']}"
+            statement["Sid"] = f"{sanitized_project}{statement['Sid']}"
             policy_statements.append(statement)
 
     policy = {"Version": "2012-10-17", "Statement": policy_statements}

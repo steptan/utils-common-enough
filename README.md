@@ -60,6 +60,37 @@ Project configurations are stored in the `config/` directory within the utils pr
 
 Each configuration file contains project-specific settings like AWS region, Lambda runtime, build commands, and custom features. See `config/README.md` for detailed documentation.
 
+## 3-Letter Naming Convention
+
+The utils module now supports a standardized 3-letter naming convention for all AWS resources, providing shorter and more consistent resource names.
+
+### Pattern: `[PROJ]-[ENV]-[resource-name]`
+
+**Project Codes:**
+- `fon` = fraud-or-not
+- `pec` = people-cards  
+- `mer` = media-register
+
+**Environment Codes:**
+- `dev` = development
+- `stg` = staging
+- `prd` = production
+
+**Examples:**
+```
+fon-dev-frontend          # S3 bucket for fraud-or-not dev frontend
+pec-stg-api              # Lambda function for people-cards staging API
+mer-prd-dynamodb-users   # DynamoDB table for media-register prod users
+```
+
+**Features:**
+- Enabled by default for all new deployments
+- Automatic conversion from full project/environment names
+- Migration tools for existing resources
+- Support for legacy naming during transition
+
+See `docs/3-letter-naming-convention.md` for detailed documentation and migration guide.
+
 ## CLI Commands
 
 ### Deployment

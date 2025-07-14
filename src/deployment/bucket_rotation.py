@@ -10,6 +10,8 @@ from typing import Dict, List, Optional, Tuple
 import boto3
 from botocore.exceptions import ClientError
 
+from naming import NamingConvention
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,9 +21,13 @@ class BucketRotationManager:
 
     Pattern: {project}-lambda-{environment}-{thousands:03d}-{number:03d}
     Example: people-cards-lambda-staging-001-023
+    
+    With 3-letter naming: {proj}-{env}-lambda-{thousands:03d}-{number:03d}
+    Example: pec-stg-lambda-001-023
     """
 
     BUCKET_PATTERN = r"^(.+)-lambda-(.+)-(\d{3})-(\d{3})$"
+    BUCKET_PATTERN_3LETTER = r"^([a-z]{3})-([a-z]{3})-lambda-(\d{3})-(\d{3})$"
     RETENTION_COUNT = 10  # Keep last 10 buckets
 
     def __init__(
@@ -41,6 +47,11 @@ class BucketRotationManager:
         self.region = region
         self.account_id = account_id
         self.s3_client = boto3.client("s3", region_name=region)
+        
+        # Always use 3-letter naming convention
+        self.bucket_pattern = self.BUCKET_PATTERN_3LETTER
+        self.project_code = NamingConvention.get_project_code(project_name)
+        self.env_code = NamingConvention.get_environment_code(environment)
 
     def _parse_bucket_name(
         self, bucket_name: str
@@ -51,15 +62,17 @@ class BucketRotationManager:
         Returns:
             Tuple of (project, environment, thousands, number) or None if not matching
         """
-        match = re.match(self.BUCKET_PATTERN, bucket_name)
-        if match:
-            project, env, thousands, number = match.groups()
-            return project, env, int(thousands), int(number)
+        # Try both patterns
+        for pattern in [self.bucket_pattern, self.BUCKET_PATTERN, self.BUCKET_PATTERN_3LETTER]:
+            match = re.match(pattern, bucket_name)
+            if match:
+                project, env, thousands, number = match.groups()
+                return project, env, int(thousands), int(number)
         return None
 
     def _format_bucket_name(self, thousands: int, number: int) -> str:
         """Format bucket name with given numbers."""
-        return f"{self.project_name}-lambda-{self.environment}-{thousands:03d}-{number:03d}"
+        return f"{self.project_code}-{self.env_code}-lambda-{thousands:03d}-{number:03d}"
 
     def _get_bucket_number(self, thousands: int, number: int) -> int:
         """Convert thousands and number to single integer."""
@@ -85,23 +98,24 @@ class BucketRotationManager:
                 bucket_name = bucket["Name"]
                 parsed = self._parse_bucket_name(bucket_name)
 
-                if (
-                    parsed
-                    and parsed[0] == self.project_name
-                    and parsed[1] == self.environment
-                ):
-                    _, _, thousands, number = parsed
-                    total = self._get_bucket_number(thousands, number)
+                if parsed:
+                    project_match, env_match, thousands, number = parsed
+                    
+                    # Check if this bucket belongs to our project/environment
+                    matches = (project_match == self.project_code and env_match == self.env_code)
+                    
+                    if matches:
+                        total = self._get_bucket_number(thousands, number)
 
-                    matching_buckets.append(
-                        {
-                            "name": bucket_name,
-                            "thousands": thousands,
-                            "number": number,
-                            "total": total,
-                            "creation_date": bucket.get("CreationDate"),
-                        }
-                    )
+                        matching_buckets.append(
+                            {
+                                "name": bucket_name,
+                                "thousands": thousands,
+                                "number": number,
+                                "total": total,
+                                "creation_date": bucket.get("CreationDate"),
+                            }
+                        )
 
             # Sort by total number
             matching_buckets.sort(key=lambda x: x["total"])

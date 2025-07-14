@@ -12,6 +12,8 @@ from typing import Any, Dict, Optional, Union
 
 import yaml
 
+from naming import NamingConvention
+
 
 @dataclass
 class ProjectConfig:
@@ -96,16 +98,44 @@ class ProjectConfig:
     # Additional patterns that can be loaded from config
     bucket_patterns: Dict[str, str] = field(default_factory=dict)
     table_patterns: Dict[str, str] = field(default_factory=dict)
+    
+    # Naming convention - Always use 3-letter naming
 
     def format_name(self, pattern: str, **kwargs) -> str:
-        """Format a naming pattern with project variables."""
-        variables = {
-            "project": self.name,
-            "display_name": self.display_name,
-            "account_id": self.aws_account_id or "unknown",
-            **kwargs,
-        }
-        return pattern.format(**variables)
+        """Format a naming pattern with project variables using 3-letter naming convention."""
+        project_code = NamingConvention.get_project_code(self.name)
+        env_code = NamingConvention.get_environment_code(kwargs.get("environment", self.default_environment))
+        
+        # For simple patterns, use the new naming convention
+        if "{project}-{environment}" in pattern:
+            # Extract resource name from pattern or use a default
+            resource = kwargs.get("resource", "main")
+            return NamingConvention.format_resource_name(project_code, env_code, resource)
+        elif pattern == self.stack_name_pattern:
+            # Special handling for stack names
+            return f"{project_code}-{env_code}"
+        elif pattern == self.frontend_bucket_pattern:
+            return f"{project_code}-{env_code}-frontend"
+        elif pattern == self.lambda_bucket_pattern:
+            # Lambda buckets include account ID
+            account_id = self.aws_account_id or "unknown"
+            return f"{project_code}-{env_code}-lambda-{account_id}"
+        elif pattern == self.media_bucket_pattern:
+            return f"{project_code}-{env_code}-media"
+        elif pattern == self.logs_bucket_pattern:
+            return f"{project_code}-{env_code}-logs"
+        elif pattern == self.lambda_role_pattern:
+            return f"{project_code}-{env_code}-lambda-role"
+        else:
+            # For other patterns, substitute with codes
+            variables = {
+                "project": project_code,
+                "display_name": self.display_name,
+                "account_id": self.aws_account_id or "unknown",
+                "environment": env_code,
+                **kwargs,
+            }
+            return pattern.format(**variables)
 
     def get_stack_name(self, environment: str) -> str:
         """Get the CloudFormation stack name for an environment."""
@@ -137,7 +167,7 @@ class ConfigManager:
         "fraud-or-not": {
             "name": "fraud-or-not",
             "display_name": "Fraud or Not",
-            "aws_region": "us-east-1",
+            "aws_region": "us-west-1",
             "lambda_runtime": "nodejs20.x",
             "frontend_build_command": "npm run build",
             "frontend_dist_dir": "out",

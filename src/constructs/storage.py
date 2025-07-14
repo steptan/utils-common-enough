@@ -62,8 +62,11 @@ class StorageConstruct:
             if "name_pattern" in table_config:
                 full_table_name = Sub(table_config["name_pattern"])
             else:
+                # Use stack name directly (already includes project code and env)
+                # Stack name format is already: {proj}-{env}
+                # So table name becomes: {proj}-{env}-{table_name}
                 full_table_name = Sub(
-                    f"${{AWS::StackName}}-{table_name}-{self.environment}"
+                    f"${{AWS::StackName}}-{table_name}"
                 )
 
             # Key schema
@@ -217,8 +220,11 @@ class StorageConstruct:
             if "name_pattern" in bucket_config:
                 bucket_name_ref = Sub(bucket_config["name_pattern"])
             else:
+                # Use stack name directly (already includes project code and env)
+                # Stack name format is already: {proj}-{env}
+                # So bucket name becomes: {proj}-{env}-{bucket_name}
                 bucket_name_ref = Sub(
-                    f"${{AWS::StackName}}-{bucket_name}-{self.environment}"
+                    f"${{AWS::StackName}}-{bucket_name}"
                 )
 
             # Create bucket

@@ -105,9 +105,15 @@ class FraudOrNotDeployer(InfrastructureDeployer):
         from constructs.storage import StorageConstruct
 
         # Initialize template
+        # Always use 3-letter naming convention
+        from naming import NamingConvention
+        project_code = NamingConvention.get_project_code(self.project_name)
+        env_code = NamingConvention.get_environment_code(self.environment)
+        description = f"{project_code.upper()} Infrastructure - {env_code}"
+            
         template: Dict[str, Any] = {
             "AWSTemplateFormatVersion": "2010-09-09",
-            "Description": f"Fraud-or-Not Infrastructure - {self.environment}",
+            "Description": description,
             "Parameters": {},
             "Resources": {},
             "Outputs": {},
@@ -179,7 +185,11 @@ class FraudOrNotDeployer(InfrastructureDeployer):
             return True
 
         # Deploy using CloudFormation
-        stack_name = f"{self.project_name}-{self.environment}"
+        # Always use 3-letter naming convention
+        from naming import NamingConvention
+        project_code = NamingConvention.get_project_code(self.project_name)
+        env_code = NamingConvention.get_environment_code(self.environment)
+        stack_name = f"{project_code}-{env_code}"
         stack_manager = StackManager(region=self.region)
 
         try:
